@@ -17,9 +17,9 @@ import json
 import os
 import re
 import struct
-import subprocess
 import sys
 import urllib.request
+import urllib.error
 from pathlib import Path
 
 # ============================================================================
@@ -45,7 +45,7 @@ PRESET_COLORS = {
     "sky_blue": (0.4, 0.7, 1.0),
     "cyan":     (0.0, 0.8, 0.8),
     "pink":     (0.9, 0.3, 0.5),
-    "matte_black": (0.02, 0.02, 0.02),
+    "matte_black": (0.05, 0.05, 0.05),  # Slightly lighter than gloss black
     "champagne": (0.85, 0.75, 0.6),
 }
 
@@ -66,15 +66,15 @@ def log_error(msg):
     print(f"\033[31m[ERROR]\033[0m {msg}")
 
 def log_success(msg):
-    print(f"\033[32m[✓]\033[0m {msg}")
+    print(f"\033[32m[OK]\033[0m {msg}")
 
 def extract_uid_from_url(url):
     """Extract model UID from Sketchfab URL"""
-    # Handle various URL formats
+    # Handle various URL formats (stop at ? or # for query params)
     patterns = [
-        r'sketchfab\.com/3d-models/.*-([a-f0-9]{32})',
-        r'sketchfab\.com/3d-models/([a-f0-9]{32})',
-        r'models/([a-f0-9]{32})',
+        r'sketchfab\.com/3d-models/.*-([a-f0-9]{32})(?:[?#]|$)',
+        r'sketchfab\.com/3d-models/([a-f0-9]{32})(?:[?#]|$)',
+        r'models/([a-f0-9]{32})(?:[?#]|$)',
     ]
 
     for pattern in patterns:
@@ -89,43 +89,74 @@ def extract_uid_from_url(url):
     return None
 
 def api_request(endpoint, token=None):
-    """Make Sketchfab API request"""
+    """Make Sketchfab API request with size limits"""
     url = f"https://api.sketchfab.com/v3{endpoint}"
-    headers = {}
+    headers = {"User-Agent": "NIO-Racing-Plus/1.0"}
     if token:
         headers["Authorization"] = f"Token {token}"
 
     req = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            # Limit response size to 10MB for API calls
+            content = resp.read(10 * 1024 * 1024)
+            return json.loads(content)
+    except urllib.error.URLError as e:
+        log_error(f"API request failed: {e.reason}")
+        return None
+    except json.JSONDecodeError as e:
+        log_error(f"Invalid JSON response: {e}")
+        return None
     except Exception as e:
         log_error(f"API request failed: {e}")
         return None
 
-def download_file(url, output_path, desc="Downloading"):
-    """Download file with progress"""
-    req = urllib.request.Request(url)
-    with urllib.request.urlopen(req, timeout=600) as resp:
-        total = int(resp.headers.get('Content-Length', 0))
-        downloaded = 0
-        block_size = 1024 * 1024  # 1MB
+def download_file(url, output_path, desc="Downloading", max_size_mb=500):
+    """Download file with progress and size limit"""
+    req = urllib.request.Request(url, headers={"User-Agent": "NIO-Racing-Plus/1.0"})
+    max_bytes = max_size_mb * 1024 * 1024
 
-        with open(output_path, 'wb') as f:
-            while True:
-                chunk = resp.read(block_size)
-                if not chunk:
-                    break
-                f.write(chunk)
-                downloaded += len(chunk)
-                if total > 0:
-                    pct = downloaded * 100 / total
-                    mb_down = downloaded // (1024 * 1024)
-                    mb_total = total // (1024 * 1024)
-                    print(f"\r  {desc}: {pct:.1f}% ({mb_down}/{mb_total} MB)", end="", flush=True)
+    try:
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            total = int(resp.headers.get('Content-Length', 0))
 
-        print()
-        return downloaded
+            # Check file size before downloading
+            if total > max_bytes:
+                log_error(f"File too large ({total // (1024*1024)} MB > {max_size_mb} MB limit)")
+                return None
+
+            downloaded = 0
+            block_size = 1024 * 1024  # 1MB
+
+            with open(output_path, 'wb') as f:
+                while True:
+                    chunk = resp.read(block_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    downloaded += len(chunk)
+
+                    # Safety check during download
+                    if downloaded > max_bytes:
+                        log_error(f"Download exceeded size limit ({max_size_mb} MB)")
+                        f.close()
+                        os.remove(output_path)
+                        return None
+
+                    if total > 0:
+                        pct = downloaded * 100 / total
+                        mb_down = downloaded // (1024 * 1024)
+                        mb_total = total // (1024 * 1024)
+                        print(f"\r  {desc}: {pct:.1f}% ({mb_down}/{mb_total} MB)", end="", flush=True)
+
+            print()
+            return downloaded
+    except urllib.error.URLError as e:
+        log_error(f"Download failed: {e.reason}")
+        return None
+    except Exception as e:
+        log_error(f"Download failed: {e}")
+        return None
 
 # ============================================================================
 # Model Analysis
@@ -386,13 +417,19 @@ class GLBProcessor:
 
     def get_stats(self):
         """Get model statistics"""
+        if not self.gltf:
+            return {"faces": 0, "materials": 0, "textures": 0}
+
+        faces = 0
+        for m in self.gltf.get("meshes", []):
+            prims = m.get("primitives") or [{}]
+            if prims and "indices" in prims[0]:
+                faces += len(prims[0]["indices"]) // 3
+
         return {
-            "faces": sum(
-                len(m.get("primitives", [{}])[0].get("indices", [])) // 3
-                for m in self.gltf.get("meshes", [])
-            ) if self.gltf else 0,
-            "materials": len(self.gltf.get("materials", [])) if self.gltf else 0,
-            "textures": len(self.gltf.get("textures", [])) if self.gltf else 0,
+            "faces": faces,
+            "materials": len(self.gltf.get("materials", [])),
+            "textures": len(self.gltf.get("textures", [])),
         }
 
 # ============================================================================
@@ -493,6 +530,8 @@ class VehicleConfigGenerator:
         """Generate C++ vehicle class files"""
         log_step("Generating vehicle class...")
 
+        class_name = f"A{self.vehicle_id}"
+
         # Header file
         header = f"""// Copyright NomiRacingPlus Project. All Rights Reserved.
 // Auto-generated by add_vehicle.py
@@ -501,19 +540,19 @@ class VehicleConfigGenerator:
 
 #include "CoreMinimal.h"
 #include "Vehicles/NIOVehicleBase.h"
-#include "A{self.vehicle_id}.generated.h"
+#include "{class_name}.generated.h"
 
 /**
  * {self.display_name}
  * Custom vehicle added via Sketchfab import
  */
 UCLASS(Blueprintable)
-class NOMIRACINGPLUS_API AA{self.vehicle_id} : public ANIOVehicleBase
+class NOMIRACINGPLUS_API {class_name} : public ANIOVehicleBase
 {{
 \tGENERATED_BODY()
 
 public:
-\tAA{self.vehicle_id}();
+\t{class_name}();
 }};
 """
 
@@ -521,23 +560,23 @@ public:
         impl = f"""// Copyright NomiRacingPlus Project. All Rights Reserved.
 // Auto-generated by add_vehicle.py
 
-#include "Vehicles/A{self.vehicle_id}.h"
+#include "Vehicles/{class_name}.h"
 
-AA{self.vehicle_id}::AA{self.vehicle_id}()
+{class_name}::{class_name}()
 {{
 \tVehicleType = ENIOVehicleType::Custom;
 }}
 """
 
-        header_path = PROJECT_DIR / "Source" / "NomiRacingPlus" / "Vehicles" / f"A{self.vehicle_id}.h"
-        impl_path = PROJECT_DIR / "Source" / "NomiRacingPlus" / "Vehicles" / f"A{self.vehicle_id}.cpp"
+        header_path = PROJECT_DIR / "Source" / "NomiRacingPlus" / "Vehicles" / f"{class_name}.h"
+        impl_path = PROJECT_DIR / "Source" / "NomiRacingPlus" / "Vehicles" / f"{class_name}.cpp"
 
         with open(header_path, 'w') as f:
             f.write(header)
         with open(impl_path, 'w') as f:
             f.write(impl)
 
-        log_success(f"Vehicle class: A{self.vehicle_id}")
+        log_success(f"Vehicle class: {class_name}")
         return header_path, impl_path
 
     def update_vehicle_config(self, specs):
@@ -685,6 +724,16 @@ def add_vehicle(url, color=None, name=None, api_token=None):
     vehicle_id = re.sub(r'[^a-zA-Z0-9]', '', name.title().replace(" ", ""))
     vehicle_id = vehicle_id[:20]  # Limit length
 
+    # Check for ID collision and add suffix if needed
+    existing_dir = VEHICLES_DIR / vehicle_id
+    if existing_dir.exists():
+        suffix = 1
+        while existing_dir.exists():
+            suffix += 1
+            existing_dir = VEHICLES_DIR / f"{vehicle_id}{suffix}"
+        vehicle_id = f"{vehicle_id}{suffix}"
+        log_warn(f"Vehicle ID collision, using: {vehicle_id}")
+
     log_info(f"Vehicle ID: {vehicle_id}")
     log_info(f"Display Name: {name}")
 
@@ -734,6 +783,7 @@ def add_vehicle(url, color=None, name=None, api_token=None):
     generator.generate_motor_sound()
 
     # Step 5: Summary
+    class_name = f"A{vehicle_id}"
     print()
     print("=" * 50)
     print("  Vehicle Added Successfully!")
@@ -747,16 +797,16 @@ def add_vehicle(url, color=None, name=None, api_token=None):
     print(f"  0-100:     {specs['acceleration_0_100']}s")
     print()
     print("  Files created:")
-    print(f"    • Content/Vehicles/{vehicle_id}/source.glb")
-    print(f"    • Content/Vehicles/{vehicle_id}_Physics.json")
-    print(f"    • Content/Audio/Motor/{vehicle_id}_motor_loop.wav")
-    print(f"    • Source/.../Vehicles/A{vehicle_id}.h")
-    print(f"    • Source/.../Vehicles/A{vehicle_id}.cpp")
+    print(f"    - Content/Vehicles/{vehicle_id}/source.glb")
+    print(f"    - Content/Vehicles/{vehicle_id}_Physics.json")
+    print(f"    - Content/Audio/Motor/{vehicle_id}_motor_loop.wav")
+    print(f"    - Source/.../Vehicles/{class_name}.h")
+    print(f"    - Source/.../Vehicles/{class_name}.cpp")
     print()
     print("  Config updated:")
-    print(f"    • VehicleConfig.json (+{vehicle_id})")
-    print(f"    • AudioConfig.json (+{vehicle_id})")
-    print(f"    • DefaultGameplayTags.ini (+Vehicle.Custom.{vehicle_id})")
+    print(f"    - VehicleConfig.json (+{vehicle_id})")
+    print(f"    - AudioConfig.json (+{vehicle_id})")
+    print(f"    - DefaultGameplayTags.ini (+Vehicle.Custom.{vehicle_id})")
     print()
     print("  Next steps:")
     print(f"    1. Build project in UE5")
