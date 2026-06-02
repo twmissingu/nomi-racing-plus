@@ -1,5 +1,11 @@
 # NIO Racing Plus - Git Ignore
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
 # Assets directory (large binary files, download separately)
 Assets/
 
@@ -13,17 +19,21 @@ NomiRacingPlus/*.sln
 NomiRacingPlus/*.suo
 
 # Content binary files (textures, audio, meshes)
-Content/Audio/Motor/*.wav
-Content/Audio/SFX/*.wav
-Content/Audio/UI/*.wav
-Content/Audio/Music/*.wav
-Content/Textures/
-Content/Materials/*.uasset
-Content/Vehicles/*/Meshes/*.fbx
-Content/Vehicles/*/Textures/*.png
+# These are generated/downloaded assets, not source code
+NomiRacingPlus/Content/Audio/Motor/*.wav
+NomiRacingPlus/Content/Audio/SFX/*.wav
+NomiRacingPlus/Content/Audio/UI/*.wav
+NomiRacingPlus/Content/Audio/Music/*.wav
+NomiRacingPlus/Content/Textures/
+NomiRacingPlus/Content/Materials/*.uasset
+NomiRacingPlus/Content/Vehicles/*/Meshes/*.fbx
+NomiRacingPlus/Content/Vehicles/*/Textures/*.png
 
 # Keep JSON configuration files
-!Content/**/*.json
+!NomiRacingPlus/Content/**/*.json
+
+# Keep audio generation scripts
+!NomiRacingPlus/Assets/Audio/*.py
 
 # OS files
 .DS_Store
