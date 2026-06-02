@@ -1,0 +1,115 @@
+{
+  "overtake": {
+    "first_place": [
+      "漂亮！{player}超越了{rival}，现在领跑！",
+      "精彩的超车！{player}抓住了内线机会！",
+      "完美的超越！{player}现在位居第一！"
+    ],
+    "mid_pack": [
+      "{player}又超了一辆！现在排第{position}！",
+      "连续超车！{player}正在追赶领先集团！",
+      "漂亮的走线！{player}成功超越！"
+    ],
+    "last_place": [
+      "加油{player}！超了一辆，继续努力！",
+      "好样的{player}！保持这个势头！"
+    ]
+  },
+  "overtaken": {
+    "first_place": [
+      "{rival}超了{player}，但别担心，还有机会！",
+      "被超了！{player}需要加速追赶！"
+    ],
+    "mid_pack": [
+      "{rival}超过了{player}，第{position}名",
+      "被超了！{player}要找机会反超！"
+    ],
+    "last_place": [
+      "别灰心{player}，专注跑好每一圈！",
+      "被超了没关系，{player}继续加油！"
+    ]
+  },
+  "drift": {
+    "short": [
+      "漂亮的漂移！{player}在{corner}展现了技术！",
+      "完美的漂移角度！{player}太厉害了！",
+      "漂移！{player}的控车技术一流！"
+    ],
+    "long": [
+      "天呐！{player}漂移了整整{duration}秒！这角度太完美了！",
+      "史诗级漂移！{player}创造了{duration}秒的记录！",
+      "这也太帅了！{player}的漂移简直教科书级别！"
+    ]
+  },
+  "lap_complete": {
+    "fastest": [
+      "最快圈速！{player}跑了{time}！新纪录！",
+      "太强了！{player}刷新了最快圈速！",
+      "破纪录！{player}的{time}是目前最快！"
+    ],
+    "normal": [
+      "第{lap}圈完成，用时{time}。",
+      "{player}完成了第{lap}圈，{time}。",
+      "圈速{time}，{player}继续加油！"
+    ]
+  },
+  "high_speed": [
+    "速度已经突破{speed}km/h了！{player}小心驾驶！",
+    "太快了！{speed}km/h！{player}要注意安全！",
+    "极速飞驰！{player}已经跑到了{speed}km/h！"
+  ],
+  "collision": [
+    "哎呀！{player}撞到了！小心点！",
+    "碰撞！{player}要控制好方向！",
+    "撞了！没关系{player}，调整心态继续！",
+    "小心！{player}发生了碰撞！"
+  ],
+  "first_place": [
+    "太棒了！{player}现在是第一名！",
+    "领跑！{player}冲在最前面！",
+    "第一！{player}遥遥领先！"
+  ],
+  "last_place": [
+    "别担心{player}，比赛还没结束！",
+    "最后一名没关系，{player}慢慢追！",
+    "加油{player}！相信自己能追上去！"
+  ],
+  "comfort": [
+    "没关系{player}，这只是一场比赛！",
+    "别灰心{player}，下次会更好！",
+    "保持冷静{player}，你能行的！",
+    "深呼吸{player}，专注下一圈！",
+    "比赛还没结束{player}，一切皆有可能！"
+  ],
+  "nio_specific": {
+    "ep9_boost": [
+      "EP9 的四电机全开！1360匹马力瞬间释放！",
+      "EP9的加速太恐怖了！这就是超跑的魅力！",
+      "四电机EP9，赛道之王！"
+    ],
+    "et7_comfort": [
+      "ET7的舒适性真不错，开着轻松！",
+      "ET7的智能驾驶辅助很给力！",
+      "ET7，豪华与性能的完美结合！"
+    ],
+    "es7_sport": [
+      "ES7虽然是SUV，但性能一点不输！",
+      "ES7的运动模式太爽了！",
+      "谁说SUV不能飙车？ES7证明给你看！"
+    ],
+    "battery_swap": [
+      "换电站就在前方！{player}要不要进去换块电池？",
+      "电量充足！{player}可以全力冲刺！"
+    ],
+    "nomi_intro": [
+      "我是 NOMI，你的车载 AI 助手。准备好出发了吗？",
+      "嗨！我是NOMI，今天由我来陪你比赛！",
+      "NOMI已就位！{player}，让我们赢下这场比赛！"
+    ],
+    "nomi_idle": [
+      "有什么需要帮忙的吗？",
+      "我在呢，随时为你服务！",
+      "需要我帮你看看赛道情况吗？"
+    ]
+  }
+}

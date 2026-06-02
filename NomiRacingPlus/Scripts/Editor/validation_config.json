@@ -1,0 +1,158 @@
+{
+    "polygon_budgets": {
+        "vehicle": {
+            "LOD0": {
+                "EP9":  {"min": 400000, "max": 700000, "target": 600000},
+                "ET7": {"min": 350000, "max": 600000, "target": 500000},
+                "ES7": {"min": 300000, "max": 500000, "target": 400000},
+                "ET5": {"min": 300000, "max": 500000, "target": 400000},
+                "default": {"min": 300000, "max": 700000, "target": 500000}
+            },
+            "LOD1": {
+                "EP9":  {"min": 100000, "max": 200000, "target": 150000},
+                "ET7": {"min": 80000,  "max": 160000, "target": 120000},
+                "ES7": {"min": 70000,  "max": 130000, "target": 100000},
+                "ET5": {"min": 70000,  "max": 130000, "target": 100000},
+                "default": {"min": 70000,  "max": 200000, "target": 120000}
+            },
+            "LOD2": {
+                "EP9":  {"min": 20000, "max": 40000,  "target": 30000},
+                "ET7": {"min": 15000, "max": 35000,  "target": 25000},
+                "ES7": {"min": 12000, "max": 28000,  "target": 20000},
+                "ET5": {"min": 12000, "max": 28000,  "target": 20000},
+                "default": {"min": 12000, "max": 40000,  "target": 25000}
+            }
+        },
+        "environment": {
+            "building":     {"max": 50000,  "warn": 30000},
+            "road_segment": {"max": 10000,  "warn": 5000},
+            "prop":         {"max": 5000,   "warn": 3000},
+            "vegetation":   {"max": 3000,   "warn": 2000},
+            "default":      {"max": 50000,  "warn": 30000}
+        },
+        "scene_total": {
+            "max_triangles": 5000000,
+            "max_draw_calls": 2000,
+            "warn_triangles": 4000000
+        }
+    },
+    "texture_rules": {
+        "vehicle": {
+            "max_size": 4096,
+            "recommended_size": 2048,
+            "min_size": 512,
+            "required_maps": ["_D", "_N", "_M"],
+            "optional_maps": ["_R", "_AO", "_E"],
+            "power_of_two": true
+        },
+        "environment": {
+            "max_size": 2048,
+            "recommended_size": 2048,
+            "min_size": 256,
+            "power_of_two": true
+        },
+        "ui": {
+            "max_size": 2048,
+            "recommended_size": 1024,
+            "min_size": 64,
+            "power_of_two": false
+        },
+        "hdr": {
+            "max_size": 8192,
+            "recommended_size": 4096,
+            "min_size": 1024,
+            "power_of_two": true
+        },
+        "global": {
+            "max_file_size_mb": 50,
+            "warn_file_size_mb": 20,
+            "supported_formats": [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".exr", ".hdr", ".hdri", ".tif", ".tiff"]
+        }
+    },
+    "material_rules": {
+        "required_master_materials": [
+            "M_Vehicle_Paint_Master",
+            "M_Vehicle_Glass",
+            "M_Vehicle_Wheel",
+            "M_Vehicle_Tire",
+            "M_Vehicle_Headlight",
+            "M_Vehicle_Taillight",
+            "M_Vehicle_BrakeLight",
+            "M_Road_Asphalt",
+            "M_Concrete",
+            "M_Metal"
+        ],
+        "vehicle_material_slots": {
+            "required": ["Body", "Glass", "Wheel", "Tire"],
+            "optional": ["Interior", "Headlight", "Taillight", "BrakeLight", "Chrome"]
+        },
+        "shading_models": {
+            "vehicle_body": "MSM_CLEAR_COAT",
+            "vehicle_glass": "MSM_DEFAULT_LIGHTING",
+            "vehicle_wheel": "MSM_DEFAULT_LIGHTING",
+            "vehicle_tire": "MSM_DEFAULT_LIGHTING",
+            "emissive": "MSM_DEFAULT_LIGHTING"
+        },
+        "max_material_instructions": 256,
+        "warn_material_instructions": 128
+    },
+    "naming_conventions": {
+        "prefixes": {
+            "texture":          {"prefix": "T_",  "pattern": "^T_[A-Z][a-zA-Z0-9_]+$"},
+            "material":         {"prefix": "M_",  "pattern": "^M_[A-Z][a-zA-Z0-9_]+$"},
+            "material_instance":{"prefix": "MI_", "pattern": "^MI_[A-Z][a-zA-Z0-9_]+$"},
+            "static_mesh":      {"prefix": "SM_", "pattern": "^SM_[A-Z][a-zA-Z0-9_]+$"},
+            "skeletal_mesh":    {"prefix": "SK_", "pattern": "^SK_[A-Z][a-zA-Z0-9_]+$"},
+            "blueprint":        {"prefix": "BP_", "pattern": "^BP_[A-Z][a-zA-Z0-9_]+$"},
+            "anim_blueprint":   {"prefix": "ABP_","pattern": "^ABP_[A-Z][a-zA-Z0-9_]+$"},
+            "anim_sequence":    {"prefix": "AS_", "pattern": "^AS_[A-Z][a-zA-Z0-9_]+$"},
+            "sound_cue":        {"prefix": "SC_", "pattern": "^SC_[A-Z][a-zA-Z0-9_]+$"},
+            "sound_wave":       {"prefix": "SW_", "pattern": "^SW_[A-Z][a-zA-Z0-9_]+$"},
+            "particle_system":  {"prefix": "PS_", "pattern": "^PS_[A-Z][a-zA-Z0-9_]+$"},
+            "widget":           {"prefix": "WBP_","pattern": "^WBP_[A-Z][a-zA-Z0-9_]+$"},
+            "data_table":       {"prefix": "DT_", "pattern": "^DT_[A-Z][a-zA-Z0-9_]+$"},
+            "level":            {"prefix": "L_",  "pattern": "^L_[A-Z][a-zA-Z0-9_]+$"}
+        },
+        "suffixes": {
+            "texture_diffuse":    "_D",
+            "texture_normal":     "_N",
+            "texture_metallic":   "_M",
+            "texture_roughness":  "_R",
+            "texture_ao":         "_AO",
+            "texture_emissive":   "_E",
+            "texture_opacity":    "_O",
+            "texture_height":     "_H",
+            "lod0": "_LOD0",
+            "lod1": "_LOD1",
+            "lod2": "_LOD2"
+        },
+        "folder_structure": {
+            "vehicle_meshes":    "/Game/Vehicles/{name}/Meshes",
+            "vehicle_textures":  "/Game/Vehicles/{name}/Textures",
+            "vehicle_materials": "/Game/Materials/Vehicles/{name}",
+            "vehicle_blueprints":"/Game/Vehicles/{name}/Blueprints",
+            "track_maps":        "/Game/Maps/{name}",
+            "audio_sfx":         "/Game/Audio/SFX",
+            "audio_motor":       "/Game/Audio/Motor",
+            "ui_widgets":        "/Game/UI/HUD",
+            "shared_materials":  "/Game/Materials"
+        }
+    },
+    "lod_rules": {
+        "required_lod_levels": 3,
+        "lod_distance_thresholds": {
+            "LOD0": {"screen_size_min": 0.5},
+            "LOD1": {"screen_size_min": 0.2, "screen_size_max": 0.5},
+            "LOD2": {"screen_size_min": 0.0, "screen_size_max": 0.2}
+        },
+        "face_reduction_ratio": {
+            "LOD0_to_LOD1": {"min": 0.15, "max": 0.35},
+            "LOD1_to_LOD2": {"min": 0.15, "max": 0.30}
+        }
+    },
+    "severity_levels": {
+        "error":   {"label": "ERROR",   "blocks_import": true},
+        "warning": {"label": "WARNING", "blocks_import": false},
+        "info":    {"label": "INFO",    "blocks_import": false}
+    }
+}

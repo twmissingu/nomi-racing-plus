@@ -1,0 +1,324 @@
+{
+    "vehicle_id": "EP9",
+    "vehicle_name": "NIO EP9",
+    "vehicle_type": "hypercar",
+    "description": "NIO EP9 — quad-motor electric hypercar, 1360 HP, active aero, carbon-fiber monocoque",
+
+    "mass": {
+        "total_kg": 1735,
+        "distribution": {
+            "front_percent": 42.0,
+            "rear_percent": 58.0
+        },
+        "center_of_height_mm": 380,
+        "notes": "Battery pack in floor pan keeps CG very low; rear-biased due to quad motor layout"
+    },
+
+    "dimensions": {
+        "wheelbase_mm": 2750,
+        "track_width_front_mm": 1680,
+        "track_width_rear_mm": 1650,
+        "overall_length_mm": 4888,
+        "overall_width_mm": 2230,
+        "overall_height_mm": 1150,
+        "ground_clearance_mm": 95
+    },
+
+    "engine": {
+        "type": "electric_quad_motor",
+        "max_rpm": 15000,
+        "idle_rpm": 0,
+        "engine_braking": 0.35,
+        "rev_limiter_behavior": "hard_cut",
+        "torque_curve": [
+            {"rpm": 0, "normalized_torque": 1.00},
+            {"rpm": 500, "normalized_torque": 1.00},
+            {"rpm": 1000, "normalized_torque": 1.00},
+            {"rpm": 2000, "normalized_torque": 1.00},
+            {"rpm": 3000, "normalized_torque": 1.00},
+            {"rpm": 4000, "normalized_torque": 1.00},
+            {"rpm": 5000, "normalized_torque": 0.98},
+            {"rpm": 6000, "normalized_torque": 0.95},
+            {"rpm": 7000, "normalized_torque": 0.90},
+            {"rpm": 8000, "normalized_torque": 0.82},
+            {"rpm": 9000, "normalized_torque": 0.72},
+            {"rpm": 10000, "normalized_torque": 0.60},
+            {"rpm": 11000, "normalized_torque": 0.45},
+            {"rpm": 12000, "normalized_torque": 0.30},
+            {"rpm": 13000, "normalized_torque": 0.18},
+            {"rpm": 14000, "normalized_torque": 0.08},
+            {"rpm": 15000, "normalized_torque": 0.00}
+        ],
+        "motor_details": {
+            "count": 4,
+            "per_motor_power_kw": 250,
+            "per_motor_torque_nm": 370,
+            "total_power_kw": 1000,
+            "total_power_hp": 1360,
+            "total_torque_nm": 1480,
+            "placement": "one_per_wheel",
+            "notes": "Each wheel has independent motor; enables precise torque vectoring"
+        },
+        "regenerative_braking": {
+            "max_regen_torque_nm": 400,
+            "regen_strength_default": 0.40,
+            "regen_strength_range": [0.0, 0.60],
+            "blends_with_mechanical_at": 0.7
+        }
+    },
+
+    "transmission": {
+        "type": "single_speed_reduction",
+        "forward_gear_count": 1,
+        "reverse_gear_count": 1,
+        "gears": {
+            "forward_1": {
+                "ratio": 1.0,
+                "down_ratio": 0.8,
+                "up_ratio": 0.9
+            },
+            "reverse": {
+                "ratio": -1.0
+            }
+        },
+        "final_drive_ratio": 3.50,
+        "shift_time_seconds": 0.0,
+        "clutch_strength": 0.0,
+        "notes": "Single-speed reduction gear; no shifting needed. Final drive 3.50:1 optimized for hypercar top speed."
+    },
+
+    "steering": {
+        "max_steer_angle_degrees": 33.0,
+        "steering_curve": [
+            {"speed_kph": 0, "steer_angle": 1.0},
+            {"speed_kph": 30, "steer_angle": 0.85},
+            {"speed_kph": 60, "steer_angle": 0.65},
+            {"speed_kph": 100, "steer_angle": 0.45},
+            {"speed_kph": 150, "steer_angle": 0.30},
+            {"speed_kph": 200, "steer_angle": 0.20},
+            {"speed_kph": 250, "steer_angle": 0.14},
+            {"speed_kph": 313, "steer_angle": 0.10}
+        ],
+        "ackermann_percent": 95.0,
+        "notes": "Speed-sensitive power steering with aggressive high-speed reduction for stability"
+    },
+
+    "suspension": {
+        "type_front": "double_wishbone",
+        "type_rear": "double_wishbone",
+        "anti_roll_bar_stiffness_front": 8000.0,
+        "anti_roll_bar_stiffness_rear": 6500.0,
+        "wheels": {
+            "front_left": {
+                "spring_rate_n_mm": 50000,
+                "spring_preload_n": 500,
+                "damping_ratio_compression": 0.70,
+                "damping_ratio_rebound": 0.85,
+                "max_compression_mm": 100,
+                "max_droop_mm": 80,
+                "suspension_travel_mm": 180,
+                "camber_degrees_static": -2.0,
+                "caster_degrees": 7.5,
+                "toe_degrees": 0.0,
+                "wheel_mass_kg": 22.0,
+                "collision_radius_mm": 330
+            },
+            "front_right": {
+                "spring_rate_n_mm": 50000,
+                "spring_preload_n": 500,
+                "damping_ratio_compression": 0.70,
+                "damping_ratio_rebound": 0.85,
+                "max_compression_mm": 100,
+                "max_droop_mm": 80,
+                "suspension_travel_mm": 180,
+                "camber_degrees_static": -2.0,
+                "caster_degrees": 7.5,
+                "toe_degrees": 0.0,
+                "wheel_mass_kg": 22.0,
+                "collision_radius_mm": 330
+            },
+            "rear_left": {
+                "spring_rate_n_mm": 55000,
+                "spring_preload_n": 600,
+                "damping_ratio_compression": 0.75,
+                "damping_ratio_rebound": 0.90,
+                "max_compression_mm": 100,
+                "max_droop_mm": 80,
+                "suspension_travel_mm": 180,
+                "camber_degrees_static": -1.8,
+                "caster_degrees": 0.0,
+                "toe_degrees": 0.1,
+                "wheel_mass_kg": 24.0,
+                "collision_radius_mm": 345
+            },
+            "rear_right": {
+                "spring_rate_n_mm": 55000,
+                "spring_preload_n": 600,
+                "damping_ratio_compression": 0.75,
+                "damping_ratio_rebound": 0.90,
+                "max_compression_mm": 100,
+                "max_droop_mm": 80,
+                "suspension_travel_mm": 180,
+                "camber_degrees_static": -1.8,
+                "caster_degrees": 0.0,
+                "toe_degrees": 0.1,
+                "wheel_mass_kg": 24.0,
+                "collision_radius_mm": 345
+            }
+        },
+        "notes": "Stiff track-oriented suspension; rear slightly stiffer to manage weight transfer under acceleration. Short travel for low ride height."
+    },
+
+    "tires": {
+        "type": "performance_slick_hybrid",
+        "compound": "soft",
+        "front_size": "265/35 R20",
+        "rear_size": "325/30 R21",
+        "wheels": {
+            "front_left": {
+                "friction_force_multiplier": 1.20,
+                "lateral_stiffness": 25.0,
+                "longitudinal_stiffness": 20.0,
+                "cornering_stiffness_n_per_deg": 1800,
+                "peak_slip_angle_degrees": 8.0,
+                "peak_slip_ratio": 0.10,
+                "load_sensitivity_exponent": 0.85,
+                "max_grip_load_n": 5500,
+                "tire_pressure_kpa": 240,
+                "tire_radius_mm": 330,
+                "width_mm": 265
+            },
+            "front_right": {
+                "friction_force_multiplier": 1.20,
+                "lateral_stiffness": 25.0,
+                "longitudinal_stiffness": 20.0,
+                "cornering_stiffness_n_per_deg": 1800,
+                "peak_slip_angle_degrees": 8.0,
+                "peak_slip_ratio": 0.10,
+                "load_sensitivity_exponent": 0.85,
+                "max_grip_load_n": 5500,
+                "tire_pressure_kpa": 240,
+                "tire_radius_mm": 330,
+                "width_mm": 265
+            },
+            "rear_left": {
+                "friction_force_multiplier": 1.25,
+                "lateral_stiffness": 28.0,
+                "longitudinal_stiffness": 22.0,
+                "cornering_stiffness_n_per_deg": 2200,
+                "peak_slip_angle_degrees": 7.0,
+                "peak_slip_ratio": 0.09,
+                "load_sensitivity_exponent": 0.82,
+                "max_grip_load_n": 6500,
+                "tire_pressure_kpa": 230,
+                "tire_radius_mm": 345,
+                "width_mm": 325
+            },
+            "rear_right": {
+                "friction_force_multiplier": 1.25,
+                "lateral_stiffness": 28.0,
+                "longitudinal_stiffness": 22.0,
+                "cornering_stiffness_n_per_deg": 2200,
+                "peak_slip_angle_degrees": 7.0,
+                "peak_slip_ratio": 0.09,
+                "load_sensitivity_exponent": 0.82,
+                "max_grip_load_n": 6500,
+                "tire_pressure_kpa": 230,
+                "tire_radius_mm": 345,
+                "width_mm": 325
+            }
+        },
+        "notes": "Wide rear tires (325mm) for maximum traction under acceleration. Soft compound for track grip at the cost of longevity."
+    },
+
+    "differential": {
+        "front": {
+            "type": "open_with_torque_vectoring",
+            "torque_split_to_front": 0.35,
+            "limited_slip_stiffness": 0.0,
+            "notes": "Quad-motor torque vectoring replaces mechanical LSD; individual wheel control"
+        },
+        "rear": {
+            "type": "open_with_torque_vectoring",
+            "torque_split_to_rear": 0.65,
+            "limited_slip_stiffness": 0.0,
+            "notes": "Rear-biased torque split for RWD-like handling character with AWD traction"
+        },
+        "center": {
+            "type": "electronic_torque_vectoring",
+            "front_to_rear_default": "35:65",
+            "front_to_rear_range": "0:100 to 50:50",
+            "response_time_ms": 5,
+            "notes": "Electronically controlled; can shift 100% torque to any single wheel in 5ms"
+        }
+    },
+
+    "aerodynamics": {
+        "drag_coefficient": 0.30,
+        "frontal_area_m2": 2.00,
+        "downforce_coefficient": 3.50,
+        "downforce_max_kg": 2000,
+        "air_density_kg_m3": 1.225,
+        "lift_distribution_front_percent": 45.0,
+        "lift_distribution_rear_percent": 55.0,
+        "active_aero": {
+            "rear_wing": {
+                "enabled": true,
+                "min_angle_degrees": 0,
+                "max_angle_degrees": 35,
+                "speed_threshold_kph": 80,
+                "max_speed_kph": 313,
+                "braking_air_brake": true
+            },
+            "front_splitter": {
+                "enabled": true,
+                "adjustable_range_mm": [0, 40]
+            },
+            "drag_reduction_system": {
+                "enabled": true,
+                "straight_line_only": true,
+                "drag_reduction_percent": 15
+            }
+        },
+        "speed_dependent_forces": [
+            {"speed_kph": 0, "drag_n": 0, "downforce_n": 0},
+            {"speed_kph": 50, "drag_n": 76, "downforce_n": 443},
+            {"speed_kph": 100, "drag_n": 305, "downforce_n": 1771},
+            {"speed_kph": 150, "drag_n": 687, "downforce_n": 3985},
+            {"speed_kph": 200, "drag_n": 1221, "downforce_n": 7084},
+            {"speed_kph": 250, "drag_n": 1908, "downforce_n": 11069},
+            {"speed_kph": 313, "drag_n": 3001, "downforce_n": 17404}
+        ],
+        "notes": "Active aero package generates up to 2000 kg downforce. DRD reduces drag on straights. Rear wing acts as air brake under hard braking."
+    },
+
+    "brakes": {
+        "type": "carbon_ceramic",
+        "front_disc_diameter_mm": 408,
+        "rear_disc_diameter_mm": 380,
+        "max_brake_torque_nm": 5000,
+        "brake_bias_front_percent": 58.0,
+        "brake_bias_rear_percent": 42.0,
+        "brake_effectiveness": 1.0,
+        "abs_enabled": true,
+        "notes": "Carbon-ceramic discs; 6-piston front calipers, 4-piston rear"
+    },
+
+    "drift_settings": {
+        "drift_assist_enabled": false,
+        "traction_control_level": 0.2,
+        "stability_control_level": 0.1,
+        "slip_angle_threshold_degrees": 12.0,
+        "min_drift_speed_kph": 40,
+        "notes": "Minimal driver aids for hypercar; experienced driver expected"
+    },
+
+    "handling_balance": {
+        "understeer_gradient": -0.008,
+        "roll_gradient_degrees_per_g": 1.2,
+        "max_lateral_g": 1.8,
+        "max_longitudinal_g_accel": 1.2,
+        "max_longitudinal_g_brake": 2.0,
+        "notes": "Slight oversteer tendency; high lateral grip from aero + wide tires"
+    }
+}

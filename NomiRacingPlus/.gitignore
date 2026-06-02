@@ -1,0 +1,73 @@
+# UE5 Project .gitignore
+
+# Binaries
+Binaries/
+Plugins/**/Binaries/
+
+# Builds
+Build/
+
+# Build Configuration
+*.Target.cs
+*.Build.cs
+
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Rider
+.idea/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Asset Cache
+DerivedDataCache/
+
+# Intermediate
+Intermediate/
+
+# Saved
+Saved/
+
+# Autosaves
+*.autosave
+
+# Crash reports
+*.crash
+
+# Log files
+*.log
+
+# Cache
+*.cache
+
+# Temp
+*.tmp
+
+# Compiled Shaders
+*.uasset
+*.umap
+
+# Keep Content directory structure but ignore large binary assets
+# (Use Git LFS for actual asset files)
+Content/**/*.uasset
+Content/**/*.umap
+Content/**/*.uexp
+Content/**/*.ubulk
+
+# Whitelist: Keep source control friendly files
+!Content/**/*.json
+!Content/**/*.csv
+!Content/**/*.txt
+
+# Whitelist: Keep config files
+!Config/*.ini

@@ -1,0 +1,713 @@
+# ==============================================================================
+# NIO Racing Plus - CI/CD Pipeline with Signing, Packaging, and Distribution
+# ==============================================================================
+# This workflow builds, signs, packages, and releases the UE5 project.
+#
+# Required Secrets:
+#   MAC_CERTIFICATE_BASE64       - macOS Developer ID certificate (.p12) base64-encoded
+#   MAC_CERTIFICATE_PASSWORD     - Certificate password
+#   MAC_SIGNING_IDENTITY         - Code signing identity string
+#   MAC_TEAM_ID                  - Apple Team ID
+#   MAC_NOTARIZE_APPLE_ID        - Apple ID for notarization
+#   MAC_NOTARIZE_PASSWORD        - App-specific password for notarization
+#   WIN_CERTIFICATE_BASE64       - Windows code signing certificate (.pfx) base64-encoded
+#   WIN_CERTIFICATE_PASSWORD     - Certificate password
+# ==============================================================================
+
+name: Build, Sign, and Release
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build configuration'
+        required: true
+        default: 'Shipping'
+        type: choice
+        options:
+          - Development
+          - Shipping
+          - Debug
+      create_release:
+        description: 'Create GitHub release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  UE5_VERSION: '5.5'
+  PROJECT_NAME: 'NomiRacingPlus'
+  PROJECT_VERSION: '1.0.0'
+
+# Prevent concurrent builds on the same branch
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # PRE-FLIGHT CHECKS
+  # ============================================================================
+  preflight:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      build_type: ${{ steps.config.outputs.build_type }}
+      should_release: ${{ steps.config.outputs.should_release }}
+      version: ${{ steps.config.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine build configuration
+        id: config
+        run: |
+          # Build type
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "build_type=${{ github.event.inputs.build_type }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "build_type=Development" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Should release?
+          if [[ "${{ github.ref }}" == refs/tags/v* ]] || \
+             ([ "${{ github.ref }}" = "refs/heads/main" ] && \
+              [ "${{ github.event.inputs.create_release }}" = "true" ]); then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Version from tag or default
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ env.PROJECT_VERSION }}-dev.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate project structure
+        run: |
+          echo "Validating project files..."
+          test -f "${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.uproject"
+          echo "✓ .uproject file found"
+
+      - name: Check for hardcoded secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+      - name: Check file sizes
+        run: |
+          echo "Checking for oversized files..."
+          find . -type f -size +50M -not -path './.git/*' | while read file; do
+            echo "::warning::Large file: $file ($(du -h "$file" | cut -f1))"
+          done
+
+  # ============================================================================
+  # WINDOWS BUILD
+  # ============================================================================
+  build-windows:
+    name: Build Windows (${{ needs.preflight.outputs.build_type }})
+    runs-on: windows-latest
+    needs: preflight
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Setup UE5
+        uses: game-ci/setup-unreal-engine@v2
+        with:
+          engine-version: ${{ env.UE5_VERSION }}
+
+      - name: Build project
+        shell: bash
+        run: |
+          "${{ env.UNREAL_ENGINE_PATH }}/Engine/Build/BatchFiles/RunUAT.bat" \
+            BuildCookRun \
+            -project="${{ github.workspace }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.uproject" \
+            -noP4 \
+            -platform=Win64 \
+            -clientconfig=${{ needs.preflight.outputs.build_type }} \
+            -cook \
+            -build \
+            -stage \
+            -package \
+            -archive \
+            -archivedirectory="${{ github.workspace }}/Build/Archive" \
+            -pak \
+            -prereqs \
+            -utf8output
+        env:
+          UNREAL_ENGINE_PATH: ${{ env.UNREAL_ENGINE_PATH }}
+
+      - name: Setup code signing certificate
+        if: needs.preflight.outputs.should_release == 'true'
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.WIN_CERTIFICATE_BASE64 }}" ]; then
+            echo "${{ secrets.WIN_CERTIFICATE_BASE64 }}" | base64 -d > cert.pfx
+            echo "WIN_SIGNING_CERT=$(pwd)/cert.pfx" >> "$GITHUB_ENV"
+            echo "WIN_SIGNING_PASSWORD=${{ secrets.WIN_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "Certificate extracted successfully"
+          else
+            echo "::warning::No Windows signing certificate configured"
+          fi
+
+      - name: Code sign executables
+        if: needs.preflight.outputs.should_release == 'true' && env.WIN_SIGNING_CERT != ''
+        shell: bash
+        run: |
+          # Find signtool
+          SIGNTOOL=""
+          for sdk_ver in 10.0.26100.0 10.0.22621.0 10.0.22000.0 10.0.20348.0 10.0.19041.0; do
+            path="C:/Program Files (x86)/Windows Kits/10/bin/${sdk_ver}/x64/signtool.exe"
+            if [ -f "$path" ]; then
+              SIGNTOOL="$path"
+              break
+            fi
+          done
+
+          if [ -z "$SIGNTOOL" ]; then
+            echo "::warning::signtool.exe not found, skipping signing"
+            exit 0
+          fi
+
+          # Sign all executables
+          find Build/Archive -name "*.exe" -type f | while read exe; do
+            echo "Signing: $exe"
+            "$SIGNTOOL" sign \
+              /f "${{ env.WIN_SIGNING_CERT }}" \
+              /p "${{ env.WIN_SIGNING_PASSWORD }}" \
+              /tr http://timestamp.digicert.com \
+              /td sha256 \
+              /fd sha256 \
+              /d "${{ env.PROJECT_NAME }}" \
+              "$exe" || echo "::warning::Failed to sign: $exe"
+          done
+
+          # Sign DLLs
+          find Build/Archive -name "*.dll" -type f | while read dll; do
+            "$SIGNTOOL" sign \
+              /f "${{ env.WIN_SIGNING_CERT }}" \
+              /p "${{ env.WIN_SIGNING_PASSWORD }}" \
+              /tr http://timestamp.digicert.com \
+              /td sha256 \
+              /fd sha256 \
+              "$dll" || echo "::warning::Failed to sign DLL: $dll"
+          done
+
+      - name: Create Windows installer (NSIS)
+        if: needs.preflight.outputs.should_release == 'true'
+        uses: joncloud/makensis-action@v4
+        with:
+          script-file: ".github/nsis/installer.nsi"
+          additional-plugin-paths: ""
+        continue-on-error: true
+
+      - name: Create ZIP archive
+        shell: bash
+        run: |
+          cd Build/Archive
+          7z a -tzip "${{ github.workspace }}/Build/Packages/${{ env.PROJECT_NAME }}_${{ needs.preflight.outputs.version }}_windows.zip" *
+          mkdir -p "${{ github.workspace }}/Build/Packages"
+          cd "${{ github.workspace }}/Build/Packages"
+          sha256sum *.zip > checksums_windows.txt 2>/dev/null || true
+
+      - name: Sign installer
+        if: needs.preflight.outputs.should_release == 'true' && env.WIN_SIGNING_CERT != ''
+        shell: bash
+        run: |
+          SIGNTOOL=""
+          for sdk_ver in 10.0.26100.0 10.0.22621.0 10.0.22000.0 10.0.20348.0 10.0.19041.0; do
+            path="C:/Program Files (x86)/Windows Kits/10/bin/${sdk_ver}/x64/signtool.exe"
+            if [ -f "$path" ]; then
+              SIGNTOOL="$path"
+              break
+            fi
+          done
+
+          if [ -n "$SIGNTOOL" ]; then
+            for installer in Build/Packages/*Setup.exe; do
+              if [ -f "$installer" ]; then
+                echo "Signing installer: $installer"
+                "$SIGNTOOL" sign \
+                  /f "${{ env.WIN_SIGNING_CERT }}" \
+                  /p "${{ env.WIN_SIGNING_PASSWORD }}" \
+                  /tr http://timestamp.digicert.com \
+                  /td sha256 \
+                  /fd sha256 \
+                  "$installer"
+              fi
+            done
+          fi
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            Build/Packages/*.zip
+            Build/Packages/*Setup.exe
+            Build/Packages/*.sha256
+          retention-days: 30
+
+  # ============================================================================
+  # macOS BUILD
+  # ============================================================================
+  build-macos:
+    name: Build macOS (${{ needs.preflight.outputs.build_type }})
+    runs-on: macos-14  # Apple Silicon
+    needs: preflight
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Setup UE5
+        uses: game-ci/setup-unreal-engine@v2
+        with:
+          engine-version: ${{ env.UE5_VERSION }}
+
+      - name: Import code signing certificate
+        if: needs.preflight.outputs.should_release == 'true'
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+
+      - name: Build project
+        run: |
+          "${{ env.UNREAL_ENGINE_PATH }}/Engine/Build/BatchFiles/Mac/RunUAT.sh" \
+            BuildCookRun \
+            -project="${{ github.workspace }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.uproject" \
+            -noP4 \
+            -platform=Mac \
+            -clientconfig=${{ needs.preflight.outputs.build_type }} \
+            -cook \
+            -build \
+            -stage \
+            -package \
+            -archive \
+            -archivedirectory="${{ github.workspace }}/Build/Archive" \
+            -pak \
+            -prereqs \
+            -utf8output
+        env:
+          UNREAL_ENGINE_PATH: ${{ env.UNREAL_ENGINE_PATH }}
+
+      - name: Code sign application
+        if: needs.preflight.outputs.should_release == 'true'
+        run: |
+          if [ -z "${{ secrets.MAC_SIGNING_IDENTITY }}" ]; then
+            echo "::warning::No macOS signing identity configured"
+            exit 0
+          fi
+
+          APP_BUNDLE=$(find Build/Archive -maxdepth 3 -name "*.app" -type d | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "::warning::No .app bundle found"
+            exit 0
+          fi
+
+          echo "Signing: $APP_BUNDLE"
+          echo "Identity: ${{ secrets.MAC_SIGNING_IDENTITY }}"
+
+          # Sign embedded frameworks and dylibs
+          find "$APP_BUNDLE" \( -name "*.dylib" -o -name "*.framework" \) | while read item; do
+            codesign --force --sign "${{ secrets.MAC_SIGNING_IDENTITY }}" \
+              --timestamp --options runtime "$item" 2>/dev/null || true
+          done
+
+          # Sign main app bundle
+          codesign --force --sign "${{ secrets.MAC_SIGNING_IDENTITY }}" \
+            --timestamp \
+            --options runtime \
+            --deep \
+            --entitlements Scripts/entitlements.plist \
+            "$APP_BUNDLE"
+
+          # Verify
+          codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+          echo "Code signing completed"
+
+      - name: Notarize application
+        if: needs.preflight.outputs.should_release == 'true'
+        run: |
+          if [ -z "${{ secrets.MAC_NOTARIZE_APPLE_ID }}" ]; then
+            echo "::warning::Notarization credentials not configured"
+            exit 0
+          fi
+
+          APP_BUNDLE=$(find Build/Archive -maxdepth 3 -name "*.app" -type d | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "::warning::No .app bundle found"
+            exit 0
+          fi
+
+          APP_NAME=$(basename "$APP_BUNDLE" .app)
+          ZIP_PATH="Build/Packages/${APP_NAME}_notarize.zip"
+          mkdir -p Build/Packages
+
+          # Create ZIP for notarization
+          ditto -c -k --keepParent "$APP_BUNDLE" "$ZIP_PATH"
+
+          # Submit for notarization
+          xcrun notarytool submit "$ZIP_PATH" \
+            --apple-id "${{ secrets.MAC_NOTARIZE_APPLE_ID }}" \
+            --password "${{ secrets.MAC_NOTARIZE_PASSWORD }}" \
+            --team-id "${{ secrets.MAC_TEAM_ID }}" \
+            --wait \
+            --timeout 30m
+
+          # Staple
+          xcrun stapler staple "$APP_BUNDLE"
+
+          # Clean up
+          rm -f "$ZIP_PATH"
+
+          echo "Notarization completed"
+
+      - name: Create DMG
+        if: needs.preflight.outputs.should_release == 'true'
+        run: |
+          APP_BUNDLE=$(find Build/Archive -maxdepth 3 -name "*.app" -type d | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "::warning::No .app bundle found"
+            exit 0
+          fi
+
+          APP_NAME=$(basename "$APP_BUNDLE" .app)
+          VERSION="${{ needs.preflight.outputs.version }}"
+          DMG_NAME="${APP_NAME}_${VERSION}_macos.dmg"
+          DMG_PATH="Build/Packages/${DMG_NAME}"
+          STAGING="Build/Packages/dmg_staging"
+
+          mkdir -p Build/Packages
+          rm -rf "$STAGING"
+          mkdir -p "$STAGING"
+
+          # Copy app and create Applications symlink
+          cp -R "$APP_BUNDLE" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+
+          # Create DMG
+          hdiutil create \
+            -volname "${{ env.PROJECT_NAME }} ${VERSION}" \
+            -srcfolder "$STAGING" \
+            -ov \
+            -format UDZO \
+            -imagekey zlib-level=9 \
+            "$DMG_PATH"
+
+          # Sign DMG if identity is available
+          if [ -n "${{ secrets.MAC_SIGNING_IDENTITY }}" ]; then
+            codesign --force --sign "${{ secrets.MAC_SIGNING_IDENTITY }}" \
+              --timestamp "$DMG_PATH" || true
+          fi
+
+          # Notarize DMG
+          if [ -n "${{ secrets.MAC_NOTARIZE_APPLE_ID }}" ]; then
+            xcrun notarytool submit "$DMG_PATH" \
+              --apple-id "${{ secrets.MAC_NOTARIZE_APPLE_ID }}" \
+              --password "${{ secrets.MAC_NOTARIZE_PASSWORD }}" \
+              --team-id "${{ secrets.MAC_TEAM_ID }}" \
+              --wait \
+              --timeout 30m || true
+
+            xcrun stapler staple "$DMG_PATH" || true
+          fi
+
+          # Generate checksum
+          shasum -a 256 "$DMG_PATH" > "${DMG_PATH}.sha256"
+
+          # Cleanup
+          rm -rf "$STAGING"
+
+          echo "DMG created: $DMG_PATH"
+
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            Build/Packages/*.dmg
+            Build/Packages/*.sha256
+          retention-days: 30
+
+  # ============================================================================
+  # AUTOMATED TESTS
+  # ============================================================================
+  test:
+    name: Run Tests
+    runs-on: windows-latest
+    needs: [preflight, build-windows]
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup UE5
+        uses: game-ci/setup-unreal-engine@v2
+        with:
+          engine-version: ${{ env.UE5_VERSION }}
+
+      - name: Run automated tests
+        shell: bash
+        run: |
+          "${{ env.UNREAL_ENGINE_PATH }}/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" \
+            "${{ github.workspace }}/${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.uproject" \
+            -ExecCmds="Automation RunTests NomiRacingPlus; Quit" \
+            -log \
+            -unattended \
+            -nopause \
+            -nullrhi \
+            -NoSound \
+            -ReportOutputPath="${{ github.workspace }}/TestResults"
+        env:
+          UNREAL_ENGINE_PATH: ${{ env.UNREAL_ENGINE_PATH }}
+        continue-on-error: true
+
+      - name: Parse test results
+        if: always()
+        shell: bash
+        run: |
+          if [ -d "TestResults" ]; then
+            echo "Test Results:"
+            find TestResults -name "*.json" -exec cat {} \; | python3 -m json.tool 2>/dev/null || true
+          else
+            echo "No test results found"
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            TestResults/
+            Saved/Logs/
+          retention-days: 7
+
+  # ============================================================================
+  # CODE QUALITY
+  # ============================================================================
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    needs: preflight
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for TODO/FIXME comments
+        run: |
+          echo "Checking for TODO/FIXME comments..."
+          count=$(grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.h" --include="*.cpp" 2>/dev/null | wc -l)
+          echo "Found ${count} TODO/FIXME comments"
+          if [ "$count" -gt 0 ]; then
+            grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.h" --include="*.cpp" || true
+          fi
+
+      - name: Validate JSON files
+        run: |
+          find . -name "*.json" -type f -not -path './.git/*' | while read file; do
+            python3 -m json.tool "$file" > /dev/null 2>&1 && echo "OK: $file" || echo "FAIL: $file"
+          done
+
+      - name: Check for large files
+        run: |
+          find . -type f -size +10M -not -path './.git/*' | while read file; do
+            echo "::warning::Large file: $file ($(du -h "$file" | cut -f1))"
+          done
+
+      - name: Verify config files
+        run: |
+          echo "Verifying config files..."
+          for ini in ${{ env.PROJECT_NAME }}/Config/*.ini; do
+            if [ -f "$ini" ]; then
+              echo "OK: $ini"
+            fi
+          done
+
+  # ============================================================================
+  # ASSET VALIDATION
+  # ============================================================================
+  validate-assets:
+    name: Validate Assets
+    runs-on: ubuntu-latest
+    needs: preflight
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate project structure
+        run: |
+          echo "Validating project structure..."
+          test -f "${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.uproject"
+          test -d "${{ env.PROJECT_NAME }}/Source"
+          test -d "${{ env.PROJECT_NAME }}/Content"
+          test -d "${{ env.PROJECT_NAME }}/Config"
+          echo "Project structure valid"
+
+      - name: Validate .uproject file
+        run: |
+          python3 -c "
+          import json
+          with open('${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.uproject') as f:
+              data = json.load(f)
+          assert data.get('FileVersion') == 3
+          assert data.get('EngineAssociation') == '${{ env.UE5_VERSION }}'
+          print('.uproject validation passed')
+          "
+
+      - name: Check source files
+        run: |
+          echo "Checking source files..."
+          find "${{ env.PROJECT_NAME }}/Source" -name "*.h" -o -name "*.cpp" | wc -l
+          echo "Source files found"
+
+  # ============================================================================
+  # CREATE RELEASE
+  # ============================================================================
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [preflight, build-windows, build-macos, test, code-quality]
+    if: needs.preflight.outputs.should_release == 'true'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: release/windows
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-build
+          path: release/macos
+
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: release/test-results
+        continue-on-error: true
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHANGES=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGES=$(git log --pretty=format:"- %s (%h)" --no-merges -20)
+          fi
+
+          cat > release_notes.md << EOF
+          ## NIO Racing Plus ${{ needs.preflight.outputs.version }}
+
+          ### Downloads
+
+          | Platform | File | Description |
+          |----------|------|-------------|
+          | Windows  | \`${{ env.PROJECT_NAME }}_${{ needs.preflight.outputs.version }}_windows.zip\` | Windows ZIP archive |
+          | Windows  | \`${{ env.PROJECT_NAME }}_${{ needs.preflight.outputs.version }}_Setup.exe\` | Windows installer (if available) |
+          | macOS    | \`${{ env.PROJECT_NAME }}_${{ needs.preflight.outputs.version }}_macos.dmg\` | macOS disk image |
+
+          ### System Requirements
+
+          **Windows:**
+          - Windows 10/11 (64-bit)
+          - DirectX 12 compatible GPU
+          - 16 GB RAM recommended
+
+          **macOS:**
+          - macOS 12.0+ (Monterey or later)
+          - Apple Silicon (M1+) or Intel with dedicated GPU
+          - 16 GB RAM recommended
+
+          ### Changes
+
+          ${CHANGES}
+
+          ### Verification
+
+          SHA256 checksums are included with each download.
+          EOF
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.preflight.outputs.version }}
+          name: NIO Racing Plus ${{ needs.preflight.outputs.version }}
+          body_path: release_notes.md
+          files: |
+            release/windows/*.zip
+            release/windows/*Setup.exe
+            release/windows/*.sha256
+            release/macos/*.dmg
+            release/macos/*.sha256
+          draft: false
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # NOTIFICATION
+  # ============================================================================
+  notify:
+    name: Build Notification
+    runs-on: ubuntu-latest
+    needs: [preflight, build-windows, build-macos, test, release]
+    if: always()
+    steps:
+      - name: Build summary
+        run: |
+          echo "## Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stage | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Preflight | ${{ needs.preflight.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Windows Build | ${{ needs.build-windows.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| macOS Build | ${{ needs.build-macos.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tests | ${{ needs.test.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Release | ${{ needs.release.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** ${{ needs.preflight.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Build Type:** ${{ needs.preflight.outputs.build_type }}" >> "$GITHUB_STEP_SUMMARY"

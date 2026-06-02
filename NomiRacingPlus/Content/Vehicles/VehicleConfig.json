@@ -1,0 +1,220 @@
+{
+    "vehicles": {
+        "EP9": {
+            "name": "NIO EP9",
+            "type": "hypercar",
+            "performance": {
+                "mass_kg": 1735,
+                "power_kw": 1000,
+                "power_hp": 1360,
+                "torque_nm": 1480,
+                "drive_type": "AWD_quad_motor",
+                "top_speed_kph": 313,
+                "acceleration_0_100": 2.7,
+                "wheelbase_mm": 2750,
+                "track_width_mm": 1680,
+                "height_mm": 1150
+            },
+            "electric": {
+                "battery_capacity_kwh": 70,
+                "motor_count": 4,
+                "motor_power_kw": 250,
+                "regen_strength": 0.4,
+                "range_km": 427
+            },
+            "aerodynamics": {
+                "drag_coefficient": 0.30,
+                "frontal_area_m2": 2.0,
+                "downforce_coefficient": 3.5,
+                "downforce_max_kg": 2000
+            },
+            "chassis": {
+                "suspension_front": "double_wishbone",
+                "suspension_rear": "double_wishbone",
+                "brakes": "carbon_ceramic",
+                "tires_front": "265/35 R20",
+                "tires_rear": "325/30 R21"
+            },
+            "chaos_vehicle": {
+                "engine": {
+                    "max_rpm": 15000,
+                    "idle_rpm": 0,
+                    "torque_curve": [
+                        {"rpm": 0, "torque": 1.0},
+                        {"rpm": 4000, "torque": 1.0},
+                        {"rpm": 10000, "torque": 0.7},
+                        {"rpm": 15000, "torque": 0.0}
+                    ]
+                },
+                "transmission": {
+                    "type": "single_speed",
+                    "gear_ratio": 1.0,
+                    "final_drive": 3.5
+                },
+                "suspension": {
+                    "spring_rate_front": 50000,
+                    "spring_rate_rear": 55000,
+                    "damping_ratio": 0.7,
+                    "max_compression": 100,
+                    "max_droop": 80
+                },
+                "tires": {
+                    "friction_force": 1.2,
+                    "lateral_stiffness": 25.0,
+                    "longitudinal_stiffness": 20.0
+                }
+            },
+            "lod": {
+                "lod0_faces": 600000,
+                "lod1_faces": 150000,
+                "lod2_faces": 30000,
+                "lod1_distance": 1000,
+                "lod2_distance": 5000
+            }
+        },
+        "ET7": {
+            "name": "NIO ET7",
+            "type": "sedan",
+            "performance": {
+                "mass_kg": 2379,
+                "power_kw": 480,
+                "power_hp": 653,
+                "torque_nm": 850,
+                "drive_type": "AWD_dual_motor",
+                "top_speed_kph": 250,
+                "acceleration_0_100": 3.8,
+                "wheelbase_mm": 3060,
+                "track_width_mm": 1680,
+                "height_mm": 1530
+            },
+            "electric": {
+                "battery_capacity_kwh": 100,
+                "motor_count": 2,
+                "motor_power_kw": 240,
+                "regen_strength": 0.3,
+                "range_km": 580
+            },
+            "aerodynamics": {
+                "drag_coefficient": 0.23,
+                "frontal_area_m2": 2.3,
+                "downforce_coefficient": 0.5,
+                "downforce_max_kg": 200
+            },
+            "chassis": {
+                "suspension_front": "double_wishbone",
+                "suspension_rear": "multi_link",
+                "brakes": "ventilated_disc",
+                "tires_front": "245/45 R20",
+                "tires_rear": "245/45 R20"
+            },
+            "chaos_vehicle": {
+                "engine": {
+                    "max_rpm": 12000,
+                    "idle_rpm": 0,
+                    "torque_curve": [
+                        {"rpm": 0, "torque": 1.0},
+                        {"rpm": 3500, "torque": 1.0},
+                        {"rpm": 8000, "torque": 0.6},
+                        {"rpm": 12000, "torque": 0.0}
+                    ]
+                },
+                "transmission": {
+                    "type": "single_speed",
+                    "gear_ratio": 1.0,
+                    "final_drive": 3.0
+                },
+                "suspension": {
+                    "spring_rate_front": 40000,
+                    "spring_rate_rear": 42000,
+                    "damping_ratio": 0.6,
+                    "max_compression": 120,
+                    "max_droop": 100
+                },
+                "tires": {
+                    "friction_force": 1.1,
+                    "lateral_stiffness": 22.0,
+                    "longitudinal_stiffness": 18.0
+                }
+            },
+            "lod": {
+                "lod0_faces": 500000,
+                "lod1_faces": 120000,
+                "lod2_faces": 25000,
+                "lod1_distance": 1000,
+                "lod2_distance": 5000
+            }
+        },
+        "ES7": {
+            "name": "NIO ES7",
+            "type": "suv",
+            "performance": {
+                "mass_kg": 2400,
+                "power_kw": 480,
+                "power_hp": 653,
+                "torque_nm": 850,
+                "drive_type": "AWD_dual_motor",
+                "top_speed_kph": 200,
+                "acceleration_0_100": 3.9,
+                "wheelbase_mm": 2960,
+                "track_width_mm": 1700,
+                "height_mm": 1720
+            },
+            "electric": {
+                "battery_capacity_kwh": 100,
+                "motor_count": 2,
+                "motor_power_kw": 240,
+                "regen_strength": 0.25,
+                "range_km": 530
+            },
+            "aerodynamics": {
+                "drag_coefficient": 0.32,
+                "frontal_area_m2": 2.8,
+                "downforce_coefficient": 0.3,
+                "downforce_max_kg": 150
+            },
+            "chassis": {
+                "suspension_front": "double_wishbone",
+                "suspension_rear": "multi_link",
+                "brakes": "ventilated_disc",
+                "tires_front": "265/45 R21",
+                "tires_rear": "265/45 R21"
+            },
+            "chaos_vehicle": {
+                "engine": {
+                    "max_rpm": 12000,
+                    "idle_rpm": 0,
+                    "torque_curve": [
+                        {"rpm": 0, "torque": 1.0},
+                        {"rpm": 3000, "torque": 1.0},
+                        {"rpm": 8000, "torque": 0.5},
+                        {"rpm": 12000, "torque": 0.0}
+                    ]
+                },
+                "transmission": {
+                    "type": "single_speed",
+                    "gear_ratio": 1.0,
+                    "final_drive": 3.2
+                },
+                "suspension": {
+                    "spring_rate_front": 38000,
+                    "spring_rate_rear": 40000,
+                    "damping_ratio": 0.65,
+                    "max_compression": 150,
+                    "max_droop": 120
+                },
+                "tires": {
+                    "friction_force": 1.05,
+                    "lateral_stiffness": 20.0,
+                    "longitudinal_stiffness": 17.0
+                }
+            },
+            "lod": {
+                "lod0_faces": 400000,
+                "lod1_faces": 100000,
+                "lod2_faces": 20000,
+                "lod1_distance": 1000,
+                "lod2_distance": 5000
+            }
+        }
+    }
+}

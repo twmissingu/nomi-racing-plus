@@ -1,0 +1,172 @@
+{
+    "tracks": {
+        "NIOCityCircuit": {
+            "name": "NIO City Circuit",
+            "type": "street",
+            "environment": "city_night",
+            "source": "CARLA_Town03",
+            "laps": 3,
+            "length_km": 4.2,
+            "checkpoints": 12,
+            "difficulty": "medium",
+            "features": [
+                "neon_lights",
+                "nio_swap_station",
+                "city_skyline",
+                "wet_surface"
+            ],
+            "lighting": {
+                "time_of_day": "night",
+                "weather": "clear",
+                "street_lights": true,
+                "neon_lights": true,
+                "moon_intensity": 0.3
+            },
+            "spawn_points": [
+                {"x": 0, "y": 0, "z": 0, "yaw": 0},
+                {"x": 0, "y": -500, "z": 0, "yaw": 0},
+                {"x": 0, "y": -1000, "z": 0, "yaw": 0},
+                {"x": 0, "y": -1500, "z": 0, "yaw": 0},
+                {"x": 500, "y": 0, "z": 0, "yaw": 0},
+                {"x": 500, "y": -500, "z": 0, "yaw": 0},
+                {"x": 500, "y": -1000, "z": 0, "yaw": 0},
+                {"x": 500, "y": -1500, "z": 0, "yaw": 0}
+            ],
+            "ai_waypoints": [
+                {"x": 1000, "y": 0, "z": 0, "speed": 120, "is_corner": false},
+                {"x": 2000, "y": 500, "z": 0, "speed": 80, "is_corner": true, "sharpness": 0.6},
+                {"x": 3000, "y": 1000, "z": 0, "speed": 150, "is_corner": false},
+                {"x": 4000, "y": 500, "z": 0, "speed": 100, "is_corner": true, "sharpness": 0.4}
+            ]
+        },
+        "ShanghaiPudong": {
+            "name": "Shanghai Pudong",
+            "type": "street",
+            "environment": "city_sunset",
+            "source": "CARLA_Town06",
+            "laps": 3,
+            "length_km": 5.1,
+            "checkpoints": 14,
+            "difficulty": "hard",
+            "features": [
+                "oriental_pearl_tower",
+                "tunnel_section",
+                "elevated_highway",
+                "harbor_view"
+            ],
+            "lighting": {
+                "time_of_day": "sunset",
+                "weather": "partly_cloudy",
+                "street_lights": true,
+                "sun_intensity": 0.7,
+                "fog_density": 0.2
+            },
+            "spawn_points": [
+                {"x": 0, "y": 0, "z": 0, "yaw": 0},
+                {"x": 0, "y": -600, "z": 0, "yaw": 0},
+                {"x": 0, "y": -1200, "z": 0, "yaw": 0},
+                {"x": 0, "y": -1800, "z": 0, "yaw": 0},
+                {"x": 600, "y": 0, "z": 0, "yaw": 0},
+                {"x": 600, "y": -600, "z": 0, "yaw": 0},
+                {"x": 600, "y": -1200, "z": 0, "yaw": 0},
+                {"x": 600, "y": -1800, "z": 0, "yaw": 0}
+            ]
+        },
+        "SpeedwayOval": {
+            "name": "Speedway Oval",
+            "type": "oval",
+            "environment": "day",
+            "source": "procedural",
+            "laps": 10,
+            "length_km": 3.0,
+            "checkpoints": 4,
+            "difficulty": "easy",
+            "features": [
+                "banked_corners",
+                "grandstands",
+                "pit_lane",
+                "high_speed"
+            ],
+            "lighting": {
+                "time_of_day": "noon",
+                "weather": "clear",
+                "sun_intensity": 1.0
+            }
+        },
+        "MountainPass": {
+            "name": "Mountain Pass",
+            "type": "mountain",
+            "environment": "mountain",
+            "source": "custom",
+            "laps": 1,
+            "length_km": 8.5,
+            "checkpoints": 20,
+            "difficulty": "hard",
+            "features": [
+                "hairpin_turns",
+                "elevation_change",
+                "cliff_views",
+                "narrow_road"
+            ],
+            "lighting": {
+                "time_of_day": "noon",
+                "weather": "misty",
+                "fog_density": 0.4
+            }
+        },
+        "DesertRally": {
+            "name": "Desert Rally",
+            "type": "rally",
+            "environment": "desert",
+            "source": "custom",
+            "laps": 1,
+            "length_km": 12.0,
+            "checkpoints": 25,
+            "difficulty": "extreme",
+            "features": [
+                "sand_dunes",
+                "canyon_section",
+                "dust_particles",
+                "point_to_point"
+            ],
+            "lighting": {
+                "time_of_day": "sunset",
+                "weather": "dusty",
+                "dust_density": 0.3
+            }
+        }
+    },
+    "race_modes": {
+        "StreetGT": {
+            "name": "Street GT",
+            "allowed_tracks": ["NIOCityCircuit", "ShanghaiPudong", "SpeedwayOval"],
+            "allowed_vehicles": "all",
+            "default_laps": 3,
+            "collisions": true,
+            "collision_penalty": 0
+        },
+        "NIO": {
+            "name": "NIO Championship",
+            "allowed_tracks": ["NIOCityCircuit", "ShanghaiPudong"],
+            "allowed_vehicles": ["EP9", "ET7", "ES7"],
+            "default_laps": 3,
+            "collisions": true,
+            "collision_penalty": 0,
+            "special_rules": {
+                "battery_swap_available": true,
+                "nio_branding": true
+            }
+        },
+        "Baja": {
+            "name": "Baja Rally",
+            "allowed_tracks": ["DesertRally"],
+            "allowed_vehicles": "offroad",
+            "default_laps": 1,
+            "collisions": false,
+            "special_rules": {
+                "terrain_grip_effect": true,
+                "dust_visibility": true
+            }
+        }
+    }
+}
