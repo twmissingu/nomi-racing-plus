@@ -143,7 +143,7 @@ class VehicleBlueprintBuilder:
         # - Camera (Chase view)
         # - CameraComponent (Cockpit view)
 
-    def add_audio components(self):
+    def add_audio_components(self):
         """Add audio components"""
         log_info("Adding audio components...")
 

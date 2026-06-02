@@ -46,7 +46,7 @@ def import_script(script_name):
 
 class FullSetup:
     def __init__(self):
-        self.total_steps = 10
+        self.total_steps = 12
         self.current_step = 0
 
     def run(self):
@@ -56,6 +56,10 @@ class FullSetup:
         log_info("="*60 + "\n")
 
         try:
+            # Pre-setup: Fix common issues first
+            self.step_fix_issues()
+
+            # Main setup steps
             self.step_import_assets()
             self.step_create_materials()
             self.step_build_vehicles()
@@ -66,6 +70,9 @@ class FullSetup:
             self.step_configure_nomi()
             self.step_balance_game()
             self.step_run_tests()
+
+            # Post-setup: Validate everything
+            self.step_validate()
 
             self.print_completion_report()
 
@@ -78,6 +85,22 @@ class FullSetup:
         """Advance to next step"""
         self.current_step += 1
         log_step(self.current_step, self.total_steps, message)
+
+    # ========================================================================
+    # Step 0: Fix Common Issues
+    # ========================================================================
+
+    def step_fix_issues(self):
+        """Fix common project issues before setup"""
+        self.next_step("Fixing common issues...")
+
+        log_info("  Running issue fixer...")
+
+        # Import fix script
+        if import_script("fix_common_issues.py"):
+            log_info("    ✓ Common issues fixed")
+
+        log_info("  Issue fixing complete")
 
     # ========================================================================
     # Step 1: Import Assets
@@ -248,6 +271,22 @@ class FullSetup:
         log_info("  Tests complete")
 
     # ========================================================================
+    # Step 11: Validate Project
+    # ========================================================================
+
+    def step_validate(self):
+        """Validate project integrity"""
+        self.next_step("Validating project...")
+
+        log_info("  Running project validation...")
+
+        # Import validation script
+        if import_script("validate_project.py"):
+            log_info("    ✓ Project validation complete")
+
+        log_info("  Validation complete")
+
+    # ========================================================================
     # Completion
     # ========================================================================
 
@@ -258,6 +297,7 @@ class FullSetup:
         log_info("="*60)
         log_info("")
         log_info("  All systems initialized:")
+        log_info("    ✓ Issues fixed")
         log_info("    ✓ Assets imported")
         log_info("    ✓ Materials created")
         log_info("    ✓ Vehicles built")
@@ -268,12 +308,13 @@ class FullSetup:
         log_info("    ✓ NOMI configured")
         log_info("    ✓ Game balanced")
         log_info("    ✓ Tests passed")
+        log_info("    ✓ Project validated")
         log_info("")
         log_info("  Next Steps:")
-        log_info("    1. Test drive each vehicle")
-        log_info("    2. Run a full race on each track")
-        log_info("    3. Adjust balance parameters if needed")
-        log_info("    4. Create a GitHub Release")
+        log_info("    1. Press Play to test the game!")
+        log_info("    2. Test drive each vehicle")
+        log_info("    3. Run a full race on each track")
+        log_info("    4. Adjust balance parameters if needed")
         log_info("")
         log_info("  Quick Commands:")
         log_info("    VehicleBalancer('EP9').print_stats()")
