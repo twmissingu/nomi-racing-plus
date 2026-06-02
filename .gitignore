@@ -55,3 +55,6 @@ Thumbs.db
 *.tmp
 *.bak
 *.cache
+
+# Source backup directory
+NomiRacingPlus/Source_backup/
