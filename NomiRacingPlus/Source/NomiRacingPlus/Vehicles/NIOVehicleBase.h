@@ -4,8 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "WheeledVehiclePawn.h"
-#include "Vehicles/VehicleStateManager.h"
-#include "Vehicles/NIOVehicleMovementComponent.h"
+#include "VehicleStateManager.h"
+#include "NIOVehicleMovementComponent.h"
+#include "Core/CameraSystem.h"
+#include "Components/SpotLightComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 #include "NIOVehicleBase.generated.h"
 
 /**
@@ -18,7 +23,7 @@ class NOMIRACINGPLUS_API ANIOVehicleBase : public AWheeledVehiclePawn
 	GENERATED_BODY()
 
 public:
-	ANIOVehicleBase();
+	ANIOVehicleBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -27,7 +32,7 @@ public:
 
 	// Get current vehicle state
 	UFUNCTION(BlueprintCallable, Category = "NIO Vehicle")
-	const FVehicleState& GetVehicleState() const;
+	const FNIOVehicleState& GetVehicleState() const;
 
 	// Get vehicle type
 	UFUNCTION(BlueprintCallable, Category = "NIO Vehicle")
@@ -78,6 +83,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NIO Vehicle")
 	TObjectPtr<UNIOVehicleMovementComponent> NIOMovement;
 
+	// Camera system component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NIO Vehicle|Camera")
+	TObjectPtr<UCameraSystem> CameraSystemComponent;
+
 	// Headlight components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NIO Vehicle|Lights")
 	TObjectPtr<USpotLightComponent> LeftHeadlight;
@@ -107,12 +116,54 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "NIO Vehicle|Lights")
 	float HeadlightBrightness = 1.0f;
 
+public:
+	// Simple movement inputs (for fallback when Chaos Vehicle has no mesh)
+	UPROPERTY(BlueprintReadWrite, Category = "NIO Vehicle|Input")
+	float ThrottleInput = 0.0f;
+
+	UPROPERTY(BlueprintReadWrite, Category = "NIO Vehicle|Input")
+	float BrakeInput = 0.0f;
+
+	UPROPERTY(BlueprintReadWrite, Category = "NIO Vehicle|Input")
+	float SteeringInput = 0.0f;
+
+	UPROPERTY(BlueprintReadWrite, Category = "NIO Vehicle|Input")
+	bool bHandbrake = false;
+
+	// Race statistics (updated during race)
+	UPROPERTY(BlueprintReadOnly, Category = "NIO Vehicle|Stats")
+	int32 CollisionCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NIO Vehicle|Stats")
+	float MaxSpeedKmh = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NIO Vehicle|Stats")
+	float DistanceDriven = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NIO Vehicle|Stats")
+	int32 OvertakeCount = 0;
+
+	// Reset race stats
+	void ResetRaceStats();
+
+protected:
+
 private:
+	// Collision handler for race statistics
+	UFUNCTION()
+	void OnVehicleHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
+
 	// Initialize components
 	void InitializeComponents();
 
 	// Update lights based on state
 	void UpdateLights(float DeltaTime);
+
+	// Fallback movement when no skeletal mesh is available
+	void UpdateSimpleMovement(float DeltaTime);
+
+	// Whether Chaos Vehicle is properly initialized
+	bool bChaosVehicleValid = false;
 
 	// Update audio based on state
 	void UpdateAudio(float DeltaTime);

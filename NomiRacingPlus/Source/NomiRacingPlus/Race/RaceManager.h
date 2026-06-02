@@ -242,6 +242,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Race")
 	bool IsRaceFinished() const;
 
+	// Are all racers finished?
+	bool AreAllRacersFinished() const;
+
 	// Event system
 
 	// Race event delegate

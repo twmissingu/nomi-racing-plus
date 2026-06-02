@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Vehicles/TirePhysicsModel.h"
+#include "TirePhysicsModel.h"
 #include "VehicleStateManager.generated.h"
 
 class UChaosWheeledVehicleMovementComponent;
@@ -14,7 +14,7 @@ class UNIOVehicleMovementComponent;
  * Used by HUD, NOMI system, and race manager
  */
 USTRUCT(BlueprintType)
-struct NOMIRACINGPLUS_API FVehicleState
+struct NOMIRACINGPLUS_API FNIOVehicleState
 {
 	GENERATED_BODY()
 
@@ -171,7 +171,7 @@ public:
 
 	// Get current vehicle state
 	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
-	const FVehicleState& GetVehicleState() const { return VehicleState; }
+	const FNIOVehicleState& GetVehicleState() const { return VehicleState; }
 
 	// Get vehicle type
 	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
@@ -202,7 +202,7 @@ protected:
 
 	// Current vehicle state (updated every tick)
 	UPROPERTY(BlueprintReadOnly, Category = "Vehicle State")
-	FVehicleState VehicleState;
+	FNIOVehicleState VehicleState;
 
 	// Vehicle type
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle State")

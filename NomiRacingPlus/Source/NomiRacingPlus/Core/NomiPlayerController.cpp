@@ -1,10 +1,12 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "Core/NomiPlayerController.h"
+#include "NomiPlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Vehicles/NIOVehicleBase.h"
 #include "Vehicles/NIOVehicleMovementComponent.h"
+#include "Race/RaceManager.h"
+#include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
 
 ANomiPlayerController::ANomiPlayerController()
@@ -128,15 +130,35 @@ void ANomiPlayerController::SetInputEnabled(bool bEnabled)
 	}
 }
 
-void ANomiPlayerController::SetCameraMode(int32 Mode)
+void ANomiPlayerController::SetCameraModeByIndex(int32 Mode)
 {
 	CameraMode = FMath::Clamp(Mode, 0, CameraModeNames.Num() - 1);
+
+	// Forward to camera system on vehicle
+	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
+	{
+		if (UCameraSystem* CamSys = Vehicle->FindComponentByClass<UCameraSystem>())
+		{
+			CamSys->SetCameraMode(static_cast<ECameraMode>(CameraMode));
+		}
+	}
+
 	UE_LOG(LogNomiRacing, Log, TEXT("Camera mode: %s"), *CameraModeNames[CameraMode]);
 }
 
 void ANomiPlayerController::CycleCameraMode()
 {
 	CameraMode = (CameraMode + 1) % CameraModeNames.Num();
+
+	// Forward to camera system on vehicle
+	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
+	{
+		if (UCameraSystem* CamSys = Vehicle->FindComponentByClass<UCameraSystem>())
+		{
+			CamSys->CycleCameraMode();
+		}
+	}
+
 	UE_LOG(LogNomiRacing, Log, TEXT("Camera mode: %s"), *CameraModeNames[CameraMode]);
 }
 
@@ -148,6 +170,8 @@ void ANomiPlayerController::OnThrottleTriggered(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->ThrottleInput = ThrottleValue;
+		// Also forward to Chaos Vehicle if available
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetThrottleInput(ThrottleValue);
@@ -161,6 +185,7 @@ void ANomiPlayerController::OnThrottleCompleted(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->ThrottleInput = 0.0f;
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetThrottleInput(0.0f);
@@ -176,6 +201,7 @@ void ANomiPlayerController::OnBrakeTriggered(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->BrakeInput = BrakeValue;
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetBrakeInput(BrakeValue);
@@ -189,6 +215,7 @@ void ANomiPlayerController::OnBrakeCompleted(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->BrakeInput = 0.0f;
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetBrakeInput(0.0f);
@@ -204,6 +231,7 @@ void ANomiPlayerController::OnSteerTriggered(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->SteeringInput = SteerValue;
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetSteeringInput(SteerValue);
@@ -217,6 +245,7 @@ void ANomiPlayerController::OnSteerCompleted(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->SteeringInput = 0.0f;
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetSteeringInput(0.0f);
@@ -232,6 +261,7 @@ void ANomiPlayerController::OnHandbrakeTriggered(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->bHandbrake = bHandbrakeActive;
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetHandbrakeInput(bHandbrakeActive);
@@ -245,6 +275,7 @@ void ANomiPlayerController::OnHandbrakeCompleted(const FInputActionValue& Value)
 
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
+		Vehicle->bHandbrake = false;
 		if (UNIOVehicleMovementComponent* Movement = Vehicle->FindComponentByClass<UNIOVehicleMovementComponent>())
 		{
 			Movement->SetHandbrakeInput(false);
@@ -255,13 +286,29 @@ void ANomiPlayerController::OnHandbrakeCompleted(const FInputActionValue& Value)
 void ANomiPlayerController::OnLookBackStarted(const FInputActionValue& Value)
 {
 	bLookingBack = true;
-	// TODO: Implement camera look back
+
+	// Forward to camera system
+	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
+	{
+		if (UCameraSystem* CamSys = Vehicle->FindComponentByClass<UCameraSystem>())
+		{
+			CamSys->SetLookBack(true);
+		}
+	}
 }
 
 void ANomiPlayerController::OnLookBackCompleted(const FInputActionValue& Value)
 {
 	bLookingBack = false;
-	// TODO: Reset camera
+
+	// Forward to camera system
+	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
+	{
+		if (UCameraSystem* CamSys = Vehicle->FindComponentByClass<UCameraSystem>())
+		{
+			CamSys->SetLookBack(false);
+		}
+	}
 }
 
 void ANomiPlayerController::OnChangeCameraStarted(const FInputActionValue& Value)
@@ -287,6 +334,21 @@ void ANomiPlayerController::OnHeadlightsStarted(const FInputActionValue& Value)
 
 void ANomiPlayerController::OnPauseStarted(const FInputActionValue& Value)
 {
-	// TODO: Implement pause menu
-	UE_LOG(LogNomiRacing, Log, TEXT("Pause requested"));
+	// Toggle pause via RaceManager
+	ARaceManager* RaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+	if (RaceManager)
+	{
+		if (RaceManager->GetRaceState() == ERaceState::Racing)
+		{
+			RaceManager->PauseRace();
+			UGameplayStatics::SetGamePaused(this, true);
+			UE_LOG(LogNomiRacing, Log, TEXT("Game paused"));
+		}
+		else if (RaceManager->GetRaceState() == ERaceState::Paused)
+		{
+			RaceManager->ResumeRace();
+			UGameplayStatics::SetGamePaused(this, false);
+			UE_LOG(LogNomiRacing, Log, TEXT("Game resumed"));
+		}
+	}
 }

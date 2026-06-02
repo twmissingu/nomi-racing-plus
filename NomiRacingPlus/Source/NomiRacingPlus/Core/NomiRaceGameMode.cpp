@@ -1,12 +1,15 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "Core/NomiRaceGameMode.h"
-#include "Core/NomiGameInstance.h"
+#include "NomiRaceGameMode.h"
+#include "NomiGameInstance.h"
+#include "NomiPlayerController.h"
 #include "Vehicles/NIOVehicleBase.h"
 #include "Vehicles/NIO_EP9.h"
 #include "Vehicles/NIO_ET7.h"
 #include "Vehicles/NIO_ES7.h"
+#include "Vehicles/Xiaomi_SU7Ultra.h"
 #include "AI/AICarController.h"
+#include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
 
@@ -64,6 +67,18 @@ void ANomiRaceGameMode::BeginPlay()
 void ANomiRaceGameMode::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// Auto-start race after a short delay (simulates countdown)
+	if (!bRaceStarted && RaceManager)
+	{
+		RaceStartDelay -= DeltaTime;
+		if (RaceStartDelay <= 0.0f)
+		{
+			bRaceStarted = true;
+			StartNewRace(DefaultRaceConfig);
+			UE_LOG(LogNomiRacing, Log, TEXT("Race auto-started!"));
+		}
+	}
 }
 
 void ANomiRaceGameMode::StartNewRace(const FRaceConfig& Config)
@@ -72,6 +87,12 @@ void ANomiRaceGameMode::StartNewRace(const FRaceConfig& Config)
 	{
 		UE_LOG(LogNomiRacing, Error, TEXT("Cannot start race: RaceManager not found"));
 		return;
+	}
+
+	// Disable player input during countdown
+	if (ANomiPlayerController* PC = Cast<ANomiPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
+	{
+		PC->SetInputEnabled(false);
 	}
 
 	// Spawn AI opponents
@@ -146,6 +167,9 @@ void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 			break;
 		case ENIOVehicleType::ES7:
 			SpawnClass = ANIO_ES7::StaticClass();
+			break;
+		case ENIOVehicleType::SU7Ultra:
+			SpawnClass = AXiaomi_SU7Ultra::StaticClass();
 			break;
 		default:
 			SpawnClass = ANIO_ET7::StaticClass();
@@ -257,6 +281,9 @@ void ANomiRaceGameMode::SpawnPlayerVehicle()
 	case ENIOVehicleType::ES7:
 		SpawnClass = ANIO_ES7::StaticClass();
 		break;
+	case ENIOVehicleType::SU7Ultra:
+		SpawnClass = AXiaomi_SU7Ultra::StaticClass();
+		break;
 	default:
 		SpawnClass = ANIO_EP9::StaticClass();
 		break;
@@ -293,6 +320,11 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 	{
 	case ERaceEvent::RaceStart:
 		UE_LOG(LogNomiRacing, Log, TEXT("Race started!"));
+		// Enable player input when race begins
+		if (ANomiPlayerController* PC = Cast<ANomiPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
+		{
+			PC->SetInputEnabled(true);
+		}
 		break;
 
 	case ERaceEvent::RaceFinish:
@@ -308,6 +340,7 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 			SessionResult.LapTimes = RacerData.LapTimes;
 			SessionResult.BestLapTime = RacerData.BestLapTime;
 			SessionResult.TotalRaceTime = RacerData.TotalRaceTime;
+			SessionResult.RaceMode = DefaultRaceConfig.RaceMode;
 			SessionResult.Timestamp = FDateTime::Now();
 
 			// Get track and vehicle info from settings
@@ -319,7 +352,16 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 				SessionResult.Difficulty = GameInstance->GetSettings().Difficulty;
 			}
 
-			// Determine if clean race (no collisions recorded during race)
+			// Get race stats from player vehicle
+			if (ANIOVehicleBase* PlayerVehicle = Cast<ANIOVehicleBase>(RacerData.VehiclePawn))
+			{
+				SessionResult.Collisions = PlayerVehicle->CollisionCount;
+				SessionResult.MaxSpeed = PlayerVehicle->MaxSpeedKmh;
+				SessionResult.DistanceDriven = PlayerVehicle->DistanceDriven;
+				SessionResult.Overtakes = PlayerVehicle->OvertakeCount;
+			}
+
+			// Determine if clean race
 			SessionResult.bCleanRace = (SessionResult.Collisions == 0);
 
 			RaceProgression->RecordRaceSession(SessionResult);

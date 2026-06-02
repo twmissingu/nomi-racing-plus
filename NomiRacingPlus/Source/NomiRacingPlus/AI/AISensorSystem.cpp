@@ -1,6 +1,6 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "AI/AISensorSystem.h"
+#include "AISensorSystem.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NomiRacingPlus.h"
 
@@ -307,7 +307,7 @@ void UAISensorSystem::ScanTrackBoundaries()
 
 float UAISensorSystem::GetSlipstreamStrengthAt(const FVector& Direction) const
 {
-	if (!OwnerPawn || !SensorData.bSlipstreamAvailable)
+	if (!OwnerPawn || !SensorData.bSlipstreamAvailable || !SensorData.SlipstreamTarget.Vehicle)
 	{
 		return 0.0f;
 	}

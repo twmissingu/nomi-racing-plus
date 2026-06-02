@@ -2,6 +2,7 @@
 
 #include "Race/RaceManager.h"
 #include "Vehicles/VehicleStateManager.h"
+#include "AI/AICarController.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
 
@@ -91,6 +92,18 @@ void ARaceManager::EndRace()
 	RaceState = ERaceState::Finished;
 	UE_LOG(LogNomiRace, Log, TEXT("Race finished!"));
 
+	// Stop all AI controllers
+	for (const FRacerData& Racer : Racers)
+	{
+		if (!Racer.bIsPlayer && Racer.VehiclePawn)
+		{
+			if (AAICarController* AICtrl = Cast<AAICarController>(Racer.VehiclePawn->GetController()))
+			{
+				AICtrl->StopRacing();
+			}
+		}
+	}
+
 	// Find player and broadcast finish event
 	for (const FRacerData& Racer : Racers)
 	{
@@ -100,6 +113,18 @@ void ARaceManager::EndRace()
 			break;
 		}
 	}
+}
+
+bool ARaceManager::AreAllRacersFinished() const
+{
+	for (const FRacerData& Racer : Racers)
+	{
+		if (!Racer.bFinished)
+		{
+			return false;
+		}
+	}
+	return Racers.Num() > 0;
 }
 
 void ARaceManager::ResetRace()
@@ -191,8 +216,9 @@ void ARaceManager::RacerPassCheckpoint(APawn* VehiclePawn, int32 CheckpointIndex
 		Racer.CurrentLap++;
 
 		// Calculate lap time
-		float LapTime = RaceTimer - (Racer.LapTimes.Num() > 0 ?
-			FMath::Sum(Racer.LapTimes) : 0.0f);
+		float PreviousLapsTotal = 0.0f;
+		for (float T : Racer.LapTimes) { PreviousLapsTotal += T; }
+		float LapTime = RaceTimer - PreviousLapsTotal;
 		Racer.LapTimes.Add(LapTime);
 
 		// Update best lap
@@ -210,7 +236,13 @@ void ARaceManager::RacerPassCheckpoint(APawn* VehiclePawn, int32 CheckpointIndex
 			Racer.bFinished = true;
 			Racer.TotalRaceTime = RaceTimer;
 
+			// End race when the player finishes
 			if (Racer.bIsPlayer)
+			{
+				EndRace();
+			}
+			// Also end race if ALL racers have finished
+			else if (AreAllRacersFinished())
 			{
 				EndRace();
 			}
@@ -233,11 +265,21 @@ void ARaceManager::RacerCrossFinishLine(APawn* VehiclePawn)
 
 	FRacerData& Racer = Racers[Index];
 
-	// Only process if racer has completed at least one lap
-	if (Racer.CurrentLap > 0 && Racer.CurrentCheckpoint == 0)
+	// Process finish line crossing:
+	// - First pass (CurrentLap == 0, CurrentCheckpoint == 0): triggers checkpoint 0 to start the race
+	// - Subsequent passes (CurrentLap > 0, CurrentCheckpoint == 0): triggers last checkpoint to complete lap
+	if (Racer.CurrentCheckpoint == 0)
 	{
-		// This is a lap completion via finish line
-		RacerPassCheckpoint(VehiclePawn, CheckpointsPerLap - 1);
+		if (Racer.CurrentLap == 0)
+		{
+			// First crossing: treat as checkpoint 0 (start line)
+			RacerPassCheckpoint(VehiclePawn, 0);
+		}
+		else
+		{
+			// Subsequent crossings: treat as last checkpoint (finish line)
+			RacerPassCheckpoint(VehiclePawn, CheckpointsPerLap - 1);
+		}
 	}
 }
 

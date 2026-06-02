@@ -146,9 +146,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Progression")
 	URaceProgression* GetRaceProgression() const { return RaceProgression; }
 
-	// Get the championship manager
+	// Get the championship manager (from GameMode)
 	UFUNCTION(BlueprintCallable, Category = "Progression")
-	AChampionshipManager* GetChampionshipManager() const { return ChampionshipManager; }
+	AChampionshipManager* GetChampionshipManager() const;
 
 	// Record a completed race session for progression tracking
 	UFUNCTION(BlueprintCallable, Category = "Progression")
@@ -200,10 +200,6 @@ protected:
 	// Race progression component
 	UPROPERTY(BlueprintReadOnly, Category = "Progression")
 	TObjectPtr<URaceProgression> RaceProgression;
-
-	// Championship manager reference
-	UPROPERTY(BlueprintReadOnly, Category = "Progression")
-	TObjectPtr<AChampionshipManager> ChampionshipManager;
 
 private:
 	// Get save file path

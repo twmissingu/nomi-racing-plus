@@ -1,8 +1,8 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "Vehicles/NIOVehicleMovementComponent.h"
-#include "Vehicles/VehicleStateManager.h"
-#include "Vehicles/NIOTirePresets.h"
+#include "NIOVehicleMovementComponent.h"
+#include "VehicleStateManager.h"
+#include "NIOTirePresets.h"
 #include "NomiRacingPlus.h"
 
 UNIOVehicleMovementComponent::UNIOVehicleMovementComponent()
@@ -10,53 +10,62 @@ UNIOVehicleMovementComponent::UNIOVehicleMovementComponent()
 	// Electric vehicles have instant response
 	MaxMotorRPM = 12000.0f;
 	TorqueDecayRPM = 3000.0f;
+
+	// Configure default engine torque curve for electric motor
+	FRichCurve TorqueCurveData;
+	TorqueCurveData.Keys.Add(FRichCurveKey(0.0f, 1480.0f));      // Peak torque at 0 RPM
+	TorqueCurveData.Keys.Add(FRichCurveKey(3000.0f, 1480.0f));   // Constant to 3000 RPM
+	TorqueCurveData.Keys.Add(FRichCurveKey(12000.0f, 0.0f));     // Decay to 0 at max RPM
+	EngineSetup.TorqueCurve.EditorCurveData = TorqueCurveData;
+	EngineSetup.MaxTorque = 1480.0f;
+	EngineSetup.MaxRPM = 12000.0f;
+
+	// Single-speed transmission (electric vehicles don't shift)
+	TransmissionSetup.bUseAutomaticGears = true;
+	TransmissionSetup.FinalRatio = 3.0f;
+	TransmissionSetup.ForwardGearRatios = { 1.0f };
+	TransmissionSetup.ReverseGearRatios = { 1.0f };
+
+	// Default 4-wheel setup (FL, FR, RL, RR)
+	WheelSetups.SetNum(4);
+	WheelSetups[0].BoneName = NAME_None;
+	WheelSetups[1].BoneName = NAME_None;
+	WheelSetups[2].BoneName = NAME_None;
+	WheelSetups[3].BoneName = NAME_None;
+
+	// AWD: all wheels get drive torque
+	DifferentialSetup.DifferentialType = EVehicleDifferential::AllWheelDrive;
 }
 
-void UNIOVehicleMovementComponent::SetupVehicleMovement()
+void UNIOVehicleMovementComponent::BeginPlay()
 {
-	Super::SetupVehicleMovement();
+	Super::BeginPlay();
 
-	// Configure for electric vehicle
-	// Override engine setup for electric motor behavior
-	if (EngineSetup)
-	{
-		// Electric motors have max torque at 0 RPM
-		// The actual torque curve will be applied in UpdateSimulation
-		UE_LOG(LogNomiVehicle, Log, TEXT("NIO Vehicle Movement Component initialized"));
-	}
-
-	// Initialize tire physics model
+	// Initialize tire model on play
 	InitializeTireModel();
+
+	UE_LOG(LogNomiVehicle, Log, TEXT("NIOVehicleMovementComponent BeginPlay, TireModel: %s"),
+		TireModel ? TEXT("Valid") : TEXT("Null"));
 }
 
-void UNIOVehicleMovementComponent::UpdateSimulation(float DeltaTime)
+void UNIOVehicleMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	// Apply electric motor torque
-	float CurrentRPM = GetEngineRotationSpeed();
-	float ElectricTorque = GetElectricMotorTorque(CurrentRPM);
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// Get input states
+	// Update electric vehicle systems each frame
 	float ThrottleInput = GetThrottleInput();
 	float BrakeInput = GetBrakeInput();
 
-	// Update battery and thermal systems
-	UpdateBatteryLevel(DeltaTime, ThrottleInput, BrakeInput * RegenBrakingStrength);
 	UpdateMotorTemperature(DeltaTime, ThrottleInput);
-
-	// Apply regenerative braking
+	UpdateBatteryLevel(DeltaTime, ThrottleInput, BrakeInput);
 	ApplyRegenerativeBraking(DeltaTime);
-
-	// Apply aerodynamic effects
 	ApplyAerodynamicDownforce(DeltaTime);
 
-	// Apply tire physics forces (after base simulation)
+	// Update tire model if available
 	if (TireModel)
 	{
 		ApplyTireForces(DeltaTime);
 	}
-
-	// Call parent simulation
-	Super::UpdateSimulation(DeltaTime);
 }
 
 void UNIOVehicleMovementComponent::InitializeTireModel()
@@ -74,6 +83,11 @@ void UNIOVehicleMovementComponent::InitializeTireModel()
 	}
 
 	TireModel = NewObject<UTirePhysicsModel>(Owner, TEXT("TirePhysicsModel"));
+	if (!TireModel)
+	{
+		UE_LOG(LogNomiVehicle, Error, TEXT("Failed to create TirePhysicsModel"));
+		return;
+	}
 	TireModel->RegisterComponent();
 
 	// Apply appropriate preset based on vehicle type
@@ -253,7 +267,7 @@ namespace AeroConstants
 
 void UNIOVehicleMovementComponent::ApplyAerodynamicDownforce(float DeltaTime)
 {
-	if (DownforceCoefficient <= 0.0f)
+	if (NIODownforceCoefficient <= 0.0f)
 	{
 		return;
 	}
@@ -268,16 +282,20 @@ void UNIOVehicleMovementComponent::ApplyAerodynamicDownforce(float DeltaTime)
 	// Downforce = 0.5 * rho * v^2 * A * Cl
 	// Where: rho = air density, v = speed, A = frontal area, Cl = downforce coefficient
 	float DynamicPressure = 0.5f * AeroConstants::AirDensityKgPerM3 * SpeedMs * SpeedMs;
-	float DownforceNewtons = DynamicPressure * FrontalArea * DownforceCoefficient;
+	float DownforceNewtons = DynamicPressure * FrontalArea * NIODownforceCoefficient;
 
-	// Convert to UE force units (assumes cm-based coordinate system)
-	float DownforceKg = DownforceNewtons / AeroConstants::GravityCmPerSec2;
+	// Convert Newtons to UE force units (kg*cm/s^2)
+	// 1 Newton = 1 kg*m/s^2 = 100 kg*cm/s^2 (UE uses cm as base unit)
+	float DownforceUE = DownforceNewtons * 100.0f;
 
 	// Apply downforce as additional gravity
-	if (UPrimitiveComponent* VehicleBody = GetUpdatedPrimitive())
+	if (AActor* Owner = GetOwner())
 	{
-		FVector DownforceVector = FVector(0.0f, 0.0f, -DownforceKg * 100.0f);
-		VehicleBody->AddForce(DownforceVector);
+		if (UPrimitiveComponent* VehicleBody = Cast<UPrimitiveComponent>(Owner->GetRootComponent()))
+		{
+			FVector DownforceVector = FVector(0.0f, 0.0f, -DownforceUE);
+			VehicleBody->AddForce(DownforceVector);
+		}
 	}
 }
 
@@ -291,8 +309,8 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		TorqueDecayRPM = 4000.0f;
 		MaxMotorRPM = 15000.0f;
 		RegenBrakingStrength = 0.4f;
-		DownforceCoefficient = 3.5f;  // High downforce
-		DragCoefficient = 0.30f;
+		NIODownforceCoefficient = 3.5f;  // High downforce
+		NIODragCoefficient = 0.30f;
 		FrontalArea = 2.0f;
 		BatteryDischargeRate = 0.08f;  // Higher drain for more power
 
@@ -310,8 +328,8 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		TorqueDecayRPM = 3500.0f;
 		MaxMotorRPM = 12000.0f;
 		RegenBrakingStrength = 0.3f;
-		DownforceCoefficient = 0.5f;
-		DragCoefficient = 0.23f;  // Very aerodynamic
+		NIODownforceCoefficient = 0.5f;
+		NIODragCoefficient = 0.23f;  // Very aerodynamic
 		FrontalArea = 2.3f;
 		BatteryDischargeRate = 0.04f;
 
@@ -329,8 +347,8 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		TorqueDecayRPM = 3000.0f;
 		MaxMotorRPM = 12000.0f;
 		RegenBrakingStrength = 0.25f;
-		DownforceCoefficient = 0.3f;
-		DragCoefficient = 0.32f;  // Higher drag (SUV shape)
+		NIODownforceCoefficient = 0.3f;
+		NIODragCoefficient = 0.32f;  // Higher drag (SUV shape)
 		FrontalArea = 2.8f;
 		BatteryDischargeRate = 0.05f;
 
@@ -348,8 +366,8 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		TorqueDecayRPM = 3500.0f;
 		MaxMotorRPM = 12000.0f;
 		RegenBrakingStrength = 0.3f;
-		DownforceCoefficient = 0.4f;
-		DragCoefficient = 0.24f;
+		NIODownforceCoefficient = 0.4f;
+		NIODragCoefficient = 0.24f;
 		FrontalArea = 2.2f;
 		BatteryDischargeRate = 0.04f;
 
@@ -361,7 +379,35 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		}
 		break;
 
+	case ENIOVehicleType::SU7Ultra:
+		// Xiaomi SU7 Ultra - Super Sedan
+		PeakMotorTorque = 1770.0f;  // 1548 HP
+		TorqueDecayRPM = 5000.0f;
+		MaxMotorRPM = 16000.0f;
+		RegenBrakingStrength = 0.35f;
+		NIODownforceCoefficient = 2.8f;
+		NIODragCoefficient = 0.25f;
+		FrontalArea = 2.1f;
+		BatteryDischargeRate = 0.09f;
+
+		// Use EP9 tire presets as high-performance default
+		if (TireModel)
+		{
+			FTireModelPreset FrontPreset = UNIOTirePresets::CreateEP9FrontPreset();
+			TireModel->ApplyPreset(FrontPreset);
+		}
+		break;
+
 	default:
+		// Default to ET7 configuration
+		PeakMotorTorque = 850.0f;
+		TorqueDecayRPM = 3500.0f;
+		MaxMotorRPM = 12000.0f;
+		RegenBrakingStrength = 0.3f;
+		NIODownforceCoefficient = 0.5f;
+		NIODragCoefficient = 0.23f;
+		FrontalArea = 2.3f;
+		BatteryDischargeRate = 0.04f;
 		break;
 	}
 

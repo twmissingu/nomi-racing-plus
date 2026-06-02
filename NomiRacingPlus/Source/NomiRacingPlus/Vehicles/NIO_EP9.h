@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Vehicles/NIOVehicleBase.h"
+#include "NIOVehicleBase.h"
 #include "NIO_EP9.generated.h"
 
 /**
@@ -19,5 +19,5 @@ class NOMIRACINGPLUS_API ANIO_EP9 : public ANIOVehicleBase
 	GENERATED_BODY()
 
 public:
-	ANIO_EP9();
+	ANIO_EP9(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

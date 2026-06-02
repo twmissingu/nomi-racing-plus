@@ -440,27 +440,21 @@ void AChampionshipManager::RecordChampionshipRaceResult(int32 PlayerPosition, co
 
 		ActiveChampionship.bPlayerWon = (ActiveChampionship.FinalPlayerPosition == 1);
 
-		// Notify progression component
-		if (ProgressionComponent)
-		{
-			ProgressionComponent->UpdateChampionshipResults(PlayerPosition, AIPositions);
-		}
-
 		UE_LOG(LogNomiRace, Log, TEXT("Championship completed: %s - Player: %d place (Won: %s)"),
 			*ActiveChampionship.Name, ActiveChampionship.FinalPlayerPosition,
 			ActiveChampionship.bPlayerWon ? TEXT("Yes") : TEXT("No"));
 	}
 	else
 	{
-		// Notify progression component for intermediate results
-		if (ProgressionComponent)
-		{
-			ProgressionComponent->UpdateChampionshipResults(PlayerPosition, AIPositions);
-		}
-
 		UE_LOG(LogNomiRace, Log, TEXT("Championship race %d/%d completed. Player points: %d"),
 			ActiveChampionship.CurrentRace, ActiveChampionship.Tracks.Num(),
 			ActiveChampionship.PlayerPoints);
+	}
+
+	// Notify progression component (called once, outside if/else)
+	if (ProgressionComponent)
+	{
+		ProgressionComponent->UpdateChampionshipResults(PlayerPosition, AIPositions);
 	}
 }
 

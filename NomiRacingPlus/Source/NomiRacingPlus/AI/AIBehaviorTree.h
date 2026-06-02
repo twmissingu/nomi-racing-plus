@@ -144,43 +144,6 @@ struct NOMIRACINGPLUS_API FAIDefensiveDecision
 };
 
 /**
- * AI rubber band configuration
- */
-USTRUCT(BlueprintType)
-struct NOMIRACINGPLUS_API FAIRubberBandConfig
-{
-	GENERATED_BODY()
-
-	// Enable rubber banding?
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RubberBand")
-	bool bEnabled = true;
-
-	// Speed boost when behind (per position)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RubberBand")
-	float SpeedBoostPerPosition = 0.02f;
-
-	// Speed reduction when ahead (per position)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RubberBand")
-	float SpeedReductionPerPosition = 0.01f;
-
-	// Max speed boost
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RubberBand")
-	float MaxSpeedBoost = 0.2f;
-
-	// Max speed reduction
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RubberBand")
-	float MaxSpeedReduction = 0.1f;
-
-	// Catch-up distance threshold
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RubberBand")
-	float CatchUpDistance = 5000.0f; // 50 meters
-
-	// Brake point adjustment when behind
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RubberBand")
-	float BrakePointAdjustment = 0.1f;
-};
-
-/**
  * AI slipstream configuration
  */
 USTRUCT(BlueprintType)
@@ -311,6 +274,7 @@ protected:
 
 	// Get subsystem references
 
+public:
 	UFUNCTION(BlueprintCallable, Category = "AI|Subsystem")
 	UAISensorSystem* GetSensorSystem() const { return SensorSystem; }
 

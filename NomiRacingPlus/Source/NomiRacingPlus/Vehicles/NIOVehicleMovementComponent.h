@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
-#include "Vehicles/TirePhysicsModel.h"
+#include "TirePhysicsModel.h"
 #include "NIOVehicleMovementComponent.generated.h"
 
 /**
@@ -24,8 +24,8 @@ class NOMIRACINGPLUS_API UNIOVehicleMovementComponent : public UChaosWheeledVehi
 public:
 	UNIOVehicleMovementComponent();
 
-	virtual void SetupVehicleMovement() override;
-	virtual void UpdateSimulation(float DeltaTime) override;
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	// Electric vehicle specific functions
 
@@ -130,13 +130,13 @@ protected:
 
 	// Aerodynamic parameters
 
-	// Downforce coefficient (derived from real data)
+	// Custom downforce coefficient (overrides parent class)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Aero")
-	float DownforceCoefficient = 0.0f;
+	float NIODownforceCoefficient = 0.0f;
 
-	// Drag coefficient
+	// Custom drag coefficient (overrides parent class)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Aero")
-	float DragCoefficient = 0.35f;
+	float NIODragCoefficient = 0.35f;
 
 	// Frontal area in m^2
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Aero")

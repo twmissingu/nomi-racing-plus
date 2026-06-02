@@ -1,6 +1,6 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "Core/CameraSystem.h"
+#include "CameraSystem.h"
 #include "Vehicles/NIOVehicleBase.h"
 #include "Vehicles/VehicleStateManager.h"
 #include "NomiRacingPlus.h"
@@ -94,6 +94,15 @@ void UCameraSystem::BeginPlay()
 
 	// Cache vehicle reference
 	VehicleActor = GetOwner();
+
+	// Create camera component if not already created
+	if (!CameraComponent && VehicleActor)
+	{
+		CameraComponent = NewObject<UCameraComponent>(VehicleActor, TEXT("VehicleCamera"));
+		CameraComponent->SetupAttachment(VehicleActor->GetRootComponent());
+		CameraComponent->RegisterComponent();
+		UE_LOG(LogNomiCamera, Log, TEXT("CameraComponent created dynamically"));
+	}
 
 	// Initialize default camera configs
 	InitializeDefaultConfigs();
@@ -271,7 +280,7 @@ void UCameraSystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 	// Update acceleration tracking
 	float CurrentSpeed = GetVehicleSpeed();
 	float RawAcceleration = (CurrentSpeed - PreviousSpeed) / FMath::Max(DeltaTime, 0.001f);
-	CurrentAcceleration = FMath::FInterpTo(CurrentAcceleration, RawAcceleration, DeltaTime, 1.0f / CameraConstants::AccelerationSmoothing);
+	CurrentAcceleration = FMath::FInterpTo(CurrentAcceleration, RawAcceleration, DeltaTime, 1.0f / AccelerationSmoothing);
 	PreviousSpeed = CurrentSpeed;
 
 	// Update mode transition blend
@@ -287,7 +296,7 @@ void UCameraSystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 	if (bIsRecording)
 	{
 		ReplayRecordTimer += DeltaTime;
-		if (ReplayRecordTimer >= CameraConstants::ReplayRecordInterval)
+		if (ReplayRecordTimer >= ReplayRecordInterval)
 		{
 			RecordReplayPoint();
 			ReplayRecordTimer = 0.0f;
@@ -422,7 +431,7 @@ void UCameraSystem::UpdateChaseCamera(float DeltaTime, const FCameraConfig& Conf
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(VehicleActor);
 
-	if (GetWorld()->LineTraceSingleByChannel(HitResult, VehicleLocation, DesiredLocation,
+	if (GetWorld() && GetWorld()->LineTraceSingleByChannel(HitResult, VehicleLocation, DesiredLocation,
 		ECC_Visibility, QueryParams))
 	{
 		// Pull camera closer if blocked
@@ -906,13 +915,13 @@ void UCameraSystem::RecordReplayPoint()
 	// Get drift state if available
 	if (ANIOVehicleBase* NIOVehicle = Cast<ANIOVehicleBase>(VehicleActor))
 	{
-		const FVehicleState& State = NIOVehicle->GetVehicleState();
+		const FNIOVehicleState& State = NIOVehicle->GetVehicleState();
 		Point.bIsDrifting = State.bIsDrifting;
 		Point.SlipAngle = State.SlipAngle;
 	}
 
 	// Remove oldest data if at capacity
-	int32 MaxPoints = static_cast<int32>(MaxReplayDuration / CameraConstants::ReplayRecordInterval);
+	int32 MaxPoints = static_cast<int32>(MaxReplayDuration / ReplayRecordInterval);
 	if (ReplayData.Num() >= MaxPoints)
 	{
 		ReplayData.RemoveAt(0);

@@ -1,6 +1,6 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "AI/AIBehaviorTree.h"
+#include "AIBehaviorTree.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NomiRacingPlus.h"
@@ -64,7 +64,10 @@ void UAIBehaviorTree::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	Factors.SlipstreamStrength = SensorData.SlipstreamStrength;
 
 	// Update slipstream system
-	SlipstreamSystem->UpdateFromSensorData(SensorData);
+	if (SlipstreamSystem)
+	{
+		SlipstreamSystem->UpdateFromSensorData(SensorData);
+	}
 
 	// Evaluate behavior
 	EvaluateBehavior(Factors);

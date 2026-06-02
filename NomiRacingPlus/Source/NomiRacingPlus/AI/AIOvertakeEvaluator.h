@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "AISensorSystem.h"
-#include "AIBehaviorTree.h"
 #include "AIOvertakeEvaluator.generated.h"
+
+// Forward declarations
+class UAIBehaviorTree;
 
 /**
  * Overtake strategy types

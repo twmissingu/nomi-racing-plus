@@ -719,6 +719,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Unlockables")
 	float GetUnlockProgress() const;
 
+	// Manual initialization (for components created outside actor lifecycle)
+	// Call this after NewObject when BeginPlay() won't be called
+	UFUNCTION(BlueprintCallable, Category = "Init")
+	void InitializeSystems();
+
 	// Save/Load
 
 	// Save progression

@@ -50,10 +50,10 @@ find_ue5() {
         UE5_DIR="${UE5_ROOT}"
     elif [ "${PLATFORM}" = "Mac" ]; then
         # Default macOS UE5 location
-        UE5_DIR="/Users/Shared/Epic Games/UE_5.5"
+        UE5_DIR="/Users/Shared/Epic Games/UE_5.7"
     elif [ "${PLATFORM}" = "Windows" ]; then
         # Default Windows UE5 location
-        UE5_DIR="C:/Program Files/Epic Games/UE_5.5"
+        UE5_DIR="C:/Program Files/Epic Games/UE_5.7"
     else
         log_error "Cannot auto-detect UE5 installation. Set UE5_ROOT environment variable."
         exit 1
@@ -179,6 +179,51 @@ clean_build() {
     log_info "Clean complete"
 }
 
+# Run automated tests
+run_tests() {
+    local FILTER=${1:-""}
+
+    log_info "Running automated tests..."
+
+    if [ "${PLATFORM}" = "Mac" ]; then
+        EDITOR_CMD="${UE5_DIR}/Engine/Binaries/Mac/UnrealEditor-Cmd"
+    else
+        EDITOR_CMD="${UE5_DIR}/Engine/Binaries/Win64/UnrealEditor-Cmd.exe"
+    fi
+
+    if [ ! -f "${EDITOR_CMD}" ]; then
+        log_error "UnrealEditor-Cmd not found at: ${EDITOR_CMD}"
+        exit 1
+    fi
+
+    # Build test command
+    local TEST_CMD="Automation RunTests NomiRacingPlus"
+    if [ -n "${FILTER}" ]; then
+        TEST_CMD="Automation RunTests ${FILTER}"
+    fi
+
+    log_info "Running: ${EDITOR_CMD} ${PROJECT_DIR}/${PROJECT_NAME}.uproject -ExecCmds=\"${TEST_CMD}; Quit\""
+
+    "${EDITOR_CMD}" "${PROJECT_DIR}/${PROJECT_NAME}.uproject" \
+        -ExecCmds="${TEST_CMD}; Quit" \
+        -log \
+        -unattended \
+        -nopause \
+        -nullrhi \
+        -NoSound \
+        -ReportOutputPath="${LOG_DIR}/TestResults" \
+        2>&1 | tee "${LOG_DIR}/test.log"
+
+    TEST_RESULT=$?
+
+    if [ ${TEST_RESULT} -eq 0 ]; then
+        log_info "Tests completed successfully!"
+    else
+        log_error "Tests failed with exit code: ${TEST_RESULT}"
+        exit 1
+    fi
+}
+
 # Show help
 show_help() {
     echo "NIO Racing Plus Build Script"
@@ -189,6 +234,7 @@ show_help() {
     echo "  build [Development|Shipping|Debug]  Build the project"
     echo "  cook                                 Cook content only"
     echo "  generate                             Generate project files"
+    echo "  test [filter]                        Run automated tests"
     echo "  clean                                Clean build artifacts"
     echo "  help                                 Show this help"
     echo ""
@@ -200,6 +246,8 @@ show_help() {
     echo "  $0 build Development                 Build for development"
     echo "  $0 build Shipping --platform Win64   Build for Windows shipping"
     echo "  $0 cook                              Cook content only"
+    echo "  $0 test                              Run all tests"
+    echo "  $0 test NomiRacingPlus.Vehicle       Run vehicle tests only"
     echo "  $0 clean                             Clean build artifacts"
 }
 
@@ -239,6 +287,10 @@ main() {
             ;;
         generate)
             generate_project_files
+            ;;
+        test)
+            # For test, BUILD_TYPE is actually the filter
+            run_tests "${BUILD_TYPE}"
             ;;
         clean)
             clean_build

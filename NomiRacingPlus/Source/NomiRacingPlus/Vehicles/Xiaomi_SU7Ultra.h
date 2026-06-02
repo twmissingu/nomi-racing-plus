@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Vehicles/NIOVehicleBase.h"
+#include "NIOVehicleBase.h"
 #include "Xiaomi_SU7Ultra.generated.h"
 
 /**
@@ -19,5 +19,5 @@ class NOMIRACINGPLUS_API AXiaomi_SU7Ultra : public ANIOVehicleBase
 	GENERATED_BODY()
 
 public:
-	AXiaomi_SU7Ultra();
+	AXiaomi_SU7Ultra(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

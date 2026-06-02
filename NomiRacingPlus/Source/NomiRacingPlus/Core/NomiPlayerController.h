@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInputSubsystemInterface.h"
-#include "Core/CameraSystem.h"
+#include "CameraSystem.h"
 #include "NomiPlayerController.generated.h"
 
 /**
@@ -101,9 +101,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 	int32 GetCameraMode() const { return CameraMode; }
 
-	// Set camera mode
+	// Set camera mode by index
 	UFUNCTION(BlueprintCallable, Category = "Camera")
-	void SetCameraMode(int32 Mode);
+	void SetCameraModeByIndex(int32 Mode);
 
 	// Cycle camera mode
 	UFUNCTION(BlueprintCallable, Category = "Camera")
@@ -118,9 +118,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	int32 CameraMode = 0;
 
-	// Camera mode names
+	// Camera mode names (must match ECameraMode enum order)
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")
-	TArray<FString> CameraModeNames = {TEXT("Chase"), TEXT("Hood"), TEXT("Cockpit"), TEXT("Free")};
+	TArray<FString> CameraModeNames = {TEXT("Chase"), TEXT("Hood"), TEXT("Cockpit"), TEXT("Bumper"), TEXT("Free"), TEXT("Cinematic"), TEXT("Replay")};
 
 private:
 	// Input handlers

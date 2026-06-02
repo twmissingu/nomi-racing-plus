@@ -1,14 +1,17 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "AI/AICarController.h"
-#include "AI/AIBehaviorTree.h"
-#include "AI/AISensorSystem.h"
-#include "AI/AIOvertakeEvaluator.h"
-#include "AI/AIDefensiveEvaluator.h"
-#include "AI/AISlipstreamSystem.h"
-#include "AI/AIRubberBandScaler.h"
+#include "AICarController.h"
+#include "AIBehaviorTree.h"
+#include "AISensorSystem.h"
+#include "AIOvertakeEvaluator.h"
+#include "AIDefensiveEvaluator.h"
+#include "AISlipstreamSystem.h"
+#include "AIRubberBandScaler.h"
 #include "Vehicles/VehicleStateManager.h"
 #include "Vehicles/NIOVehicleMovementComponent.h"
+#include "Vehicles/NIOVehicleBase.h"
+#include "Race/CheckpointSystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NomiRacingPlus.h"
 
@@ -73,9 +76,16 @@ AAICarController::AAICarController()
 void AAICarController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ControlledVehicle = GetPawn();
 	CachedWorld = GetWorld();
+	// Note: ControlledVehicle is set in OnPossess(), not here
+	// because BeginPlay() fires before Possess() in UE5
+}
+
+void AAICarController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	ControlledVehicle = InPawn;
 
 	// Cache component references to avoid FindComponentByClass every frame
 	if (ControlledVehicle)
@@ -120,7 +130,62 @@ void AAICarController::BeginPlay()
 			RBScaler->SetConfig(RBConfig);
 		}
 
-		UE_LOG(LogNomiAI, Log, TEXT("AI Behavior Tree initialized for %s"), *ControlledVehicle->GetName());
+		// Generate simple waypoints around the track (circular path)
+		GenerateDefaultWaypoints();
+
+		// Start racing immediately
+		StartRacing();
+
+		UE_LOG(LogNomiAI, Log, TEXT("AI initialized and racing for %s"), *ControlledVehicle->GetName());
+	}
+}
+
+void AAICarController::GenerateDefaultWaypoints()
+{
+	// Try to find checkpoints in the level to use as waypoints
+	TArray<AActor*> Checkpoints;
+	UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), Checkpoints);
+
+	if (Checkpoints.Num() > 0)
+	{
+		// Sort checkpoints by index
+		Checkpoints.Sort([](const AActor& A, const AActor& B) {
+			const ACheckpoint* CA = Cast<ACheckpoint>(&A);
+			const ACheckpoint* CB = Cast<ACheckpoint>(&B);
+			if (CA && CB) return CA->CheckpointIndex < CB->CheckpointIndex;
+			return false;
+		});
+
+		// Use checkpoints as waypoints
+		Waypoints.SetNum(Checkpoints.Num());
+		for (int32 i = 0; i < Checkpoints.Num(); i++)
+		{
+			Waypoints[i].Location = Checkpoints[i]->GetActorLocation() + FVector(0, 0, 100.0f);
+			Waypoints[i].RecommendedSpeed = 120.0f;
+			Waypoints[i].bIsCorner = false;
+			Waypoints[i].CornerSharpness = 0.0f;
+		}
+
+		UE_LOG(LogNomiAI, Log, TEXT("AI generated %d waypoints from checkpoints"), Waypoints.Num());
+	}
+	else
+	{
+		// Fallback: generate a simple circular path around the origin
+		const float TrackRadius = 5000.0f;
+		const int32 NumWaypoints = 12;
+		const FVector Center = FVector::ZeroVector;
+
+		Waypoints.SetNum(NumWaypoints);
+		for (int32 i = 0; i < NumWaypoints; i++)
+		{
+			float Angle = (2.0f * PI * i) / NumWaypoints;
+			Waypoints[i].Location = Center + FVector(FMath::Cos(Angle) * TrackRadius, FMath::Sin(Angle) * TrackRadius, 200.0f);
+			Waypoints[i].RecommendedSpeed = 120.0f;
+			Waypoints[i].bIsCorner = (i % 3 == 0);
+			Waypoints[i].CornerSharpness = Waypoints[i].bIsCorner ? 0.5f : 0.0f;
+		}
+
+		UE_LOG(LogNomiAI, Log, TEXT("AI generated %d default circular waypoints (no checkpoints found)"), Waypoints.Num());
 	}
 }
 
@@ -287,11 +352,11 @@ void AAICarController::UpdateAIDecision(float DeltaTime)
 		Brake = FMath::Lerp(Brake, BTBrake, BTWeight);
 		Steering = FMath::Lerp(Steering, BTSteering, BTWeight * 0.5f);
 
-		// Apply rubber band speed multiplier
+		// Apply rubber band speed multiplier (SET, not multiply - prevents exponential runaway)
 		if (UAIRubberBandScaler* RBScaler = BehaviorTree->GetRubberBandScaler())
 		{
 			float RBMultiplier = RBScaler->GetSpeedMultiplier();
-			TargetSpeedMultiplier *= RBMultiplier;
+			TargetSpeedMultiplier = RBMultiplier;
 		}
 	}
 	else
@@ -505,12 +570,20 @@ void AAICarController::ApplyAIInputs(float Throttle, float Brake, float Steering
 	SmoothBrake = FMath::FInterpTo(SmoothBrake, Brake, DeltaTime, Settings.BrakeSmoothness * 10.0f);
 	SmoothSteering = FMath::FInterpTo(SmoothSteering, Steering, DeltaTime, Settings.SteeringSmoothness * 10.0f);
 
-	// Apply to cached vehicle movement component
+	// Apply to Chaos Vehicle movement component
 	if (CachedMovementComponent)
 	{
 		CachedMovementComponent->SetThrottleInput(SmoothThrottle);
 		CachedMovementComponent->SetBrakeInput(SmoothBrake);
 		CachedMovementComponent->SetSteeringInput(SmoothSteering);
+	}
+
+	// Also apply to vehicle's simple movement inputs (fallback when no skeletal mesh)
+	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(ControlledVehicle))
+	{
+		Vehicle->ThrottleInput = SmoothThrottle;
+		Vehicle->BrakeInput = SmoothBrake;
+		Vehicle->SteeringInput = SmoothSteering;
 	}
 }
 

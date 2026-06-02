@@ -6,6 +6,9 @@
 #include "Components/ActorComponent.h"
 #include "TirePhysicsModel.generated.h"
 
+// Forward declarations
+class UChaosWheeledVehicleMovementComponent;
+
 /**
  * Pacejka Magic Formula coefficients for tire force calculation
  * F = D * sin(C * arctan(B*x - E*(B*x - arctan(B*x))))

@@ -3,6 +3,10 @@
 #include "Race/RaceProgression.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
 
 URaceProgression::URaceProgression()
 {
@@ -18,6 +22,16 @@ void URaceProgression::BeginPlay()
 	LoadProgression();
 
 	UE_LOG(LogNomiRace, Log, TEXT("Race Progression initialized"));
+}
+
+void URaceProgression::InitializeSystems()
+{
+	// Manual initialization for components created outside actor lifecycle
+	InitializeAchievements();
+	InitializeUnlockables();
+
+	UE_LOG(LogNomiRace, Log, TEXT("Race Progression systems manually initialized: %d achievements, %d unlockables"),
+		Achievements.Num(), Unlockables.Num());
 }
 
 void URaceProgression::InitializeAchievements()

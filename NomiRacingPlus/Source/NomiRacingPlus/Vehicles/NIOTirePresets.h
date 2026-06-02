@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Vehicles/TirePhysicsModel.h"
+#include "TirePhysicsModel.h"
+#include "VehicleStateManager.h"
 #include "NIOTirePresets.generated.h"
 
 /**

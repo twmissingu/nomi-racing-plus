@@ -160,7 +160,6 @@ public:
 	const FAIRubberBandConfig& GetConfig() const { return Config; }
 
 	// Is rubber banding active?
-	UFUNCTION(BlueprintCallable, Category = "AI|RubberBand")
 	bool IsActive() const { return State.bActive; }
 
 protected:

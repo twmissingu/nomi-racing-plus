@@ -1,6 +1,6 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "Core/AudioManager.h"
+#include "AudioManager.h"
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
@@ -244,7 +244,7 @@ void UAudioManager::PlayCollisionSound(float ImpactForce)
 	int32 Index = FMath::RandRange(0, CollisionSounds.Num() - 1);
 	USoundCue* Sound = CollisionSounds[Index];
 
-	if (Sound)
+	if (Sound && GetOwner())
 	{
 		// Scale volume by impact force
 		float Volume = FMath::Clamp(ImpactForce / 1000.0f, 0.3f, 1.0f);
@@ -254,7 +254,7 @@ void UAudioManager::PlayCollisionSound(float ImpactForce)
 
 void UAudioManager::PlayHornSound()
 {
-	if (HornSound)
+	if (HornSound && GetOwner())
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, HornSound, GetOwner()->GetActorLocation());
 	}

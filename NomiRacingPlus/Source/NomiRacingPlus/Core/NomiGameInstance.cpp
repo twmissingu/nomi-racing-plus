@@ -1,10 +1,14 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "Core/NomiGameInstance.h"
+#include "NomiGameInstance.h"
+#include "NomiRaceGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "HAL/PlatformMisc.h"
 #include "RHI.h"
 #include "NomiRacingPlus.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
 UNomiGameInstance::UNomiGameInstance()
 {
@@ -18,7 +22,8 @@ void UNomiGameInstance::Init()
 	RaceProgression = NewObject<URaceProgression>(this, TEXT("RaceProgression"));
 	if (RaceProgression)
 	{
-		// Manually trigger initialization since we're creating it outside of an actor
+		// Manually initialize since BeginPlay() won't be called for GameInstance-owned components
+		RaceProgression->InitializeSystems();
 		RaceProgression->LoadProgression();
 		UE_LOG(LogNomiRace, Log, TEXT("RaceProgression component created and loaded"));
 	}
@@ -331,11 +336,25 @@ void UNomiGameInstance::RecordRaceSession(const FRaceSessionResult& SessionResul
 	}
 }
 
+AChampionshipManager* UNomiGameInstance::GetChampionshipManager() const
+{
+	// ChampionshipManager is spawned by the GameMode, not the GameInstance
+	if (UWorld* World = GetWorld())
+	{
+		if (ANomiRaceGameMode* GM = Cast<ANomiRaceGameMode>(World->GetAuthGameMode()))
+		{
+			return GM->GetChampionshipManager();
+		}
+	}
+	return nullptr;
+}
+
 bool UNomiGameInstance::StartChampionship(const FString& ChampionshipID)
 {
-	if (ChampionshipManager)
+	AChampionshipManager* CM = GetChampionshipManager();
+	if (CM)
 	{
-		return ChampionshipManager->StartChampionshipByID(ChampionshipID);
+		return CM->StartChampionshipByID(ChampionshipID);
 	}
 
 	UE_LOG(LogNomiRace, Warning, TEXT("ChampionshipManager not available"));

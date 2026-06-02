@@ -7,6 +7,8 @@
 #include "Race/RaceManager.h"
 #include "Race/RaceProgression.h"
 #include "Race/ChampionshipManager.h"
+#include "Vehicles/VehicleStateManager.h"
+#include "AI/AICarController.h"
 #include "NomiRaceGameMode.generated.h"
 
 /**
@@ -100,6 +102,13 @@ protected:
 	// Race progression reference
 	UPROPERTY(BlueprintReadOnly, Category = "Game Mode|Progression")
 	TObjectPtr<URaceProgression> RaceProgression;
+
+	// Auto-start race delay
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game Mode")
+	float RaceStartDelay = 3.0f;
+
+	// Has the race started?
+	bool bRaceStarted = false;
 
 private:
 	// Initialize race manager

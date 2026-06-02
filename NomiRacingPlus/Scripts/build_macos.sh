@@ -121,8 +121,10 @@ find_ue5() {
 
     # Common macOS locations
     local candidates=(
+        "/Users/Shared/Epic Games/UE_5.7"
         "/Users/Shared/Epic Games/UE_5.5"
         "/Users/Shared/Epic Games/UE_5.4"
+        "${HOME}/Epic Games/UE_5.7"
         "${HOME}/Epic Games/UE_5.5"
         "${HOME}/Epic Games/UE_5.4"
     )

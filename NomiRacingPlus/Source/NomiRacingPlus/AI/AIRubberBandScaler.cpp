@@ -1,6 +1,6 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "AI/AIRubberBandScaler.h"
+#include "AIRubberBandScaler.h"
 #include "NomiRacingPlus.h"
 
 UAIRubberBandScaler::UAIRubberBandScaler()

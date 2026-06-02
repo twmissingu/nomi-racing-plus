@@ -1,6 +1,7 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "AI/AIOvertakeEvaluator.h"
+#include "AIOvertakeEvaluator.h"
+#include "AIBehaviorTree.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NomiRacingPlus.h"
 

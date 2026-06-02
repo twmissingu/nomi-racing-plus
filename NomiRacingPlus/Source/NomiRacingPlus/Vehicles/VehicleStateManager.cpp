@@ -1,6 +1,7 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
-#include "Vehicles/VehicleStateManager.h"
+#include "VehicleStateManager.h"
+#include "NIOVehicleMovementComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Components/PrimitiveComponent.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
@@ -182,7 +183,7 @@ void UVehicleStateManager::UpdateStateFromPhysics(float DeltaTime)
 
 float UVehicleStateManager::CalculateSlipAngle() const
 {
-	if (VehicleState.SpeedKmh < 5.0f)
+	if (VehicleState.SpeedKmh < 5.0f || !GetOwner())
 	{
 		return 0.0f;
 	}
@@ -211,6 +212,7 @@ FString UVehicleStateManager::GetVehicleDisplayName() const
 	case ENIOVehicleType::ET7: return TEXT("NIO ET7");
 	case ENIOVehicleType::ES7: return TEXT("NIO ES7");
 	case ENIOVehicleType::ET5: return TEXT("NIO ET5");
+	case ENIOVehicleType::SU7Ultra: return TEXT("Xiaomi SU7 Ultra");
 	default: return TEXT("Custom Vehicle");
 	}
 }
