@@ -11,7 +11,27 @@
 
 A production-grade UE5 racing game featuring NIO vehicles (EP9, ET7, ES7, ET5) with Chaos Vehicles physics, NOMI AI companion, and advanced AI opponents. Built entirely with free and open-source assets.
 
-## Why This Project?
+## 🌟 Why This Project?
+
+### 🚗 **ONE LINE TO ADD ANY CAR** — The Game's Killer Feature!
+
+```bash
+# Import ANY vehicle from Sketchfab with ONE command!
+python3 Scripts/add_vehicle.py "https://sketchfab.com/3d-models/porsche-911-gt3-abc123" --color red
+```
+
+**That's it!** The system automatically:
+- Downloads the 3D model
+- Applies your chosen paint color
+- Generates physics configuration
+- Creates motor sound effects
+- Integrates with the game
+
+**100+ cars from Sketchfab, instantly playable in your game!**
+
+[📖 Custom Vehicle Guide](Docs/Custom_Vehicle_Guide.md)
+
+---
 
 🏎️ **Realistic Electric Vehicle Physics** — Not just another arcade racer. Experience 0 RPM peak torque, regenerative braking, and battery simulation that mimics real EV behavior.
 
