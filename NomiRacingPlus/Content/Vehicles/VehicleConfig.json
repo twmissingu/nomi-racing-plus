@@ -215,6 +215,83 @@
                 "lod1_distance": 1000,
                 "lod2_distance": 5000
             }
+        },
+        "SU7Ultra": {
+            "name": "Xiaomi SU7 Ultra",
+            "type": "super_sedan",
+            "performance": {
+                "mass_kg": 1900,
+                "power_kw": 1138,
+                "power_hp": 1548,
+                "torque_nm": 1635,
+                "drive_type": "AWD_dual_motor",
+                "top_speed_kph": 350,
+                "acceleration_0_100": 1.98,
+                "wheelbase_mm": 3000,
+                "track_width_mm": 1650,
+                "height_mm": 1440
+            },
+            "electric": {
+                "battery_capacity_kwh": 101,
+                "motor_count": 2,
+                "front_motor_power_kw": 428,
+                "rear_motor_power_kw": 710,
+                "regen_strength": 0.45,
+                "range_km": 630
+            },
+            "aerodynamics": {
+                "drag_coefficient": 0.228,
+                "frontal_area_m2": 2.35,
+                "downforce_coefficient": 0.35,
+                "active_aero": true
+            },
+            "chassis": {
+                "suspension_front": "double_wishbone",
+                "suspension_rear": "multi_link",
+                "suspension_type": "air_suspension",
+                "brakes": "carbon_ceramic",
+                "brakes_front_mm": 410,
+                "brakes_rear_mm": 380,
+                "tires_front": "265/35 R21",
+                "tires_rear": "305/30 R21"
+            },
+            "chaos_vehicle": {
+                "engine": {
+                    "max_rpm": 21000,
+                    "idle_rpm": 0,
+                    "torque_curve": [
+                        {"rpm": 0, "torque": 1.0},
+                        {"rpm": 6000, "torque": 1.0},
+                        {"rpm": 12000, "torque": 0.85},
+                        {"rpm": 18000, "torque": 0.50},
+                        {"rpm": 21000, "torque": 0.0}
+                    ]
+                },
+                "transmission": {
+                    "type": "single_speed",
+                    "gear_ratio": 1.0,
+                    "final_drive": 10.0
+                },
+                "suspension": {
+                    "spring_rate_front": 180000,
+                    "spring_rate_rear": 200000,
+                    "damping_ratio": 0.70,
+                    "max_compression": 120,
+                    "max_droop": 90
+                },
+                "tires": {
+                    "friction_force": 1.10,
+                    "lateral_stiffness": 25.0,
+                    "longitudinal_stiffness": 22.0
+                }
+            },
+            "lod": {
+                "lod0_faces": 500000,
+                "lod1_faces": 120000,
+                "lod2_faces": 25000,
+                "lod1_distance": 1000,
+                "lod2_distance": 5000
+            }
         }
     }
 }

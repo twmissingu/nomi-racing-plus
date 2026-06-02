@@ -1,0 +1,47 @@
+# NIO Racing Plus - Git Ignore
+
+# Assets directory (large binary files, download separately)
+Assets/
+
+# UE5 generated files
+NomiRacingPlus/Binaries/
+NomiRacingPlus/Intermediate/
+NomiRacingPlus/Saved/
+NomiRacingPlus/DerivedDataCache/
+NomiRacingPlus/.vs/
+NomiRacingPlus/*.sln
+NomiRacingPlus/*.suo
+
+# Content binary files (textures, audio, meshes)
+Content/Audio/Motor/*.wav
+Content/Audio/SFX/*.wav
+Content/Audio/UI/*.wav
+Content/Audio/Music/*.wav
+Content/Textures/
+Content/Materials/*.uasset
+Content/Vehicles/*/Meshes/*.fbx
+Content/Vehicles/*/Textures/*.png
+
+# Keep JSON configuration files
+!Content/**/*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+*.pdb
+*.ilk
+*.obj
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.cache

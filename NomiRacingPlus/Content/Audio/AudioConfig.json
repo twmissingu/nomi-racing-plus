@@ -512,6 +512,141 @@
                     "suv_warmth": true,
                     "differential_whine": false
                 }
+            },
+            "SU7Ultra": {
+                "vehicle_id": "SU7Ultra",
+                "vehicle_name": "Xiaomi SU7 Ultra",
+                "vehicle_type": "super_sedan",
+                "motor_count": 2,
+                "motor_placement": "front_and_rear_axle",
+                "max_rpm": 21000,
+                "layers": {
+                    "motor_whine": {
+                        "sound_asset": "Motor_SU7Ultra_Whine",
+                        "description": "High-performance dual-motor whine, V8s rear motor dominant",
+                        "frequency_range_hz": [800, 15000],
+                        "pitch_curve": [
+                            {"rpm": 0, "pitch": 0.55},
+                            {"rpm": 2000, "pitch": 0.70},
+                            {"rpm": 4000, "pitch": 0.85},
+                            {"rpm": 6000, "pitch": 1.00},
+                            {"rpm": 8000, "pitch": 1.18},
+                            {"rpm": 10000, "pitch": 1.38},
+                            {"rpm": 12000, "pitch": 1.58},
+                            {"rpm": 15000, "pitch": 1.85},
+                            {"rpm": 18000, "pitch": 2.10},
+                            {"rpm": 21000, "pitch": 2.35}
+                        ],
+                        "volume_curve": [
+                            {"rpm": 0, "volume": 0.08},
+                            {"rpm": 2000, "volume": 0.25},
+                            {"rpm": 4000, "volume": 0.45},
+                            {"rpm": 6000, "volume": 0.65},
+                            {"rpm": 8000, "volume": 0.80},
+                            {"rpm": 10000, "volume": 0.92},
+                            {"rpm": 12000, "volume": 1.00},
+                            {"rpm": 15000, "volume": 0.95},
+                            {"rpm": 18000, "volume": 0.80},
+                            {"rpm": 21000, "volume": 0.60}
+                        ],
+                        "intensity": 0.85,
+                        "stereo_width": 0.75
+                    },
+                    "inverter_tone": {
+                        "sound_asset": "Motor_SU7Ultra_Inverter",
+                        "description": "High-frequency inverter switching from 800V SiC power electronics",
+                        "frequency_range_hz": [2500, 10000],
+                        "pitch_curve": [
+                            {"rpm": 0, "pitch": 0.75},
+                            {"rpm": 7000, "pitch": 1.00},
+                            {"rpm": 14000, "pitch": 1.35},
+                            {"rpm": 21000, "pitch": 1.70}
+                        ],
+                        "volume_curve": [
+                            {"rpm": 0, "volume": 0.04},
+                            {"rpm": 3000, "volume": 0.25},
+                            {"rpm": 6000, "volume": 0.50},
+                            {"rpm": 10000, "volume": 0.75},
+                            {"rpm": 15000, "volume": 0.90},
+                            {"rpm": 21000, "volume": 1.00}
+                        ],
+                        "intensity": 0.65,
+                        "stereo_width": 0.6
+                    },
+                    "gear_reduction": {
+                        "sound_asset": "Motor_SU7Ultra_Gearbox",
+                        "description": "Rear 2-speed gearbox mesh noise",
+                        "frequency_range_hz": [500, 4000],
+                        "pitch_curve": [
+                            {"rpm": 0, "pitch": 0.65},
+                            {"rpm": 10000, "pitch": 1.00},
+                            {"rpm": 21000, "pitch": 1.40}
+                        ],
+                        "volume_curve": [
+                            {"rpm": 0, "volume": 0.00},
+                            {"rpm": 2000, "volume": 0.15},
+                            {"rpm": 6000, "volume": 0.40},
+                            {"rpm": 12000, "volume": 0.65},
+                            {"rpm": 18000, "volume": 0.80},
+                            {"rpm": 21000, "volume": 0.85}
+                        ],
+                        "intensity": 0.55,
+                        "stereo_width": 0.4
+                    },
+                    "regen_whine": {
+                        "sound_asset": "Motor_SU7Ultra_Regen",
+                        "description": "Strong regenerative braking electromagnetic resistance",
+                        "frequency_range_hz": [600, 5000],
+                        "pitch_range": {"min": 0.7, "max": 1.4},
+                        "volume_range": {"min": 0.10, "max": 0.55},
+                        "trigger": "regen_active",
+                        "intensity": 0.65,
+                        "stereo_width": 0.5
+                    },
+                    "cabin_resonance": {
+                        "sound_asset": "Motor_SU7Ultra_Cabin",
+                        "description": "Sporty sedan cabin with enhanced bass for performance character",
+                        "frequency_range_hz": [60, 300],
+                        "pitch_curve": [
+                            {"rpm": 0, "pitch": 0.60},
+                            {"rpm": 10000, "pitch": 1.00},
+                            {"rpm": 21000, "pitch": 1.50}
+                        ],
+                        "volume_curve": [
+                            {"rpm": 0, "volume": 0.00},
+                            {"rpm": 4000, "volume": 0.25},
+                            {"rpm": 8000, "volume": 0.50},
+                            {"rpm": 14000, "volume": 0.70},
+                            {"rpm": 21000, "volume": 0.90}
+                        ],
+                        "intensity": 0.6,
+                        "low_pass_filter_hz": 350
+                    }
+                },
+                "load_response": {
+                    "acceleration_boost_db": 7.0,
+                    "deceleration_attenuation_db": -9.0,
+                    "load_smoothing_ms": 60,
+                    "unload_smoothing_ms": 120,
+                    "throttle_responsiveness": 0.95
+                },
+                "spatial_config": {
+                    "source_offset": {"x": 0.0, "y": 0.0, "z": -0.4},
+                    "inner_radius": 2.5,
+                    "outer_radius": 75.0,
+                    "rolloff": "logarithmic",
+                    "occlusion_enabled": true
+                },
+                "characteristics": {
+                    "whine_intensity": 0.85,
+                    "aggressive_note": true,
+                    "dual_motor_blend": {
+                        "front": 0.30,
+                        "rear": 0.70
+                    },
+                    "rear_motor_dominant": true,
+                    "differential_whine": false
+                }
             }
         },
         "sfx": {
@@ -545,7 +680,8 @@
                 "sounds": {
                     "EP9": "Horn_EP9",
                     "ET7": "Horn_ET7",
-                    "ES7": "Horn_ES7"
+                    "ES7": "Horn_ES7",
+                    "SU7Ultra": "Horn_SU7Ultra"
                 },
                 "volume": 0.6
             },

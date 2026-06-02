@@ -88,16 +88,17 @@ struct NOMIRACINGPLUS_API FVehicleState
 };
 
 /**
- * NIO vehicle model types
+ * Vehicle model types
  */
 UENUM(BlueprintType)
 enum class ENIOVehicleType : uint8
 {
-	EP9      UMETA(DisplayName = "NIO EP9"),
-	ET7      UMETA(DisplayName = "NIO ET7"),
-	ES7      UMETA(DisplayName = "NIO ES7"),
-	ET5      UMETA(DisplayName = "NIO ET5"),
-	Custom   UMETA(DisplayName = "Custom Vehicle")
+	EP9       UMETA(DisplayName = "NIO EP9"),
+	ET7       UMETA(DisplayName = "NIO ET7"),
+	ES7       UMETA(DisplayName = "NIO ES7"),
+	ET5       UMETA(DisplayName = "NIO ET5"),
+	SU7Ultra  UMETA(DisplayName = "Xiaomi SU7 Ultra"),
+	Custom    UMETA(DisplayName = "Custom Vehicle")
 };
 
 /**
