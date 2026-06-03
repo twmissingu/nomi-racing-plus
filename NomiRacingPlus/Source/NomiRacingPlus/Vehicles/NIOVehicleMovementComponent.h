@@ -8,6 +8,48 @@
 #include "NIOVehicleMovementComponent.generated.h"
 
 /**
+ * Tire effects state exposed to visual/audio systems
+ * Contains aggregated tire data for effects like smoke, screech, sparks
+ */
+USTRUCT(BlueprintType)
+struct NOMIRACINGPLUS_API FTireEffectsState
+{
+	GENERATED_BODY()
+
+	// Is any tire slipping beyond threshold?
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	bool bAnyTireSlipping = false;
+
+	// Maximum slip ratio across all tires (0-1+)
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	float MaxSlipRatio = 0.0f;
+
+	// Maximum slip angle across all tires (degrees)
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	float MaxSlipAngleDeg = 0.0f;
+
+	// Average tire surface temperature (Celsius)
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	float AverageTireTemperature = 25.0f;
+
+	// Per-wheel ground contact status (FL, FR, RL, RR)
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	TArray<bool> WheelGrounded;
+
+	// Per-wheel slip ratio for granular effects
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	TArray<float> WheelSlipRatios;
+
+	// Per-wheel slip angle for granular effects
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	TArray<float> WheelSlipAngles;
+
+	// Per-wheel tire temperature for heat haze effects
+	UPROPERTY(BlueprintReadOnly, Category = "Effects")
+	TArray<float> WheelTemperatures;
+};
+
+/**
  * NIO Electric Vehicle Movement Component
  * Extends ChaosVehicleMovementComponent with electric vehicle physics:
  * - Instant torque from 0 RPM
@@ -72,6 +114,10 @@ public:
 	// Is any tire slipping significantly?
 	UFUNCTION(BlueprintCallable, Category = "NIO Vehicle|Tire")
 	bool IsAnyTireSlipping(float Threshold = 0.15f) const;
+
+	// Get tire effects state for visual/audio systems
+	UFUNCTION(BlueprintCallable, Category = "NIO Vehicle|Tire")
+	FTireEffectsState GetTireEffectsState() const;
 
 protected:
 	// Electric motor parameters
@@ -164,4 +210,12 @@ private:
 	// Tire physics model component (auto-created)
 	UPROPERTY()
 	TObjectPtr<UTirePhysicsModel> TireModel;
+
+	// Front tire preset
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Tire")
+	FTireModelPreset FrontTirePreset;
+
+	// Rear tire preset (typically wider, different compound)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Tire")
+	FTireModelPreset RearTirePreset;
 };

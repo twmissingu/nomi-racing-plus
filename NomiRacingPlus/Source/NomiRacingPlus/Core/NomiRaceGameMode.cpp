@@ -61,6 +61,30 @@ void ANomiRaceGameMode::BeginPlay()
 		}
 	}
 
+	// Create NOMI commentary engine as a component on the game mode
+	CommentaryEngine = NewObject<UCommentaryEngine>(this, TEXT("CommentaryEngine"));
+	if (CommentaryEngine)
+	{
+		CommentaryEngine->RegisterComponent();
+		CommentaryEngine->LoadCommentPool(TEXT("/Game/NOMI/Comments/DefaultComments"));
+		UE_LOG(LogNomiRacing, Log, TEXT("NOMI CommentaryEngine created"));
+	}
+
+	// Spawn NOMI controller
+	FActorSpawnParameters NOMISpawnParams;
+	NOMISpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	NOMIController = GetWorld()->SpawnActor<ANOMIController>(
+		ANOMIController::StaticClass(),
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		NOMISpawnParams
+	);
+
+	if (NOMIController)
+	{
+		UE_LOG(LogNomiRacing, Log, TEXT("NOMI Controller spawned"));
+	}
+
 	UE_LOG(LogNomiRacing, Log, TEXT("NomiRaceGameMode initialized"));
 }
 
@@ -325,6 +349,15 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 		{
 			PC->SetInputEnabled(true);
 		}
+		// Attach NOMI to the player vehicle
+		if (NOMIController)
+		{
+			APawn* PlayerPawn = GetPlayerVehicle();
+			if (PlayerPawn)
+			{
+				NOMIController->AttachToVehicle(PlayerPawn);
+			}
+		}
 		break;
 
 	case ERaceEvent::RaceFinish:
@@ -396,6 +429,59 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 	default:
 		break;
 	}
+
+	// Forward event to NOMI commentary engine
+	ForwardEventToNOMI(Event, RacerData);
+}
+
+void ANomiRaceGameMode::ForwardEventToNOMI(ERaceEvent Event, const FRacerData& RacerData)
+{
+	if (!CommentaryEngine)
+	{
+		return;
+	}
+
+	// Only forward events that are relevant to NOMI commentary
+	switch (Event)
+	{
+	case ERaceEvent::Overtake:
+	case ERaceEvent::Overtaken:
+	case ERaceEvent::DriftStart:
+	case ERaceEvent::DriftEnd:
+	case ERaceEvent::LapComplete:
+	case ERaceEvent::FastestLap:
+	case ERaceEvent::HighSpeed:
+	case ERaceEvent::FirstPlace:
+	case ERaceEvent::LastPlace:
+	case ERaceEvent::RaceStart:
+	case ERaceEvent::RaceFinish:
+	case ERaceEvent::Collision:
+		break;
+	default:
+		return;
+	}
+
+	// Build comment context from race event data
+	FCommentContext Context;
+	Context.Event = Event;
+	Context.Position = RacerData.Position;
+	Context.CurrentLap = RacerData.CurrentLap;
+	Context.LapTime = (RacerData.LapTimes.Num() > 0) ? RacerData.LapTimes.Last() : 0.0f;
+
+	if (RacerData.bIsPlayer)
+	{
+		Context.PlayerName = RacerData.DisplayName;
+	}
+
+	// Extract vehicle-specific data if available
+	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(RacerData.VehiclePawn))
+	{
+		Context.Speed = Vehicle->GetVehicleState().SpeedKmh;
+		Context.bIsNIOVehicle = Vehicle->IsNIOVehicle();
+		Context.NIOVehicleType = Vehicle->GetNIOVehicleType();
+	}
+
+	CommentaryEngine->RequestComment(Context);
 }
 
 bool ANomiRaceGameMode::StartChampionship(const FString& ChampionshipID)

@@ -6,7 +6,10 @@
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInputSubsystemInterface.h"
 #include "CameraSystem.h"
+#include "UI/MenuManager.h"
 #include "NomiPlayerController.generated.h"
+
+class UVehicleStateManager;
 
 /**
  * Input actions for vehicle control
@@ -51,6 +54,10 @@ struct NOMIRACINGPLUS_API FVehicleInputActions
 	// Pause
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<UInputAction> PauseAction;
+
+	// Reset vehicle
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> ResetAction;
 };
 
 /**
@@ -109,6 +116,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 	void CycleCameraMode();
 
+	// Menu Control
+
+	// Toggle pause menu on/off
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	void TogglePauseMenu();
+
+	// Reset vehicle if stuck or flipped
+	UFUNCTION(BlueprintCallable, Category = "Vehicle")
+	void OnResetVehicle();
+
+	// Check if currently in a menu (not racing)
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	bool IsInMenu() const;
+
 protected:
 	// Input mapping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -121,6 +142,14 @@ protected:
 	// Camera mode names (must match ECameraMode enum order)
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")
 	TArray<FString> CameraModeNames = {TEXT("Chase"), TEXT("Hood"), TEXT("Cockpit"), TEXT("Bumper"), TEXT("Free"), TEXT("Cinematic"), TEXT("Replay")};
+
+	// Menu manager component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu")
+	TObjectPtr<UMenuManager> MenuManager;
+
+	// Cached vehicle state manager from controlled pawn
+	UPROPERTY()
+	TObjectPtr<UVehicleStateManager> CachedVehicleStateManager;
 
 private:
 	// Input handlers
@@ -138,6 +167,7 @@ private:
 	void OnHornStarted(const FInputActionValue& Value);
 	void OnHeadlightsStarted(const FInputActionValue& Value);
 	void OnPauseStarted(const FInputActionValue& Value);
+	void OnResetStarted(const FInputActionValue& Value);
 
 	// Input state
 	float ThrottleValue = 0.0f;

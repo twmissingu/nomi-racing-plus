@@ -49,6 +49,17 @@ void ARaceManager::StartRace(const FRaceConfig& Config)
 	CountdownTimer = Config.CountdownDuration;
 	RaceTimer = 0.0f;
 
+	// Detect Baja mode
+	if (RaceConfig.RaceMode == TEXT("Baja"))
+	{
+		bIsBajaMode = true;
+		RaceConfig.bIsPointToPoint = true;
+	}
+	else
+	{
+		bIsBajaMode = false;
+	}
+
 	// Reset all racers
 	for (FRacerData& Racer : Racers)
 	{
@@ -63,8 +74,8 @@ void ARaceManager::StartRace(const FRaceConfig& Config)
 		Racer.TrackProgress = 0.0f;
 	}
 
-	UE_LOG(LogNomiRace, Log, TEXT("Race starting: %s, %d laps, %d racers"),
-		*Config.TrackName, Config.NumLaps, Racers.Num());
+	UE_LOG(LogNomiRace, Log, TEXT("Race starting: %s, %d laps, %d racers, Baja=%d"),
+		*Config.TrackName, Config.NumLaps, Racers.Num(), bIsBajaMode);
 
 	BroadcastRaceEvent(ERaceEvent::CountdownStart, FRacerData());
 }
@@ -210,8 +221,26 @@ void ARaceManager::RacerPassCheckpoint(APawn* VehiclePawn, int32 CheckpointIndex
 	Racer.CurrentCheckpoint = (CheckpointIndex + 1) % CheckpointsPerLap;
 	Racer.TotalCheckpointsPassed++;
 
-	// Check for lap completion
-	if (Racer.CurrentCheckpoint == 0)
+	// Baja mode: finish when all checkpoints passed (point-to-point)
+	if (bIsBajaMode && Racer.CurrentCheckpoint == 0 && Racer.TotalCheckpointsPassed >= CheckpointsPerLap)
+	{
+		Racer.bFinished = true;
+		Racer.TotalRaceTime = RaceTimer;
+		Racer.CurrentLap = 1; // Mark as completed
+
+		BroadcastRaceEvent(ERaceEvent::RaceFinish, Racer);
+
+		if (Racer.bIsPlayer)
+		{
+			EndRace();
+		}
+		else if (AreAllRacersFinished())
+		{
+			EndRace();
+		}
+	}
+	// Standard mode: check for lap completion
+	else if (Racer.CurrentCheckpoint == 0)
 	{
 		Racer.CurrentLap++;
 
@@ -359,6 +388,12 @@ void ARaceManager::UpdatePositions()
 			return RacerA.bFinished;
 		}
 
+		// Baja mode: sort by progress percent (distance-based)
+		if (bIsBajaMode)
+		{
+			return GetProgressPercent(A) > GetProgressPercent(B);
+		}
+
 		// Compare by lap
 		if (RacerA.CurrentLap != RacerB.CurrentLap)
 		{
@@ -412,6 +447,64 @@ void ARaceManager::UpdatePositions()
 
 		Racers[RacerIndex].Position = NewPosition;
 	}
+}
+
+float ARaceManager::GetDistanceToFinish(int32 RacerIndex) const
+{
+	if (!Racers.IsValidIndex(RacerIndex))
+	{
+		return TotalTrackDistance;
+	}
+
+	const FRacerData& Racer = Racers[RacerIndex];
+
+	// If racer is finished, no distance remaining
+	if (Racer.bFinished)
+	{
+		return 0.0f;
+	}
+
+	// If we have checkpoint positions, use actual distances
+	if (CheckpointPositions.Num() >= 2)
+	{
+		const int32 NumCheckpoints = CheckpointPositions.Num();
+		const int32 NextCheckpoint = Racer.CurrentCheckpoint % NumCheckpoints;
+
+		float RemainingDistance = 0.0f;
+
+		// Distance from racer's current position to the next checkpoint
+		if (Racer.VehiclePawn)
+		{
+			const FVector RacerLocation = Racer.VehiclePawn->GetActorLocation();
+			RemainingDistance += FVector::Dist(RacerLocation, CheckpointPositions[NextCheckpoint]) / 100.0f; // cm to meters
+		}
+
+		// Sum distances between remaining checkpoints (NextCheckpoint -> ... -> 0 = finish)
+		int32 Current = NextCheckpoint;
+		int32 SafetyCounter = 0;
+		while (Current != 0 && SafetyCounter < NumCheckpoints)
+		{
+			int32 Next = (Current + 1) % NumCheckpoints;
+			RemainingDistance += FVector::Dist(CheckpointPositions[Current], CheckpointPositions[Next]) / 100.0f;
+			Current = Next;
+			SafetyCounter++;
+		}
+
+		return FMath::Max(RemainingDistance, 0.0f);
+	}
+
+	// Fallback: estimate based on checkpoint count
+	const int32 SafeCheckpoints = FMath::Max(CheckpointsPerLap, 1);
+	const float DistancePerCheckpoint = TotalTrackDistance / SafeCheckpoints;
+	const int32 RemainingCheckpoints = SafeCheckpoints - Racer.CurrentCheckpoint;
+	return RemainingCheckpoints * DistancePerCheckpoint;
+}
+
+float ARaceManager::GetProgressPercent(int32 RacerIndex) const
+{
+	float DistanceRemaining = GetDistanceToFinish(RacerIndex);
+	float Progress = 1.0f - (DistanceRemaining / FMath::Max(TotalTrackDistance, 1.0f));
+	return FMath::Clamp(Progress * 100.0f, 0.0f, 100.0f);
 }
 
 float ARaceManager::CalculateRacerProgress(const FRacerData& Racer) const

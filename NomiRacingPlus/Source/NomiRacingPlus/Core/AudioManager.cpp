@@ -382,3 +382,96 @@ void UAudioManager::UpdateComponentVolume(UAudioComponent* Component, EAudioCate
 	float FinalVolume = bMuted ? 0.0f : BaseVolume * CategoryVolume * MasterVolume;
 	Component->SetVolumeMultiplier(FinalVolume);
 }
+
+// ---------------------------------------------------------------------------
+// MetaSound Integration
+// ---------------------------------------------------------------------------
+
+void UAudioManager::PlayMotorMetaSound(float RPM, float Throttle, float Load)
+{
+	if (!GetOwner())
+	{
+		return;
+	}
+
+	// Create MetaSound audio component if needed
+	if (!MotorMetaSoundComponent)
+	{
+		MotorMetaSoundComponent = NewObject<UAudioComponent>(GetOwner(), TEXT("MotorMetaSound"));
+		MotorMetaSoundComponent->SetupAttachment(GetOwner()->GetRootComponent());
+		MotorMetaSoundComponent->bAutoActivate = false;
+		MotorMetaSoundComponent->RegisterComponent();
+	}
+
+	// Set initial parameters
+	MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("RPM")), RPM);
+	MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("Throttle")), Throttle);
+	MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("Load")), Load);
+
+	// Start playing
+	MotorMetaSoundComponent->Play();
+
+	UE_LOG(LogNomiRacing, Log, TEXT("MetaSound motor started: RPM=%.0f, Throttle=%.2f"), RPM, Throttle);
+}
+
+void UAudioManager::UpdateMotorMetaSound(float RPM, float Throttle, float Load)
+{
+	if (!MotorMetaSoundComponent || !MotorMetaSoundComponent->IsPlaying())
+	{
+		return;
+	}
+
+	// Update real-time parameters
+	MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("RPM")), RPM);
+	MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("Throttle")), Throttle);
+	MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("Load")), Load);
+
+	// Update volume based on category settings
+	float CategoryVolume = GetVolume(EAudioCategory::Motor);
+	float MasterVolume = GetVolume(EAudioCategory::Master);
+	bool bMuted = IsMuted(EAudioCategory::Motor) || IsMuted(EAudioCategory::Master);
+	float FinalVolume = bMuted ? 0.0f : CategoryVolume * MasterVolume;
+	MotorMetaSoundComponent->SetVolumeMultiplier(FinalVolume);
+}
+
+void UAudioManager::StopMotorMetaSound()
+{
+	if (MotorMetaSoundComponent && MotorMetaSoundComponent->IsPlaying())
+	{
+		MotorMetaSoundComponent->Stop();
+		UE_LOG(LogNomiRacing, Log, TEXT("MetaSound motor stopped"));
+	}
+}
+
+void UAudioManager::SetEnvironmentReverb(const FString& EnvironmentType)
+{
+	CurrentEnvironmentType = EnvironmentType;
+
+	// Adjust reverb settings based on environment
+	if (MotorMetaSoundComponent && MotorMetaSoundComponent->IsPlaying())
+	{
+		float ReverbMix = 0.0f;
+		float ReverbTime = 1.0f;
+
+		if (EnvironmentType == TEXT("tunnel"))
+		{
+			ReverbMix = 0.8f;
+			ReverbTime = 2.5f;
+		}
+		else if (EnvironmentType == TEXT("indoor"))
+		{
+			ReverbMix = 0.5f;
+			ReverbTime = 1.5f;
+		}
+		else // open
+		{
+			ReverbMix = 0.1f;
+			ReverbTime = 0.8f;
+		}
+
+		MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("ReverbMix")), ReverbMix);
+		MotorMetaSoundComponent->SetFloatParameter(FName(TEXT("ReverbTime")), ReverbTime);
+	}
+
+	UE_LOG(LogNomiRacing, Log, TEXT("Environment reverb set to: %s"), *EnvironmentType);
+}

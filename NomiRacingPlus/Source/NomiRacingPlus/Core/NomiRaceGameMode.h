@@ -9,6 +9,8 @@
 #include "Race/ChampionshipManager.h"
 #include "Vehicles/VehicleStateManager.h"
 #include "AI/AICarController.h"
+#include "NOMI/CommentaryEngine.h"
+#include "NOMI/NOMIController.h"
 #include "NomiRaceGameMode.generated.h"
 
 /**
@@ -103,6 +105,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Game Mode|Progression")
 	TObjectPtr<URaceProgression> RaceProgression;
 
+	// NOMI commentary engine component
+	UPROPERTY(BlueprintReadOnly, Category = "Game Mode|NOMI")
+	TObjectPtr<UCommentaryEngine> CommentaryEngine;
+
+	// NOMI controller (visual representation)
+	UPROPERTY(BlueprintReadOnly, Category = "Game Mode|NOMI")
+	TObjectPtr<ANOMIController> NOMIController;
+
 	// Auto-start race delay
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game Mode")
 	float RaceStartDelay = 3.0f;
@@ -120,4 +130,7 @@ private:
 	// Handle race events
 	UFUNCTION()
 	void OnRaceEvent(ERaceEvent Event, const FRacerData& RacerData);
+
+	// Forward race event to NOMI commentary engine
+	void ForwardEventToNOMI(ERaceEvent Event, const FRacerData& RacerData);
 };

@@ -11,6 +11,7 @@
 #include "Vehicles/NIOVehicleMovementComponent.h"
 #include "Vehicles/NIOVehicleBase.h"
 #include "Race/CheckpointSystem.h"
+#include "Race/RaceManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NomiRacingPlus.h"
@@ -76,7 +77,6 @@ AAICarController::AAICarController()
 void AAICarController::BeginPlay()
 {
 	Super::BeginPlay();
-	CachedWorld = GetWorld();
 	// Note: ControlledVehicle is set in OnPossess(), not here
 	// because BeginPlay() fires before Possess() in UE5
 }
@@ -92,6 +92,9 @@ void AAICarController::OnPossess(APawn* InPawn)
 	{
 		CachedStateManager = ControlledVehicle->FindComponentByClass<UVehicleStateManager>();
 		CachedMovementComponent = ControlledVehicle->FindComponentByClass<UNIOVehicleMovementComponent>();
+
+		// Cache race manager for rubber band context
+		CachedRaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
 
 		// Create behavior tree component
 		BehaviorTree = NewObject<UAIBehaviorTree>(ControlledVehicle, TEXT("AIBehaviorTree"));
@@ -212,17 +215,47 @@ void AAICarController::UpdateRubberBandContext()
 		return;
 	}
 
-	// Get race manager to determine positions
-	// For now, use a simplified approach with the target speed multiplier
-	// The rubber band scaler will be updated with proper race context from the race manager
-
-	// Calculate distance to player (would come from race manager)
 	float DistanceToPlayer = 0.0f;
 	int32 AIPosition = 0;
 	int32 PlayerPosition = 0;
 	float RaceProgress = 0.0f;
 
-	// Update rubber band scaler
+	if (CachedRaceManager)
+	{
+		PlayerPosition = CachedRaceManager->GetPlayerPosition();
+		if (PlayerPosition <= 0)
+		{
+			PlayerPosition = 1;
+		}
+
+		// Get this AI's racer data for position and progress
+		FRacerData AIRacerData;
+		if (CachedRaceManager->GetRacerData(ControlledVehicle, AIRacerData))
+		{
+			AIPosition = AIRacerData.Position;
+			RaceProgress = AIRacerData.TrackProgress;
+		}
+
+		// Calculate distance to player using their world positions
+		const TArray<FRacerData>& AllRacers = CachedRaceManager->GetAllRacers();
+		for (const FRacerData& Racer : AllRacers)
+		{
+			if (Racer.bIsPlayer && Racer.VehiclePawn)
+			{
+				FVector AILocation = ControlledVehicle->GetActorLocation();
+				FVector PlayerLocation = Racer.VehiclePawn->GetActorLocation();
+				DistanceToPlayer = FVector::Distance(AILocation, PlayerLocation);
+
+				// Make distance negative when player is ahead (AI needs to catch up)
+				if (Racer.Position < AIPosition)
+				{
+					DistanceToPlayer = -DistanceToPlayer;
+				}
+				break;
+			}
+		}
+	}
+
 	RBScaler->UpdateState(DistanceToPlayer, AIPosition, PlayerPosition, RaceProgress);
 }
 
@@ -329,6 +362,8 @@ void AAICarController::UpdateAIDecision(float DeltaTime)
 		Factors.bIsInCorner = CurrentWaypoint.bIsCorner;
 		Factors.CornerSharpness = CurrentWaypoint.CornerSharpness;
 		Factors.bIsOnStraight = !CurrentWaypoint.bIsCorner;
+		Factors.DistanceToWaypoint = DistanceToWaypoint;
+		Factors.WaypointDirection = (CurrentWaypoint.Location - VehicleLocation).GetSafeNormal();
 
 		// Get speed from cached state manager
 		if (CachedStateManager)
@@ -468,7 +503,7 @@ void AAICarController::CalculateThrottleBrake(float& OutThrottle, float& OutBrak
 
 bool AAICarController::CheckForObstacles(FVector& OutAvoidanceDirection)
 {
-	if (!ControlledVehicle || !CachedWorld)
+	if (!ControlledVehicle || !GetWorld())
 	{
 		return false;
 	}
@@ -482,21 +517,21 @@ bool AAICarController::CheckForObstacles(FVector& OutAvoidanceDirection)
 	FHitResult HitResult;
 
 	// Forward ray
-	if (CachedWorld->LineTraceSingleByChannel(HitResult, Start, Start + Forward * RayLength, ECC_Visibility))
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Forward * RayLength, ECC_Visibility))
 	{
 		OutAvoidanceDirection = -Forward;
 		return true;
 	}
 
 	// Right ray
-	if (CachedWorld->LineTraceSingleByChannel(HitResult, Start, Start + Right * RayLength * 0.5f, ECC_Visibility))
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Right * RayLength * 0.5f, ECC_Visibility))
 	{
 		OutAvoidanceDirection = -Right;
 		return true;
 	}
 
 	// Left ray
-	if (CachedWorld->LineTraceSingleByChannel(HitResult, Start, Start - Right * RayLength * 0.5f, ECC_Visibility))
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start - Right * RayLength * 0.5f, ECC_Visibility))
 	{
 		OutAvoidanceDirection = Right;
 		return true;
@@ -507,7 +542,7 @@ bool AAICarController::CheckForObstacles(FVector& OutAvoidanceDirection)
 
 void AAICarController::UpdateOvertakeLogic(float DeltaTime)
 {
-	if (!ControlledVehicle || !CachedWorld)
+	if (!ControlledVehicle || !GetWorld())
 	{
 		return;
 	}
@@ -523,7 +558,7 @@ void AAICarController::UpdateOvertakeLogic(float DeltaTime)
 	FHitResult HitResult;
 	float CheckDistance = 2000.0f; // 20 meters
 
-	if (CachedWorld->LineTraceSingleByChannel(HitResult, Start, Start + Forward * CheckDistance, ECC_Pawn))
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Forward * CheckDistance, ECC_Pawn))
 	{
 		if (APawn* OtherVehicle = Cast<APawn>(HitResult.GetActor()))
 		{

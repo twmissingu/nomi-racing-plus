@@ -109,6 +109,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Audio")
 	TObjectPtr<USoundBase> MotorSound;
 
+	// Motor audio component (created lazily on first use)
+	UPROPERTY()
+	TObjectPtr<UAudioComponent> MotorAudioComponent;
+
+	// Smoothed motor RPM for audio transitions
+	float CachedMotorRPM = 0.0f;
+
 	// Headlight state
 	UPROPERTY(BlueprintReadOnly, Category = "NIO Vehicle|Lights")
 	bool bHeadlightsOn = false;
