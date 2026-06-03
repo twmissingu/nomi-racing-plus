@@ -48,7 +48,11 @@
                 "max_concurrent_sounds": 2,
                 "virtual_voice_policy": "oldest",
                 "ducking": {
-                    "targets": ["motor", "sfx", "music"],
+                    "targets": [
+                        "motor",
+                        "sfx",
+                        "music"
+                    ],
                     "attenuation_db": -12.0,
                     "fade_in_ms": 200,
                     "fade_out_ms": 500
@@ -74,28 +78,85 @@
                     "motor_whine": {
                         "sound_asset": "Motor_EP9_Whine",
                         "description": "High-frequency electromagnetic motor whine from quad PMSM motors",
-                        "frequency_range_hz": [1000, 12000],
+                        "frequency_range_hz": [
+                            1000,
+                            12000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.60},
-                            {"rpm": 1000, "pitch": 0.70},
-                            {"rpm": 3000, "pitch": 0.85},
-                            {"rpm": 5000, "pitch": 1.00},
-                            {"rpm": 7000, "pitch": 1.20},
-                            {"rpm": 9000, "pitch": 1.45},
-                            {"rpm": 11000, "pitch": 1.70},
-                            {"rpm": 13000, "pitch": 1.95},
-                            {"rpm": 15000, "pitch": 2.20}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.6
+                            },
+                            {
+                                "rpm": 1000,
+                                "pitch": 0.7
+                            },
+                            {
+                                "rpm": 3000,
+                                "pitch": 0.85
+                            },
+                            {
+                                "rpm": 5000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 7000,
+                                "pitch": 1.2
+                            },
+                            {
+                                "rpm": 9000,
+                                "pitch": 1.45
+                            },
+                            {
+                                "rpm": 11000,
+                                "pitch": 1.7
+                            },
+                            {
+                                "rpm": 13000,
+                                "pitch": 1.95
+                            },
+                            {
+                                "rpm": 15000,
+                                "pitch": 2.2
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.10},
-                            {"rpm": 1000, "volume": 0.25},
-                            {"rpm": 3000, "volume": 0.50},
-                            {"rpm": 5000, "volume": 0.70},
-                            {"rpm": 7000, "volume": 0.85},
-                            {"rpm": 9000, "volume": 0.95},
-                            {"rpm": 11000, "volume": 1.00},
-                            {"rpm": 13000, "volume": 0.90},
-                            {"rpm": 15000, "volume": 0.75}
+                            {
+                                "rpm": 0,
+                                "volume": 0.1
+                            },
+                            {
+                                "rpm": 1000,
+                                "volume": 0.25
+                            },
+                            {
+                                "rpm": 3000,
+                                "volume": 0.5
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.7
+                            },
+                            {
+                                "rpm": 7000,
+                                "volume": 0.85
+                            },
+                            {
+                                "rpm": 9000,
+                                "volume": 0.95
+                            },
+                            {
+                                "rpm": 11000,
+                                "volume": 1.0
+                            },
+                            {
+                                "rpm": 13000,
+                                "volume": 0.9
+                            },
+                            {
+                                "rpm": 15000,
+                                "volume": 0.75
+                            }
                         ],
                         "intensity": 0.9,
                         "stereo_width": 0.8
@@ -103,20 +164,53 @@
                     "inverter_tone": {
                         "sound_asset": "Motor_EP9_Inverter",
                         "description": "PWM switching frequency from high-power inverter controllers",
-                        "frequency_range_hz": [2000, 8000],
+                        "frequency_range_hz": [
+                            2000,
+                            8000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.80},
-                            {"rpm": 5000, "pitch": 1.00},
-                            {"rpm": 10000, "pitch": 1.30},
-                            {"rpm": 15000, "pitch": 1.60}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.8
+                            },
+                            {
+                                "rpm": 5000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 10000,
+                                "pitch": 1.3
+                            },
+                            {
+                                "rpm": 15000,
+                                "pitch": 1.6
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.05},
-                            {"rpm": 2000, "volume": 0.30},
-                            {"rpm": 5000, "volume": 0.60},
-                            {"rpm": 8000, "volume": 0.80},
-                            {"rpm": 12000, "volume": 0.90},
-                            {"rpm": 15000, "volume": 1.00}
+                            {
+                                "rpm": 0,
+                                "volume": 0.05
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.3
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.6
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.8
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.9
+                            },
+                            {
+                                "rpm": 15000,
+                                "volume": 1.0
+                            }
                         ],
                         "intensity": 0.7,
                         "stereo_width": 0.6
@@ -124,18 +218,45 @@
                     "gear_reduction": {
                         "sound_asset": "Motor_EP9_Gearbox",
                         "description": "Single-speed reduction gear mesh noise",
-                        "frequency_range_hz": [500, 3000],
+                        "frequency_range_hz": [
+                            500,
+                            3000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.70},
-                            {"rpm": 7500, "pitch": 1.00},
-                            {"rpm": 15000, "pitch": 1.30}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.7
+                            },
+                            {
+                                "rpm": 7500,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 15000,
+                                "pitch": 1.3
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 1000, "volume": 0.15},
-                            {"rpm": 5000, "volume": 0.40},
-                            {"rpm": 10000, "volume": 0.65},
-                            {"rpm": 15000, "volume": 0.80}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 1000,
+                                "volume": 0.15
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.4
+                            },
+                            {
+                                "rpm": 10000,
+                                "volume": 0.65
+                            },
+                            {
+                                "rpm": 15000,
+                                "volume": 0.8
+                            }
                         ],
                         "intensity": 0.5,
                         "stereo_width": 0.4
@@ -143,9 +264,18 @@
                     "regen_whine": {
                         "sound_asset": "Motor_EP9_Regen",
                         "description": "Regenerative braking electromagnetic resistance sound",
-                        "frequency_range_hz": [800, 4000],
-                        "pitch_range": {"min": 0.8, "max": 1.3},
-                        "volume_range": {"min": 0.10, "max": 0.50},
+                        "frequency_range_hz": [
+                            800,
+                            4000
+                        ],
+                        "pitch_range": {
+                            "min": 0.8,
+                            "max": 1.3
+                        },
+                        "volume_range": {
+                            "min": 0.1,
+                            "max": 0.5
+                        },
                         "trigger": "regen_active",
                         "intensity": 0.6,
                         "stereo_width": 0.5
@@ -153,18 +283,45 @@
                     "motor_mount_vibration": {
                         "sound_asset": "Motor_EP9_Vibration",
                         "description": "Low-frequency structural vibration transmitted through chassis mounts",
-                        "frequency_range_hz": [30, 200],
+                        "frequency_range_hz": [
+                            30,
+                            200
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.80},
-                            {"rpm": 7500, "pitch": 1.00},
-                            {"rpm": 15000, "pitch": 1.20}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.8
+                            },
+                            {
+                                "rpm": 7500,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 15000,
+                                "pitch": 1.2
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 2000, "volume": 0.20},
-                            {"rpm": 5000, "volume": 0.45},
-                            {"rpm": 10000, "volume": 0.70},
-                            {"rpm": 15000, "volume": 1.00}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.2
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.45
+                            },
+                            {
+                                "rpm": 10000,
+                                "volume": 0.7
+                            },
+                            {
+                                "rpm": 15000,
+                                "volume": 1.0
+                            }
                         ],
                         "intensity": 0.8,
                         "low_pass_filter_hz": 250
@@ -178,7 +335,11 @@
                     "throttle_responsiveness": 0.9
                 },
                 "spatial_config": {
-                    "source_offset": {"x": 0.0, "y": 0.0, "z": -0.3},
+                    "source_offset": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -0.3
+                    },
                     "inner_radius": 2.0,
                     "outer_radius": 80.0,
                     "rolloff": "logarithmic",
@@ -208,36 +369,117 @@
                     "motor_whine": {
                         "sound_asset": "Motor_ET7_Whine",
                         "description": "Refined dual PMSM motor whine, luxury-tuned for cabin comfort",
-                        "frequency_range_hz": [800, 9000],
+                        "frequency_range_hz": [
+                            800,
+                            9000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.50},
-                            {"rpm": 1000, "pitch": 0.60},
-                            {"rpm": 2000, "pitch": 0.72},
-                            {"rpm": 3000, "pitch": 0.82},
-                            {"rpm": 4000, "pitch": 0.90},
-                            {"rpm": 5000, "pitch": 1.00},
-                            {"rpm": 6000, "pitch": 1.10},
-                            {"rpm": 7000, "pitch": 1.22},
-                            {"rpm": 8000, "pitch": 1.35},
-                            {"rpm": 9000, "pitch": 1.50},
-                            {"rpm": 10000, "pitch": 1.62},
-                            {"rpm": 11000, "pitch": 1.72},
-                            {"rpm": 12000, "pitch": 1.80}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.5
+                            },
+                            {
+                                "rpm": 1000,
+                                "pitch": 0.6
+                            },
+                            {
+                                "rpm": 2000,
+                                "pitch": 0.72
+                            },
+                            {
+                                "rpm": 3000,
+                                "pitch": 0.82
+                            },
+                            {
+                                "rpm": 4000,
+                                "pitch": 0.9
+                            },
+                            {
+                                "rpm": 5000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.1
+                            },
+                            {
+                                "rpm": 7000,
+                                "pitch": 1.22
+                            },
+                            {
+                                "rpm": 8000,
+                                "pitch": 1.35
+                            },
+                            {
+                                "rpm": 9000,
+                                "pitch": 1.5
+                            },
+                            {
+                                "rpm": 10000,
+                                "pitch": 1.62
+                            },
+                            {
+                                "rpm": 11000,
+                                "pitch": 1.72
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.8
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.08},
-                            {"rpm": 1000, "volume": 0.18},
-                            {"rpm": 2000, "volume": 0.32},
-                            {"rpm": 3000, "volume": 0.48},
-                            {"rpm": 4000, "volume": 0.60},
-                            {"rpm": 5000, "volume": 0.72},
-                            {"rpm": 6000, "volume": 0.80},
-                            {"rpm": 7000, "volume": 0.86},
-                            {"rpm": 8000, "volume": 0.88},
-                            {"rpm": 9000, "volume": 0.85},
-                            {"rpm": 10000, "volume": 0.78},
-                            {"rpm": 11000, "volume": 0.68},
-                            {"rpm": 12000, "volume": 0.55}
+                            {
+                                "rpm": 0,
+                                "volume": 0.08
+                            },
+                            {
+                                "rpm": 1000,
+                                "volume": 0.18
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.32
+                            },
+                            {
+                                "rpm": 3000,
+                                "volume": 0.48
+                            },
+                            {
+                                "rpm": 4000,
+                                "volume": 0.6
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.72
+                            },
+                            {
+                                "rpm": 6000,
+                                "volume": 0.8
+                            },
+                            {
+                                "rpm": 7000,
+                                "volume": 0.86
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.88
+                            },
+                            {
+                                "rpm": 9000,
+                                "volume": 0.85
+                            },
+                            {
+                                "rpm": 10000,
+                                "volume": 0.78
+                            },
+                            {
+                                "rpm": 11000,
+                                "volume": 0.68
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.55
+                            }
                         ],
                         "intensity": 0.6,
                         "stereo_width": 0.7
@@ -245,19 +487,49 @@
                     "inverter_tone": {
                         "sound_asset": "Motor_ET7_Inverter",
                         "description": "Softer inverter PWM tone for luxury sedan character",
-                        "frequency_range_hz": [1500, 6000],
+                        "frequency_range_hz": [
+                            1500,
+                            6000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.75},
-                            {"rpm": 4000, "pitch": 1.00},
-                            {"rpm": 8000, "pitch": 1.20},
-                            {"rpm": 12000, "pitch": 1.45}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.75
+                            },
+                            {
+                                "rpm": 4000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 8000,
+                                "pitch": 1.2
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.45
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.03},
-                            {"rpm": 2000, "volume": 0.20},
-                            {"rpm": 5000, "volume": 0.45},
-                            {"rpm": 8000, "volume": 0.65},
-                            {"rpm": 12000, "volume": 0.80}
+                            {
+                                "rpm": 0,
+                                "volume": 0.03
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.2
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.45
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.65
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.8
+                            }
                         ],
                         "intensity": 0.5,
                         "stereo_width": 0.5
@@ -265,18 +537,45 @@
                     "gear_reduction": {
                         "sound_asset": "Motor_ET7_Gearbox",
                         "description": "Quiet single-speed reduction gear for refined drivetrain",
-                        "frequency_range_hz": [400, 2500],
+                        "frequency_range_hz": [
+                            400,
+                            2500
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.65},
-                            {"rpm": 6000, "pitch": 1.00},
-                            {"rpm": 12000, "pitch": 1.35}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.65
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.35
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 1000, "volume": 0.10},
-                            {"rpm": 4000, "volume": 0.30},
-                            {"rpm": 8000, "volume": 0.50},
-                            {"rpm": 12000, "volume": 0.65}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 1000,
+                                "volume": 0.1
+                            },
+                            {
+                                "rpm": 4000,
+                                "volume": 0.3
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.5
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.65
+                            }
                         ],
                         "intensity": 0.35,
                         "stereo_width": 0.3
@@ -284,9 +583,18 @@
                     "regen_whine": {
                         "sound_asset": "Motor_ET7_Regen",
                         "description": "Smooth regenerative braking tone",
-                        "frequency_range_hz": [600, 3000],
-                        "pitch_range": {"min": 0.75, "max": 1.20},
-                        "volume_range": {"min": 0.08, "max": 0.35},
+                        "frequency_range_hz": [
+                            600,
+                            3000
+                        ],
+                        "pitch_range": {
+                            "min": 0.75,
+                            "max": 1.2
+                        },
+                        "volume_range": {
+                            "min": 0.08,
+                            "max": 0.35
+                        },
                         "trigger": "regen_active",
                         "intensity": 0.4,
                         "stereo_width": 0.4
@@ -294,18 +602,45 @@
                     "motor_mount_vibration": {
                         "sound_asset": "Motor_ET7_Vibration",
                         "description": "Damped structural vibration with luxury sound insulation",
-                        "frequency_range_hz": [25, 150],
+                        "frequency_range_hz": [
+                            25,
+                            150
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.75},
-                            {"rpm": 6000, "pitch": 1.00},
-                            {"rpm": 12000, "pitch": 1.25}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.75
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.25
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 2000, "volume": 0.12},
-                            {"rpm": 5000, "volume": 0.30},
-                            {"rpm": 8000, "volume": 0.50},
-                            {"rpm": 12000, "volume": 0.70}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.12
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.3
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.5
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.7
+                            }
                         ],
                         "intensity": 0.5,
                         "low_pass_filter_hz": 200
@@ -313,18 +648,45 @@
                     "cabin_resonance": {
                         "sound_asset": "Motor_ET7_Cabin",
                         "description": "Large cabin acoustic resonance adding depth to motor note",
-                        "frequency_range_hz": [60, 300],
+                        "frequency_range_hz": [
+                            60,
+                            300
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.70},
-                            {"rpm": 6000, "pitch": 1.00},
-                            {"rpm": 12000, "pitch": 1.30}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.7
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.3
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 3000, "volume": 0.25},
-                            {"rpm": 6000, "volume": 0.45},
-                            {"rpm": 9000, "volume": 0.60},
-                            {"rpm": 12000, "volume": 0.75}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 3000,
+                                "volume": 0.25
+                            },
+                            {
+                                "rpm": 6000,
+                                "volume": 0.45
+                            },
+                            {
+                                "rpm": 9000,
+                                "volume": 0.6
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.75
+                            }
                         ],
                         "intensity": 0.6,
                         "low_pass_filter_hz": 350
@@ -338,7 +700,11 @@
                     "throttle_responsiveness": 0.7
                 },
                 "spatial_config": {
-                    "source_offset": {"x": 0.0, "y": 0.0, "z": -0.5},
+                    "source_offset": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -0.5
+                    },
                     "inner_radius": 3.0,
                     "outer_radius": 60.0,
                     "rolloff": "logarithmic",
@@ -366,36 +732,117 @@
                     "motor_whine": {
                         "sound_asset": "Motor_ES7_Whine",
                         "description": "Warm dual motor whine with SUV character, slightly louder cabin presence",
-                        "frequency_range_hz": [700, 8500],
+                        "frequency_range_hz": [
+                            700,
+                            8500
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.50},
-                            {"rpm": 1000, "pitch": 0.58},
-                            {"rpm": 2000, "pitch": 0.68},
-                            {"rpm": 3000, "pitch": 0.78},
-                            {"rpm": 4000, "pitch": 0.88},
-                            {"rpm": 5000, "pitch": 1.00},
-                            {"rpm": 6000, "pitch": 1.10},
-                            {"rpm": 7000, "pitch": 1.22},
-                            {"rpm": 8000, "pitch": 1.35},
-                            {"rpm": 9000, "pitch": 1.48},
-                            {"rpm": 10000, "pitch": 1.58},
-                            {"rpm": 11000, "pitch": 1.68},
-                            {"rpm": 12000, "pitch": 1.75}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.5
+                            },
+                            {
+                                "rpm": 1000,
+                                "pitch": 0.58
+                            },
+                            {
+                                "rpm": 2000,
+                                "pitch": 0.68
+                            },
+                            {
+                                "rpm": 3000,
+                                "pitch": 0.78
+                            },
+                            {
+                                "rpm": 4000,
+                                "pitch": 0.88
+                            },
+                            {
+                                "rpm": 5000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.1
+                            },
+                            {
+                                "rpm": 7000,
+                                "pitch": 1.22
+                            },
+                            {
+                                "rpm": 8000,
+                                "pitch": 1.35
+                            },
+                            {
+                                "rpm": 9000,
+                                "pitch": 1.48
+                            },
+                            {
+                                "rpm": 10000,
+                                "pitch": 1.58
+                            },
+                            {
+                                "rpm": 11000,
+                                "pitch": 1.68
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.75
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.10},
-                            {"rpm": 1000, "volume": 0.22},
-                            {"rpm": 2000, "volume": 0.38},
-                            {"rpm": 3000, "volume": 0.52},
-                            {"rpm": 4000, "volume": 0.65},
-                            {"rpm": 5000, "volume": 0.75},
-                            {"rpm": 6000, "volume": 0.82},
-                            {"rpm": 7000, "volume": 0.86},
-                            {"rpm": 8000, "volume": 0.88},
-                            {"rpm": 9000, "volume": 0.85},
-                            {"rpm": 10000, "volume": 0.78},
-                            {"rpm": 11000, "volume": 0.68},
-                            {"rpm": 12000, "volume": 0.58}
+                            {
+                                "rpm": 0,
+                                "volume": 0.1
+                            },
+                            {
+                                "rpm": 1000,
+                                "volume": 0.22
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.38
+                            },
+                            {
+                                "rpm": 3000,
+                                "volume": 0.52
+                            },
+                            {
+                                "rpm": 4000,
+                                "volume": 0.65
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.75
+                            },
+                            {
+                                "rpm": 6000,
+                                "volume": 0.82
+                            },
+                            {
+                                "rpm": 7000,
+                                "volume": 0.86
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.88
+                            },
+                            {
+                                "rpm": 9000,
+                                "volume": 0.85
+                            },
+                            {
+                                "rpm": 10000,
+                                "volume": 0.78
+                            },
+                            {
+                                "rpm": 11000,
+                                "volume": 0.68
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.58
+                            }
                         ],
                         "intensity": 0.55,
                         "stereo_width": 0.75
@@ -403,19 +850,49 @@
                     "inverter_tone": {
                         "sound_asset": "Motor_ES7_Inverter",
                         "description": "Mid-range inverter tone with SUV warmth",
-                        "frequency_range_hz": [1200, 5500],
+                        "frequency_range_hz": [
+                            1200,
+                            5500
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.70},
-                            {"rpm": 4000, "pitch": 1.00},
-                            {"rpm": 8000, "pitch": 1.25},
-                            {"rpm": 12000, "pitch": 1.50}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.7
+                            },
+                            {
+                                "rpm": 4000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 8000,
+                                "pitch": 1.25
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.5
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.04},
-                            {"rpm": 2000, "volume": 0.22},
-                            {"rpm": 5000, "volume": 0.48},
-                            {"rpm": 8000, "volume": 0.68},
-                            {"rpm": 12000, "volume": 0.82}
+                            {
+                                "rpm": 0,
+                                "volume": 0.04
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.22
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.48
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.68
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.82
+                            }
                         ],
                         "intensity": 0.45,
                         "stereo_width": 0.5
@@ -423,28 +900,64 @@
                     "gear_reduction": {
                         "sound_asset": "Motor_ES7_Gearbox",
                         "description": "Reduction gear with slightly more pronounced SUV drivetrain character",
-                        "frequency_range_hz": [350, 2200],
+                        "frequency_range_hz": [
+                            350,
+                            2200
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.60},
-                            {"rpm": 6000, "pitch": 1.00},
-                            {"rpm": 12000, "pitch": 1.40}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.6
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.4
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 1000, "volume": 0.12},
-                            {"rpm": 4000, "volume": 0.35},
-                            {"rpm": 8000, "volume": 0.55},
-                            {"rpm": 12000, "volume": 0.70}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 1000,
+                                "volume": 0.12
+                            },
+                            {
+                                "rpm": 4000,
+                                "volume": 0.35
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.55
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.7
+                            }
                         ],
-                        "intensity": 0.40,
+                        "intensity": 0.4,
                         "stereo_width": 0.35
                     },
                     "regen_whine": {
                         "sound_asset": "Motor_ES7_Regen",
                         "description": "Smooth regenerative braking with moderate presence",
-                        "frequency_range_hz": [500, 2800],
-                        "pitch_range": {"min": 0.70, "max": 1.15},
-                        "volume_range": {"min": 0.10, "max": 0.40},
+                        "frequency_range_hz": [
+                            500,
+                            2800
+                        ],
+                        "pitch_range": {
+                            "min": 0.7,
+                            "max": 1.15
+                        },
+                        "volume_range": {
+                            "min": 0.1,
+                            "max": 0.4
+                        },
                         "trigger": "regen_active",
                         "intensity": 0.45,
                         "stereo_width": 0.45
@@ -452,18 +965,45 @@
                     "motor_mount_vibration": {
                         "sound_asset": "Motor_ES7_Vibration",
                         "description": "SUV chassis vibration with longer suspension travel resonance",
-                        "frequency_range_hz": [20, 180],
+                        "frequency_range_hz": [
+                            20,
+                            180
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.70},
-                            {"rpm": 6000, "pitch": 1.00},
-                            {"rpm": 12000, "pitch": 1.30}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.7
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.3
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 2000, "volume": 0.15},
-                            {"rpm": 5000, "volume": 0.35},
-                            {"rpm": 8000, "volume": 0.55},
-                            {"rpm": 12000, "volume": 0.78}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.15
+                            },
+                            {
+                                "rpm": 5000,
+                                "volume": 0.35
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.55
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.78
+                            }
                         ],
                         "intensity": 0.65,
                         "low_pass_filter_hz": 220
@@ -471,18 +1011,45 @@
                     "cabin_resonance": {
                         "sound_asset": "Motor_ES7_Cabin",
                         "description": "Larger SUV cabin acoustic space with more bass resonance",
-                        "frequency_range_hz": [50, 250],
+                        "frequency_range_hz": [
+                            50,
+                            250
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.65},
-                            {"rpm": 6000, "pitch": 1.00},
-                            {"rpm": 12000, "pitch": 1.35}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.65
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.35
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 3000, "volume": 0.30},
-                            {"rpm": 6000, "volume": 0.50},
-                            {"rpm": 9000, "volume": 0.65},
-                            {"rpm": 12000, "volume": 0.80}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 3000,
+                                "volume": 0.3
+                            },
+                            {
+                                "rpm": 6000,
+                                "volume": 0.5
+                            },
+                            {
+                                "rpm": 9000,
+                                "volume": 0.65
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.8
+                            }
                         ],
                         "intensity": 0.7,
                         "low_pass_filter_hz": 300
@@ -496,7 +1063,11 @@
                     "throttle_responsiveness": 0.65
                 },
                 "spatial_config": {
-                    "source_offset": {"x": 0.0, "y": 0.0, "z": -0.6},
+                    "source_offset": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -0.6
+                    },
                     "inner_radius": 3.5,
                     "outer_radius": 65.0,
                     "rolloff": "logarithmic",
@@ -524,30 +1095,93 @@
                     "motor_whine": {
                         "sound_asset": "Motor_SU7Ultra_Whine",
                         "description": "High-performance dual-motor whine, V8s rear motor dominant",
-                        "frequency_range_hz": [800, 15000],
+                        "frequency_range_hz": [
+                            800,
+                            15000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.55},
-                            {"rpm": 2000, "pitch": 0.70},
-                            {"rpm": 4000, "pitch": 0.85},
-                            {"rpm": 6000, "pitch": 1.00},
-                            {"rpm": 8000, "pitch": 1.18},
-                            {"rpm": 10000, "pitch": 1.38},
-                            {"rpm": 12000, "pitch": 1.58},
-                            {"rpm": 15000, "pitch": 1.85},
-                            {"rpm": 18000, "pitch": 2.10},
-                            {"rpm": 21000, "pitch": 2.35}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.55
+                            },
+                            {
+                                "rpm": 2000,
+                                "pitch": 0.7
+                            },
+                            {
+                                "rpm": 4000,
+                                "pitch": 0.85
+                            },
+                            {
+                                "rpm": 6000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 8000,
+                                "pitch": 1.18
+                            },
+                            {
+                                "rpm": 10000,
+                                "pitch": 1.38
+                            },
+                            {
+                                "rpm": 12000,
+                                "pitch": 1.58
+                            },
+                            {
+                                "rpm": 15000,
+                                "pitch": 1.85
+                            },
+                            {
+                                "rpm": 18000,
+                                "pitch": 2.1
+                            },
+                            {
+                                "rpm": 21000,
+                                "pitch": 2.35
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.08},
-                            {"rpm": 2000, "volume": 0.25},
-                            {"rpm": 4000, "volume": 0.45},
-                            {"rpm": 6000, "volume": 0.65},
-                            {"rpm": 8000, "volume": 0.80},
-                            {"rpm": 10000, "volume": 0.92},
-                            {"rpm": 12000, "volume": 1.00},
-                            {"rpm": 15000, "volume": 0.95},
-                            {"rpm": 18000, "volume": 0.80},
-                            {"rpm": 21000, "volume": 0.60}
+                            {
+                                "rpm": 0,
+                                "volume": 0.08
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.25
+                            },
+                            {
+                                "rpm": 4000,
+                                "volume": 0.45
+                            },
+                            {
+                                "rpm": 6000,
+                                "volume": 0.65
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.8
+                            },
+                            {
+                                "rpm": 10000,
+                                "volume": 0.92
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 1.0
+                            },
+                            {
+                                "rpm": 15000,
+                                "volume": 0.95
+                            },
+                            {
+                                "rpm": 18000,
+                                "volume": 0.8
+                            },
+                            {
+                                "rpm": 21000,
+                                "volume": 0.6
+                            }
                         ],
                         "intensity": 0.85,
                         "stereo_width": 0.75
@@ -555,20 +1189,53 @@
                     "inverter_tone": {
                         "sound_asset": "Motor_SU7Ultra_Inverter",
                         "description": "High-frequency inverter switching from 800V SiC power electronics",
-                        "frequency_range_hz": [2500, 10000],
+                        "frequency_range_hz": [
+                            2500,
+                            10000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.75},
-                            {"rpm": 7000, "pitch": 1.00},
-                            {"rpm": 14000, "pitch": 1.35},
-                            {"rpm": 21000, "pitch": 1.70}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.75
+                            },
+                            {
+                                "rpm": 7000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 14000,
+                                "pitch": 1.35
+                            },
+                            {
+                                "rpm": 21000,
+                                "pitch": 1.7
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.04},
-                            {"rpm": 3000, "volume": 0.25},
-                            {"rpm": 6000, "volume": 0.50},
-                            {"rpm": 10000, "volume": 0.75},
-                            {"rpm": 15000, "volume": 0.90},
-                            {"rpm": 21000, "volume": 1.00}
+                            {
+                                "rpm": 0,
+                                "volume": 0.04
+                            },
+                            {
+                                "rpm": 3000,
+                                "volume": 0.25
+                            },
+                            {
+                                "rpm": 6000,
+                                "volume": 0.5
+                            },
+                            {
+                                "rpm": 10000,
+                                "volume": 0.75
+                            },
+                            {
+                                "rpm": 15000,
+                                "volume": 0.9
+                            },
+                            {
+                                "rpm": 21000,
+                                "volume": 1.0
+                            }
                         ],
                         "intensity": 0.65,
                         "stereo_width": 0.6
@@ -576,19 +1243,49 @@
                     "gear_reduction": {
                         "sound_asset": "Motor_SU7Ultra_Gearbox",
                         "description": "Rear 2-speed gearbox mesh noise",
-                        "frequency_range_hz": [500, 4000],
+                        "frequency_range_hz": [
+                            500,
+                            4000
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.65},
-                            {"rpm": 10000, "pitch": 1.00},
-                            {"rpm": 21000, "pitch": 1.40}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.65
+                            },
+                            {
+                                "rpm": 10000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 21000,
+                                "pitch": 1.4
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 2000, "volume": 0.15},
-                            {"rpm": 6000, "volume": 0.40},
-                            {"rpm": 12000, "volume": 0.65},
-                            {"rpm": 18000, "volume": 0.80},
-                            {"rpm": 21000, "volume": 0.85}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 2000,
+                                "volume": 0.15
+                            },
+                            {
+                                "rpm": 6000,
+                                "volume": 0.4
+                            },
+                            {
+                                "rpm": 12000,
+                                "volume": 0.65
+                            },
+                            {
+                                "rpm": 18000,
+                                "volume": 0.8
+                            },
+                            {
+                                "rpm": 21000,
+                                "volume": 0.85
+                            }
                         ],
                         "intensity": 0.55,
                         "stereo_width": 0.4
@@ -596,9 +1293,18 @@
                     "regen_whine": {
                         "sound_asset": "Motor_SU7Ultra_Regen",
                         "description": "Strong regenerative braking electromagnetic resistance",
-                        "frequency_range_hz": [600, 5000],
-                        "pitch_range": {"min": 0.7, "max": 1.4},
-                        "volume_range": {"min": 0.10, "max": 0.55},
+                        "frequency_range_hz": [
+                            600,
+                            5000
+                        ],
+                        "pitch_range": {
+                            "min": 0.7,
+                            "max": 1.4
+                        },
+                        "volume_range": {
+                            "min": 0.1,
+                            "max": 0.55
+                        },
                         "trigger": "regen_active",
                         "intensity": 0.65,
                         "stereo_width": 0.5
@@ -606,18 +1312,45 @@
                     "cabin_resonance": {
                         "sound_asset": "Motor_SU7Ultra_Cabin",
                         "description": "Sporty sedan cabin with enhanced bass for performance character",
-                        "frequency_range_hz": [60, 300],
+                        "frequency_range_hz": [
+                            60,
+                            300
+                        ],
                         "pitch_curve": [
-                            {"rpm": 0, "pitch": 0.60},
-                            {"rpm": 10000, "pitch": 1.00},
-                            {"rpm": 21000, "pitch": 1.50}
+                            {
+                                "rpm": 0,
+                                "pitch": 0.6
+                            },
+                            {
+                                "rpm": 10000,
+                                "pitch": 1.0
+                            },
+                            {
+                                "rpm": 21000,
+                                "pitch": 1.5
+                            }
                         ],
                         "volume_curve": [
-                            {"rpm": 0, "volume": 0.00},
-                            {"rpm": 4000, "volume": 0.25},
-                            {"rpm": 8000, "volume": 0.50},
-                            {"rpm": 14000, "volume": 0.70},
-                            {"rpm": 21000, "volume": 0.90}
+                            {
+                                "rpm": 0,
+                                "volume": 0.0
+                            },
+                            {
+                                "rpm": 4000,
+                                "volume": 0.25
+                            },
+                            {
+                                "rpm": 8000,
+                                "volume": 0.5
+                            },
+                            {
+                                "rpm": 14000,
+                                "volume": 0.7
+                            },
+                            {
+                                "rpm": 21000,
+                                "volume": 0.9
+                            }
                         ],
                         "intensity": 0.6,
                         "low_pass_filter_hz": 350
@@ -631,7 +1364,11 @@
                     "throttle_responsiveness": 0.95
                 },
                 "spatial_config": {
-                    "source_offset": {"x": 0.0, "y": 0.0, "z": -0.4},
+                    "source_offset": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -0.4
+                    },
                     "inner_radius": 2.5,
                     "outer_radius": 75.0,
                     "rolloff": "logarithmic",
@@ -641,8 +1378,8 @@
                     "whine_intensity": 0.85,
                     "aggressive_note": true,
                     "dual_motor_blend": {
-                        "front": 0.30,
-                        "rear": 0.70
+                        "front": 0.3,
+                        "rear": 0.7
                     },
                     "rear_motor_dominant": true,
                     "differential_whine": false
@@ -706,7 +1443,9 @@
         },
         "music": {
             "menu": {
-                "tracks": ["Music_Menu_01"],
+                "tracks": [
+                    "Music_Menu_01"
+                ],
                 "loop": true,
                 "fade_in": 1.0,
                 "fade_out": 1.0
@@ -722,7 +1461,9 @@
                 "fade_out": 2.0
             },
             "results": {
-                "tracks": ["Music_Results_01"],
+                "tracks": [
+                    "Music_Results_01"
+                ],
                 "loop": true,
                 "fade_in": 0.5,
                 "fade_out": 1.0
@@ -732,7 +1473,11 @@
             "enabled": true,
             "listener_settings": {
                 "follow_camera": true,
-                "listener_offset": {"x": 0.0, "y": 0.0, "z": 0.5},
+                "listener_offset": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.5
+                },
                 "smoothing_ms": 50,
                 "head_tracking_enabled": false
             },
@@ -749,27 +1494,78 @@
                 "rolloff_factor": 1.0,
                 "distance_curves": {
                     "motor": [
-                        {"distance": 0, "attenuation_db": 0},
-                        {"distance": 5, "attenuation_db": -3},
-                        {"distance": 20, "attenuation_db": -12},
-                        {"distance": 50, "attenuation_db": -24},
-                        {"distance": 100, "attenuation_db": -36},
-                        {"distance": 200, "attenuation_db": -48},
-                        {"distance": 500, "attenuation_db": -60}
+                        {
+                            "distance": 0,
+                            "attenuation_db": 0
+                        },
+                        {
+                            "distance": 5,
+                            "attenuation_db": -3
+                        },
+                        {
+                            "distance": 20,
+                            "attenuation_db": -12
+                        },
+                        {
+                            "distance": 50,
+                            "attenuation_db": -24
+                        },
+                        {
+                            "distance": 100,
+                            "attenuation_db": -36
+                        },
+                        {
+                            "distance": 200,
+                            "attenuation_db": -48
+                        },
+                        {
+                            "distance": 500,
+                            "attenuation_db": -60
+                        }
                     ],
                     "sfx": [
-                        {"distance": 0, "attenuation_db": 0},
-                        {"distance": 10, "attenuation_db": -6},
-                        {"distance": 50, "attenuation_db": -18},
-                        {"distance": 150, "attenuation_db": -30},
-                        {"distance": 500, "attenuation_db": -48}
+                        {
+                            "distance": 0,
+                            "attenuation_db": 0
+                        },
+                        {
+                            "distance": 10,
+                            "attenuation_db": -6
+                        },
+                        {
+                            "distance": 50,
+                            "attenuation_db": -18
+                        },
+                        {
+                            "distance": 150,
+                            "attenuation_db": -30
+                        },
+                        {
+                            "distance": 500,
+                            "attenuation_db": -48
+                        }
                     ],
                     "environment": [
-                        {"distance": 0, "attenuation_db": 0},
-                        {"distance": 30, "attenuation_db": -6},
-                        {"distance": 100, "attenuation_db": -12},
-                        {"distance": 300, "attenuation_db": -24},
-                        {"distance": 1000, "attenuation_db": -36}
+                        {
+                            "distance": 0,
+                            "attenuation_db": 0
+                        },
+                        {
+                            "distance": 30,
+                            "attenuation_db": -6
+                        },
+                        {
+                            "distance": 100,
+                            "attenuation_db": -12
+                        },
+                        {
+                            "distance": 300,
+                            "attenuation_db": -24
+                        },
+                        {
+                            "distance": 1000,
+                            "attenuation_db": -36
+                        }
                     ]
                 }
             },
@@ -787,7 +1583,12 @@
                 "occluded_attenuation_db": -12.0,
                 "low_pass_frequency_hz": 2000,
                 "transition_time_ms": 100,
-                "obstacle_types": ["building", "terrain", "tunnel", "bridge"]
+                "obstacle_types": [
+                    "building",
+                    "terrain",
+                    "tunnel",
+                    "bridge"
+                ]
             },
             "reverb_zones": {
                 "enabled": true,
@@ -872,7 +1673,14 @@
             "description": "Real-time mix adjustments based on gameplay state, speed, and priority",
             "mix_bus_structure": {
                 "motor_bus": {
-                    "sources": ["motor_whine", "inverter_tone", "gear_reduction", "regen_whine", "motor_mount_vibration", "cabin_resonance"],
+                    "sources": [
+                        "motor_whine",
+                        "inverter_tone",
+                        "gear_reduction",
+                        "regen_whine",
+                        "motor_mount_vibration",
+                        "cabin_resonance"
+                    ],
                     "default_volume": 1.0,
                     "compressor": {
                         "threshold_db": -10.0,
@@ -883,7 +1691,12 @@
                     }
                 },
                 "environment_bus": {
-                    "sources": ["wind_noise", "tire_noise", "surface_noise", "ambient"],
+                    "sources": [
+                        "wind_noise",
+                        "tire_noise",
+                        "surface_noise",
+                        "ambient"
+                    ],
                     "default_volume": 1.0,
                     "compressor": {
                         "threshold_db": -8.0,
@@ -894,7 +1707,14 @@
                     }
                 },
                 "sfx_bus": {
-                    "sources": ["collision", "checkpoint", "countdown", "finish", "horn", "tire_screech"],
+                    "sources": [
+                        "collision",
+                        "checkpoint",
+                        "countdown",
+                        "finish",
+                        "horn",
+                        "tire_screech"
+                    ],
                     "default_volume": 1.0,
                     "compressor": {
                         "threshold_db": -6.0,
@@ -905,7 +1725,11 @@
                     }
                 },
                 "music_bus": {
-                    "sources": ["menu_music", "race_music", "results_music"],
+                    "sources": [
+                        "menu_music",
+                        "race_music",
+                        "results_music"
+                    ],
                     "default_volume": 1.0,
                     "sidechain_input": "motor_bus",
                     "sidechain_ducking": {
@@ -916,10 +1740,17 @@
                     }
                 },
                 "nomi_bus": {
-                    "sources": ["nomi_voice", "nomi_commentary"],
+                    "sources": [
+                        "nomi_voice",
+                        "nomi_commentary"
+                    ],
                     "default_volume": 1.0,
                     "priority_boost_db": 6.0,
-                    "sidechain_inputs": ["motor_bus", "sfx_bus", "music_bus"],
+                    "sidechain_inputs": [
+                        "motor_bus",
+                        "sfx_bus",
+                        "music_bus"
+                    ],
                     "sidechain_ducking": {
                         "threshold_db": -30.0,
                         "attenuation_db": -15.0,
@@ -932,41 +1763,128 @@
                 "enabled": true,
                 "curves": {
                     "motor_volume_vs_speed": [
-                        {"speed_kph": 0, "volume_multiplier": 0.3},
-                        {"speed_kph": 30, "volume_multiplier": 0.5},
-                        {"speed_kph": 60, "volume_multiplier": 0.7},
-                        {"speed_kph": 100, "volume_multiplier": 0.85},
-                        {"speed_kph": 150, "volume_multiplier": 1.0},
-                        {"speed_kph": 200, "volume_multiplier": 1.0},
-                        {"speed_kph": 250, "volume_multiplier": 0.95},
-                        {"speed_kph": 313, "volume_multiplier": 0.85}
+                        {
+                            "speed_kph": 0,
+                            "volume_multiplier": 0.3
+                        },
+                        {
+                            "speed_kph": 30,
+                            "volume_multiplier": 0.5
+                        },
+                        {
+                            "speed_kph": 60,
+                            "volume_multiplier": 0.7
+                        },
+                        {
+                            "speed_kph": 100,
+                            "volume_multiplier": 0.85
+                        },
+                        {
+                            "speed_kph": 150,
+                            "volume_multiplier": 1.0
+                        },
+                        {
+                            "speed_kph": 200,
+                            "volume_multiplier": 1.0
+                        },
+                        {
+                            "speed_kph": 250,
+                            "volume_multiplier": 0.95
+                        },
+                        {
+                            "speed_kph": 313,
+                            "volume_multiplier": 0.85
+                        }
                     ],
                     "wind_volume_vs_speed": [
-                        {"speed_kph": 0, "volume_multiplier": 0.0},
-                        {"speed_kph": 30, "volume_multiplier": 0.05},
-                        {"speed_kph": 60, "volume_multiplier": 0.15},
-                        {"speed_kph": 100, "volume_multiplier": 0.35},
-                        {"speed_kph": 150, "volume_multiplier": 0.60},
-                        {"speed_kph": 200, "volume_multiplier": 0.80},
-                        {"speed_kph": 250, "volume_multiplier": 0.95},
-                        {"speed_kph": 313, "volume_multiplier": 1.00}
+                        {
+                            "speed_kph": 0,
+                            "volume_multiplier": 0.0
+                        },
+                        {
+                            "speed_kph": 30,
+                            "volume_multiplier": 0.05
+                        },
+                        {
+                            "speed_kph": 60,
+                            "volume_multiplier": 0.15
+                        },
+                        {
+                            "speed_kph": 100,
+                            "volume_multiplier": 0.35
+                        },
+                        {
+                            "speed_kph": 150,
+                            "volume_multiplier": 0.6
+                        },
+                        {
+                            "speed_kph": 200,
+                            "volume_multiplier": 0.8
+                        },
+                        {
+                            "speed_kph": 250,
+                            "volume_multiplier": 0.95
+                        },
+                        {
+                            "speed_kph": 313,
+                            "volume_multiplier": 1.0
+                        }
                     ],
                     "tire_volume_vs_speed": [
-                        {"speed_kph": 0, "volume_multiplier": 0.0},
-                        {"speed_kph": 20, "volume_multiplier": 0.10},
-                        {"speed_kph": 50, "volume_multiplier": 0.30},
-                        {"speed_kph": 80, "volume_multiplier": 0.50},
-                        {"speed_kph": 120, "volume_multiplier": 0.70},
-                        {"speed_kph": 180, "volume_multiplier": 0.85},
-                        {"speed_kph": 250, "volume_multiplier": 1.00}
+                        {
+                            "speed_kph": 0,
+                            "volume_multiplier": 0.0
+                        },
+                        {
+                            "speed_kph": 20,
+                            "volume_multiplier": 0.1
+                        },
+                        {
+                            "speed_kph": 50,
+                            "volume_multiplier": 0.3
+                        },
+                        {
+                            "speed_kph": 80,
+                            "volume_multiplier": 0.5
+                        },
+                        {
+                            "speed_kph": 120,
+                            "volume_multiplier": 0.7
+                        },
+                        {
+                            "speed_kph": 180,
+                            "volume_multiplier": 0.85
+                        },
+                        {
+                            "speed_kph": 250,
+                            "volume_multiplier": 1.0
+                        }
                     ],
                     "music_volume_vs_speed": [
-                        {"speed_kph": 0, "volume_multiplier": 1.0},
-                        {"speed_kph": 50, "volume_multiplier": 0.85},
-                        {"speed_kph": 100, "volume_multiplier": 0.70},
-                        {"speed_kph": 150, "volume_multiplier": 0.55},
-                        {"speed_kph": 200, "volume_multiplier": 0.40},
-                        {"speed_kph": 313, "volume_multiplier": 0.25}
+                        {
+                            "speed_kph": 0,
+                            "volume_multiplier": 1.0
+                        },
+                        {
+                            "speed_kph": 50,
+                            "volume_multiplier": 0.85
+                        },
+                        {
+                            "speed_kph": 100,
+                            "volume_multiplier": 0.7
+                        },
+                        {
+                            "speed_kph": 150,
+                            "volume_multiplier": 0.55
+                        },
+                        {
+                            "speed_kph": 200,
+                            "volume_multiplier": 0.4
+                        },
+                        {
+                            "speed_kph": 313,
+                            "volume_multiplier": 0.25
+                        }
                     ]
                 },
                 "smoothing_ms": 100
@@ -1053,22 +1971,34 @@
                 },
                 "material_response": {
                     "metal": {
-                        "sound_assets": ["Collision_Metal_01", "Collision_Metal_02"],
+                        "sound_assets": [
+                            "Collision_Metal_01",
+                            "Collision_Metal_02"
+                        ],
                         "brightness": 0.8,
                         "sustain": 0.6
                     },
                     "concrete": {
-                        "sound_assets": ["Collision_Concrete_01", "Collision_Concrete_02"],
+                        "sound_assets": [
+                            "Collision_Concrete_01",
+                            "Collision_Concrete_02"
+                        ],
                         "brightness": 0.5,
                         "sustain": 0.4
                     },
                     "barrier": {
-                        "sound_assets": ["Collision_Barrier_01", "Collision_Barrier_02"],
+                        "sound_assets": [
+                            "Collision_Barrier_01",
+                            "Collision_Barrier_02"
+                        ],
                         "brightness": 0.6,
                         "sustain": 0.5
                     },
                     "vehicle": {
-                        "sound_assets": ["Collision_Vehicle_01", "Collision_Vehicle_02"],
+                        "sound_assets": [
+                            "Collision_Vehicle_01",
+                            "Collision_Vehicle_02"
+                        ],
                         "brightness": 0.7,
                         "sustain": 0.7
                     }
@@ -1188,15 +2118,31 @@
                         "motor_muffling_db": -6.0,
                         "low_pass_hz": 6000,
                         "thunder_enabled": true,
-                        "thunder_sounds": ["Thunder_01", "Thunder_02", "Thunder_03"]
+                        "thunder_sounds": [
+                            "Thunder_01",
+                            "Thunder_02",
+                            "Thunder_03"
+                        ]
                     },
                     "wind": {
                         "ambient_sound": "Weather_Wind_Loop",
                         "volume_multiplier_vs_speed": [
-                            {"speed_kph": 0, "volume": 0.1},
-                            {"speed_kph": 100, "volume": 0.3},
-                            {"speed_kph": 200, "volume": 0.6},
-                            {"speed_kph": 313, "volume": 1.0}
+                            {
+                                "speed_kph": 0,
+                                "volume": 0.1
+                            },
+                            {
+                                "speed_kph": 100,
+                                "volume": 0.3
+                            },
+                            {
+                                "speed_kph": 200,
+                                "volume": 0.6
+                            },
+                            {
+                                "speed_kph": 313,
+                                "volume": 1.0
+                            }
                         ]
                     }
                 },

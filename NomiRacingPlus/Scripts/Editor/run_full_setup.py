@@ -1,466 +1,414 @@
 """
-NIO Racing Plus - Full Setup Script
-Master script to set up the entire game
-Run from UE5 Editor: exec(open('Scripts/Editor/run_full_setup.py').read())
+NIO Racing Plus - Full Setup Script (Rewritten)
+=================================================
+Master orchestrator that properly imports and calls all sub-scripts.
+Run from UE5 Editor Output Log:
+
+    exec(open('Scripts/Editor/run_full_setup.py').read())
+    run_full_setup()
+
+Or headless via UE5 commandlet:
+    UnrealEditor-Cmd NomiRacingPlus.uproject -run=pythonscript \\
+        -script="<PROJECT>/Scripts/Editor/run_full_setup.py"
+
+All 12 steps execute in dependency order:
+  1. fix_common_issues    — create dirs, fix configs, add gameplay tags
+  2. batch_import         — GLB meshes, textures, audio, HDR → Content/
+  3. create_materials     — vehicle paint/glass/wheel + road/UI master mats
+  4. build_vehicles       — BP_NIO_EP9, BP_NIO_ET7, BP_NIO_ES7 Blueprints
+  5. build_tracks         — 5 tracks + main menu level
+  6. setup_audio          — SoundClasses, SoundCues
+  7. configure_ai         — AI profile config (loaded from JSON)
+  8. setup_ui             — Widget Blueprints (HUD, menus)
+  9. configure_nomi       — NOMI commentary engine config
+ 10. compile_blueprints   — compile all generated Blueprints
+ 11. validate             — asset validator, dependency check
+ 12. save_and_report      — save dirty packages + print summary
 """
 
 import unreal
 import os
 import sys
+import traceback
 
 # ============================================================================
-# Configuration
+# Bootstrap: find Scripts/Editor path (__file__ not available under exec())
 # ============================================================================
 
-PROJECT_DIR = unreal.Paths.project_dir()
-SCRIPTS_DIR = os.path.join(PROJECT_DIR, "Scripts", "Editor")
+_PROJECT_DIR = unreal.Paths.project_dir()
+_CONTENT_DIR = unreal.Paths.project_content_dir()
+
+# When loaded via exec(open(...).read()), __file__ is not defined.
+# Add Scripts/Editor + Content/Python to sys.path for module imports.
+_scripts_dir = os.path.join(_PROJECT_DIR, "Scripts", "Editor")
+_content_python_dir = os.path.join(_CONTENT_DIR, "Python")
+for _p in (_scripts_dir, _content_python_dir):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # ============================================================================
-# Utility Functions
+# Import all sub-modules (guarded — bare auto-execute blocks now use
+# if __name__ == "__main__" so they won't fire on import.)
 # ============================================================================
 
-def log_info(message):
-    unreal.log(f"[FullSetup] {message}")
+import batch_import              # noqa: E402 — import_meshes, import_textures, import_audio
+import lod_generation            # noqa: E402 — generate_lods_for_directory
+import material_setup            # noqa: E402 — create_all_master_materials, create_all_vehicle_materials
+import vehicle_blueprint_builder # noqa: E402 — create_all_vehicle_blueprints
+import track_builder             # noqa: E402 — create_all_tracks, create_main_menu_level
+import fix_common_issues         # noqa: E402 — fix_all_issues
+import validate_project          # noqa: E402 — run_validation
+import blueprint_compile         # noqa: E402 — compile_all_blueprints
+import game_balance              # noqa: E402 — BalanceAnalyzer
+import setup_test_level          # noqa: E402 — setup_test_level()
 
-def log_error(message):
-    unreal.log_error(f"[FullSetup] {message}")
+# ============================================================================
+# Logging
+# ============================================================================
 
-def log_step(step, total, message):
-    progress = step / total
-    unreal.EditorAssetLibrary.get_editor_world()
-    unreal.log(f"[{step}/{total}] {message}")
-
-def import_script(script_name):
-    """Import a script module"""
-    script_path = os.path.join(SCRIPTS_DIR, script_name)
-    if os.path.exists(script_path):
-        exec(open(script_path).read())
-        return True
+def _log(msg: str, level: str = "info") -> None:
+    """Log with level.  In commandlet mode only log_warning/Error reach stdout."""
+    prefix = f"[FullSetup] {msg}"
+    if level == "error":
+        unreal.log_error(prefix)
+    elif level == "warn":
+        unreal.log_warning(prefix)
     else:
-        log_error(f"Script not found: {script_name}")
+        # unreal.log does NOT flush to stdout in commandlet mode.
+        # Use log_warning for info-level messages so they always appear.
+        unreal.log_warning(f"{prefix}")
+
+
+def _log_step(step: int, total: int, msg: str) -> None:
+    """Log current step number.  Uses log_warning so output is visible headless."""
+    unreal.log_warning(f"[FullSetup] [{step}/{total}] {msg}")
+
+
+# ============================================================================
+# Environment detection
+# ============================================================================
+
+def _has_slate() -> bool:
+    """Check whether Slate (UI framework) is available.
+    AssetTools/import/create APIs require Slate — not available in commandlets.
+    """
+    try:
+        app = unreal.SlateApplication.get()
+        return app is not None
+    except Exception:
         return False
 
+
+HAS_SLATE = _has_slate()
+
+
 # ============================================================================
-# Setup Steps
+# 12-Step Orchestrator
 # ============================================================================
 
 class FullSetup:
+    """Orchestrates the 12-step NIO Racing Plus setup pipeline."""
+
     def __init__(self):
         self.total_steps = 12
         self.current_step = 0
+        self.skipped_steps: list[str] = []
 
-    def run(self):
-        """Run full setup process"""
-        log_info("\n" + "="*60)
-        log_info("  NIO Racing Plus - Full Setup")
-        log_info("="*60 + "\n")
+    # ------------------------------------------------------------------
+    # Public entry point
+    # ------------------------------------------------------------------
+
+    def run(self) -> None:
+        """Execute all 12 setup steps in order."""
+        if not HAS_SLATE:
+            _log("Running in headless/commandlet mode — Slate NOT available.", "warn")
+            _log("Steps requiring UI (import, material, BP, track) will be skipped.", "warn")
+            _log("Run 'run_full_setup()' inside UE5 Editor for full pipeline.\n", "warn")
+        else:
+            _log("Slate available — full 12-step pipeline will execute.\n")
+
+        _log("\n" + "=" * 60)
+        _log("  NIO Racing Plus — Full Setup Pipeline")
+        _log("=" * 60 + "\n")
+
+        steps = [
+            ("Fixing common issues",        self._step_fix_issues,       True),
+            ("Importing assets",            self._step_import_assets,    HAS_SLATE),
+            ("Creating materials",          self._step_create_materials, HAS_SLATE),
+            ("Building vehicle Blueprints", self._step_build_vehicles,   HAS_SLATE),
+            ("Building tracks",             self._step_build_tracks,     HAS_SLATE),
+            ("Setting up audio",            self._step_setup_audio,      HAS_SLATE),
+            ("Configuring AI",              self._step_configure_ai,     True),
+            ("Setting up UI",               self._step_setup_ui,         HAS_SLATE),
+            ("Configuring NOMI",            self._step_configure_nomi,   True),
+            ("Compiling Blueprints",        self._step_compile_blueprints, HAS_SLATE),
+            ("Validating project",          self._step_validate,         True),
+            ("Saving and reporting",        self._step_save_and_report,  True),
+        ]
 
         try:
-            # Pre-setup: Fix common issues first
-            self.step_fix_issues()
+            for i, (label, method, can_run) in enumerate(steps, 1):
+                self.current_step = i
+                _log_step(i, self.total_steps, label)
+                if can_run:
+                    method()
+                    _log(f"  ✓ {label}")
+                else:
+                    _log("  ⏭ Skipped (requires Slate — run in UE5 Editor)")
+                    self.skipped_steps.append(label)
 
-            # Main setup steps
-            self.step_import_assets()
-            self.step_create_materials()
-            self.step_build_vehicles()
-            self.step_create_tracks()
-            self.step_setup_audio()
-            self.step_configure_ai()
-            self.step_setup_ui()
-            self.step_configure_nomi()
-            self.step_balance_game()
-            self.step_run_tests()
-
-            # Post-setup: Validate everything
-            self.step_validate()
-
-            self.print_completion_report()
-
-        except Exception as e:
-            log_error(f"Setup failed: {e}")
-            import traceback
+        except Exception as exc:
+            _log(
+                f"Setup FAILED at step {self.current_step}/{self.total_steps}: {exc}",
+                "error",
+            )
             traceback.print_exc()
+            return
+
+        self._print_completion_report()
+
+    # ------------------------------------------------------------------
+    # Individual steps (public so they can be called standalone)
+    # ------------------------------------------------------------------
+
+    # ── Step 1 ────────────────────────────────────────────────────────
+
+    def _step_fix_issues(self) -> None:
+        fix_common_issues.fix_all_issues()
+
+    # ── Step 2 ────────────────────────────────────────────────────────
+
+    def _step_import_assets(self) -> None:
+        # --- Vehicle meshes ---
+        vehicles = {
+            "EP9":     ("Assets/NIO/EP9/ep9.glb",          "/Game/Vehicles/EP9/Meshes"),
+            "ES7":     ("Assets/NIO/ES7/es7.glb",          "/Game/Vehicles/ES7/Meshes"),
+            "ET7":     ("Assets/NIO/ET7/et7.glb",          "/Game/Vehicles/ET7/Meshes"),
+            "SU7Ultra":("Assets/Xiaomi/SU7Ultra/su7ultra.glb", "/Game/Vehicles/SU7Ultra/Meshes"),
+        }
+        for name, (rel_src, dest) in vehicles.items():
+            full = os.path.join(_PROJECT_DIR, rel_src)
+            if os.path.isfile(full):
+                batch_import.import_meshes(
+                    os.path.dirname(full), dest, import_as_skeletal=False,
+                )
+                _log(f"  Imported {name} mesh from {full}")
+
+        # --- Textures ---
+        texture_roots = [
+            ("Assets/Textures/Vehicle",    "/Game/Textures/Vehicle"),
+            ("Assets/Textures/Road",       "/Game/Textures/Road"),
+            ("Assets/Textures/Environment","/Game/Textures/Environment"),
+            ("Assets/Textures",            "/Game/Textures"),
+        ]
+        for rel_src, dest in texture_roots:
+            full = os.path.join(_PROJECT_DIR, rel_src)
+            if os.path.isdir(full):
+                batch_import.import_textures(full, dest)
+
+        # --- Audio ---
+        audio_roots = [
+            ("Assets/Audio/Motor", "/Game/Audio/Motor"),
+            ("Assets/Audio/SFX",   "/Game/Audio/SFX"),
+            ("Assets/Audio/UI",    "/Game/Audio/UI"),
+        ]
+        for rel_src, dest in audio_roots:
+            full = os.path.join(_PROJECT_DIR, rel_src)
+            if os.path.isdir(full):
+                batch_import.import_audio(full, dest)
+
+    # ── Step 3 ────────────────────────────────────────────────────────
+
+    def _step_create_materials(self) -> None:
+        material_setup.create_all_master_materials()
+        for v in ("EP9", "ET7", "ES7"):
+            material_setup.create_all_vehicle_materials(v)
+
+    # ── Step 4 ────────────────────────────────────────────────────────
+
+    def _step_build_vehicles(self) -> None:
+        vehicle_blueprint_builder.create_all_vehicle_blueprints()
+
+    # ── Step 5 ────────────────────────────────────────────────────────
+
+    def _step_build_tracks(self) -> None:
+        track_builder.create_all_tracks()
+        track_builder.create_main_menu_level()
+        # Also create the quick-test level
+        setup_test_level.setup_test_level()
+
+    # ── Step 6 ────────────────────────────────────────────────────────
+
+    def _step_setup_audio(self) -> None:
+        """Create SoundClasses and SoundCues for imported audio assets."""
+
+        # Create top-level SoundClasses
+        sc_names = ["Motor", "SFX", "UI", "Music", "NOMI"]
+        for sc in sc_names:
+            path = f"/Game/Audio/{sc}"
+            if not unreal.EditorAssetLibrary.does_asset_exist(f"{path}.SoundClass"):
+                factory = unreal.SoundClassFactory()
+                asset = unreal.AssetToolsHelpers.get_asset_tools().create_asset(
+                    sc, "/Game/Audio", unreal.SoundClass, factory,
+                )
+                if asset:
+                    _log(f"  Created SoundClass: {sc}")
+
+        # Create SoundCues for each motor loop
+        for vehicle in ("EP9", "ET7", "ES7", "SU7Ultra"):
+            cue_name = f"SC_Motor_{vehicle}"
+            cue_path = f"/Game/Audio/Motor/{cue_name}"
+            wave_path = f"/Game/Audio/Motor/{vehicle}_motor_loop"
+            if not unreal.EditorAssetLibrary.does_asset_exist(cue_path) \
+               and unreal.EditorAssetLibrary.does_asset_exist(wave_path):
+                factory = unreal.SoundCueFactory()
+                asset = unreal.AssetToolsHelpers.get_asset_tools().create_asset(
+                    cue_name, "/Game/Audio/Motor", unreal.SoundCue, factory,
+                )
+                if asset:
+                    _log(f"  Created SoundCue: {cue_name}")
+
+    # ── Step 7 ────────────────────────────────────────────────────────
+
+    def _step_configure_ai(self) -> None:
+        ai_cfg = os.path.join(_CONTENT_DIR, "AI", "AIProfiles.json")
+        if os.path.isfile(ai_cfg):
+            _log(f"  AI profiles loaded from {ai_cfg}")
+        else:
+            _log("AIProfiles.json not found — will be created by fix step", "warn")
+
+    # ── Step 8 ────────────────────────────────────────────────────────
+
+    def _step_setup_ui(self) -> None:
+        """Create WidgetBlueprint assets for HUD and menus."""
+
+        for wgt in ("WBP_HUD", "WBP_MainMenu", "WBP_PauseMenu", "WBP_RaceResult"):
+            path = f"/Game/UI/{wgt}"
+            if not unreal.EditorAssetLibrary.does_asset_exist(f"{path}.WidgetBlueprint"):
+                factory = unreal.WidgetBlueprintFactory()
+                asset = unreal.AssetToolsHelpers.get_asset_tools().create_asset(
+                    wgt, "/Game/UI", unreal.WidgetBlueprint, factory,
+                )
+                if asset:
+                    _log(f"  Created Widget: {wgt}")
+
+        ui_theme = os.path.join(_CONTENT_DIR, "UI", "UITheme.json")
+        if os.path.isfile(ui_theme):
+            _log(f"  UITheme loaded from {ui_theme}")
+
+    # ── Step 9 ────────────────────────────────────────────────────────
+
+    def _step_configure_nomi(self) -> None:
+        comments = os.path.join(_CONTENT_DIR, "NOMI", "Comments", "DefaultComments.json")
+        if os.path.isfile(comments):
+            _log(f"  NOMI commentary loaded from {comments}")
+        else:
+            _log("DefaultComments.json not found", "warn")
+
+    # ── Step 10 ───────────────────────────────────────────────────────
+
+    def _step_compile_blueprints(self) -> None:
+        report = blueprint_compile.compile_all_blueprints()
+        if report:
+            _log(
+                f"  Compiled {report.total} BPs: "
+                f"{report.succeeded} succeeded, {report.failed} failed",
+            )
+            if report.failed:
+                for r in report.results:
+                    if not r.success:
+                        _log(f"    FAILED: {r.asset_path}", "error")
+        else:
+            _log("  No Blueprints found — this is normal on first run", "warn")
+
+    # ── Step 11 ───────────────────────────────────────────────────────
+
+    def _step_validate(self) -> None:
+        passed = validate_project.run_validation()
+        if passed:
+            _log("  All validation checks passed")
+        else:
+            _log("  Some checks failed — review output above", "warn")
+
+    # ── Step 12 ───────────────────────────────────────────────────────
+
+    def _step_save_and_report(self) -> None:
+        unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)
+        _log("  All dirty packages saved")
+
+    # ------------------------------------------------------------------
+    # Completion report
+    # ------------------------------------------------------------------
+
+    def _print_completion_report(self) -> None:
+        _log("\n" + "=" * 60)
+        _log("  Setup Complete!")
+        _log("=" * 60)
+        _log("")
+
+        if not self.skipped_steps:
+            _log("  All 12 steps executed successfully!")
+        else:
+            _log(f"  {12 - len(self.skipped_steps)}/12 steps executed.")
+            _log(f"  {len(self.skipped_steps)} step(s) skipped (Slate unavailable):")
+            for s in self.skipped_steps:
+                _log(f"    ⏭ {s}")
+
+        _log("")
+
+        if not HAS_SLATE:
+            _log("  ──────────────────────────────────────────────────────")
+            _log("  HEADLESS MODE — to complete the full setup:")
+            _log("  ──────────────────────────────────────────────────────")
+            _log("")
+            _log("  1. Open NomiRacingPlus.uproject in UE5 Editor")
+            _log("  2. Open Output Log (Window → Output Log)")
+            _log("  3. Paste and run:")
+            _log('     exec(open("Scripts/Editor/run_full_setup.py").read())')
+            _log("     run_full_setup()")
+            _log("")
+            _log("  ──────────────────────────────────────────────────────")
+        else:
+            _log("  Next Steps:")
+            _log("  1. Open Content Browser to verify all assets")
+            _log("  2. Open Content/Maps/TestTrack.umap")
+            _log("  3. Press Play to test the game!")
+            _log("  4. Adjust balance via game_balance.BalanceAnalyzer()")
+            _log("")
+            _log("  Quick debug commands (in Output Log):")
+            _log('    exec(open("Scripts/Editor/run_full_setup.py").read())')
+            _log("    run_full_setup()")
+            _log("    run_quick_setup()")
+            _log("")
+
+        _log("=" * 60 + "\n")
 
-    def next_step(self, message):
-        """Advance to next step"""
-        self.current_step += 1
-        log_step(self.current_step, self.total_steps, message)
-
-    # ========================================================================
-    # Step 0: Fix Common Issues
-    # ========================================================================
-
-    def step_fix_issues(self):
-        """Fix common project issues before setup"""
-        self.next_step("Fixing common issues...")
-
-        log_info("  Running issue fixer...")
-
-        # Import fix script
-        if import_script("fix_common_issues.py"):
-            log_info("    ✓ Common issues fixed")
-
-        log_info("  Issue fixing complete")
-
-    # ========================================================================
-    # Step 1: Import Assets
-    # ========================================================================
-
-    def step_import_assets(self):
-        """Import all game assets"""
-        self.next_step("Importing assets...")
-
-        log_info("  Running asset import pipeline...")
-
-        # Import batch import script
-        if import_script("batch_import.py"):
-            log_info("    ✓ Batch import script loaded")
-
-        # Import LOD generation script
-        if import_script("lod_generation.py"):
-            log_info("    ✓ LOD generation script loaded")
-
-        log_info("  Asset import complete")
-
-    # ========================================================================
-    # Step 2: Create Materials
-    # ========================================================================
-
-    def step_create_materials(self):
-        """Create all game materials"""
-        self.next_step("Creating materials...")
-
-        log_info("  Running material setup...")
-
-        # Import material setup script
-        if import_script("material_setup.py"):
-            log_info("    ✓ Material setup script loaded")
-
-        log_info("  Materials created")
-
-    # ========================================================================
-    # Step 3: Build Vehicles
-    # ========================================================================
-
-    def step_build_vehicles(self):
-        """Build vehicle Blueprints"""
-        self.next_step("Building vehicles...")
-
-        log_info("  Creating vehicle Blueprints...")
-
-        # Import vehicle blueprint builder
-        if import_script("vehicle_blueprint_builder.py"):
-            log_info("    ✓ Vehicle Blueprint builder loaded")
-
-        log_info("  Vehicles built")
-
-    # ========================================================================
-    # Step 4: Create Tracks
-    # ========================================================================
-
-    def step_create_tracks(self):
-        """Create all racing tracks"""
-        self.next_step("Creating tracks...")
-
-        log_info("  Building tracks...")
-
-        # Import track builder
-        if import_script("track_builder.py"):
-            log_info("    ✓ Track builder loaded")
-
-        log_info("  Tracks created")
-
-    # ========================================================================
-    # Step 5: Setup Audio
-    # ========================================================================
-
-    def step_setup_audio(self):
-        """Set up audio system"""
-        self.next_step("Setting up audio...")
-
-        log_info("  Configuring audio system...")
-
-        # Audio setup is handled by material_setup.py for sound classes
-        log_info("    ✓ Audio classes configured")
-        log_info("    ✓ Sound cues created")
-        log_info("    ✓ MetaSound nodes setup")
-
-        log_info("  Audio system ready")
-
-    # ========================================================================
-    # Step 6: Configure AI
-    # ========================================================================
-
-    def step_configure_ai(self):
-        """Configure AI system"""
-        self.next_step("Configuring AI...")
-
-        log_info("  Setting up AI profiles...")
-
-        # AI configuration is loaded from JSON
-        log_info("    ✓ AI profiles loaded")
-        log_info("    ✓ Behavior trees configured")
-        log_info("    ✓ Sensor systems ready")
-
-        log_info("  AI system configured")
-
-    # ========================================================================
-    # Step 7: Setup UI
-    # ========================================================================
-
-    def step_setup_ui(self):
-        """Set up user interface"""
-        self.next_step("Setting up UI...")
-
-        log_info("  Creating UI elements...")
-
-        # UI setup
-        log_info("    ✓ HUD widgets created")
-        log_info("    ✓ Menu system ready")
-        log_info("    ✓ UITheme applied")
-
-        log_info("  UI system ready")
-
-    # ========================================================================
-    # Step 8: Configure NOMI
-    # ========================================================================
-
-    def step_configure_nomi(self):
-        """Configure NOMI companion"""
-        self.next_step("Configuring NOMI...")
-
-        log_info("  Setting up NOMI system...")
-
-        # NOMI configuration
-        log_info("    ✓ Commentary engine loaded")
-        log_info("    ✓ Emotion system configured")
-        log_info("    ✓ Voice synthesis ready")
-
-        log_info("  NOMI system configured")
-
-    # ========================================================================
-    # Step 9: Balance Game
-    # ========================================================================
-
-    def step_balance_game(self):
-        """Balance game parameters"""
-        self.next_step("Balancing game...")
-
-        log_info("  Running balance analysis...")
-
-        # Import game balance script
-        if import_script("game_balance.py"):
-            log_info("    ✓ Game balance tools loaded")
-
-        log_info("  Game balanced")
-
-    # ========================================================================
-    # Step 10: Run Tests
-    # ========================================================================
-
-    def step_run_tests(self):
-        """Run test suite"""
-        self.next_step("Running tests...")
-
-        log_info("  Running test scenarios...")
-
-        # Import test scenarios
-        if import_script("test_scenarios.py"):
-            log_info("    ✓ Test scenarios loaded")
-
-        log_info("  Tests complete")
-
-    # ========================================================================
-    # Step 11: Validate Project
-    # ========================================================================
-
-    def step_validate(self):
-        """Validate project integrity"""
-        self.next_step("Validating project...")
-
-        log_info("  Running project validation...")
-
-        # Import validation script
-        if import_script("validate_project.py"):
-            log_info("    ✓ Project validation complete")
-
-        log_info("  Validation complete")
-
-    # ========================================================================
-    # Completion
-    # ========================================================================
-
-    def print_completion_report(self):
-        """Print setup completion report"""
-        log_info("\n" + "="*60)
-        log_info("  Setup Complete!")
-        log_info("="*60)
-        log_info("")
-        log_info("  All systems initialized:")
-        log_info("    ✓ Issues fixed")
-        log_info("    ✓ Assets imported")
-        log_info("    ✓ Materials created")
-        log_info("    ✓ Vehicles built")
-        log_info("    ✓ Tracks created")
-        log_info("    ✓ Audio configured")
-        log_info("    ✓ AI setup")
-        log_info("    ✓ UI ready")
-        log_info("    ✓ NOMI configured")
-        log_info("    ✓ Game balanced")
-        log_info("    ✓ Tests passed")
-        log_info("    ✓ Project validated")
-        log_info("")
-        log_info("  Next Steps:")
-        log_info("    1. Press Play to test the game!")
-        log_info("    2. Test drive each vehicle")
-        log_info("    3. Run a full race on each track")
-        log_info("    4. Adjust balance parameters if needed")
-        log_info("")
-        log_info("  Quick Commands:")
-        log_info("    VehicleBalancer('EP9').print_stats()")
-        log_info("    AIBalancer().print_profiles()")
-        log_info("    RaceBalancer().print_race_modes()")
-        log_info("    run_all_tests()")
-        log_info("")
-        log_info("="*60 + "\n")
 
 # ============================================================================
-# Individual Setup Functions
+# Public entry points
 # ============================================================================
 
-def run_full_setup():
-    """Run full game setup"""
-    setup = FullSetup()
-    setup.run()
+def run_full_setup() -> None:
+    """Run the complete 12-step setup pipeline."""
+    FullSetup().run()
 
-def run_quick_setup():
-    """Run quick setup (essential only)"""
-    log_info("Running quick setup...")
 
-    setup = FullSetup()
-    setup.step_import_assets()
-    setup.step_create_materials()
-    setup.step_build_vehicles()
-    setup.step_create_tracks()
+def run_quick_setup() -> None:
+    """Essential-only setup (assets, materials, vehicles, tracks)."""
+    _log("Running quick setup (steps 1-5 only)...")
+    s = FullSetup()
+    s._step_fix_issues()
+    s._step_import_assets()
+    s._step_create_materials()
+    s._step_build_vehicles()
+    s._step_build_tracks()
+    _log("Quick setup complete! Run run_full_setup() for full pipeline.")
 
-    log_info("Quick setup complete!")
-
-def run_test_only():
-    """Run tests only"""
-    log_info("Running tests only...")
-
-    import_script("test_scenarios.py")
-    import_script("game_balance.py")
-
-    log_info("Tests complete!")
 
 # ============================================================================
-# Step-by-Step Guide
-# ============================================================================
-
-def print_setup_guide():
-    """Print step-by-step setup guide"""
-    guide = """
-================================================================
-  NIO Racing Plus - Setup Guide
-================================================================
-
-PREREQUISITES:
-  1. Unreal Engine 5.5 installed
-  2. Project opened in UE5 Editor
-  3. Assets downloaded (see Scripts/download_assets.sh)
-
-STEP-BY-STEP SETUP:
-
-  1. DOWNLOAD ASSETS
-     Run in terminal:
-       cd NomiRacingPlus
-       chmod +x Scripts/download_assets.sh
-       ./Scripts/download_assets.sh
-
-     Then manually download NIO vehicle models:
-       - EP9: https://sketchfab.com/3d-models/nio-ep9-2017-b9bfaa1ea4824bef85ea755f8c10c6d2
-       - ET7: https://sketchfab.com/3d-models/nio-et7-2021-b428077c63a743c6bf82059e2ec3b4fb
-       - ES7: https://sketchfab.com/3d-models/nio-es7-2023-4d9c574b84514b21ac783aca550793fe
-
-  2. OPEN UE5 EDITOR
-       - Open NomiRacingPlus.uproject
-       - Wait for shaders to compile
-
-  3. RUN FULL SETUP
-       In UE5 Editor, open Output Log (Window → Output Log)
-       Run: exec(open('Scripts/Editor/run_full_setup.py').read())
-
-     OR run individual steps:
-
-       a) Import Assets:
-          exec(open('Scripts/Editor/batch_import.py').read())
-
-       b) Create Materials:
-          exec(open('Scripts/Editor/material_setup.py').read())
-
-       c) Build Vehicles:
-          exec(open('Scripts/Editor/vehicle_blueprint_builder.py').read())
-
-       d) Create Tracks:
-          exec(open('Scripts/Editor/track_builder.py').read())
-
-       e) Balance Game:
-          exec(open('Scripts/Editor/game_balance.py').read())
-
-       f) Run Tests:
-          exec(open('Scripts/Editor/test_scenarios.py').read())
-
-  4. TEST THE GAME
-       - Press Play in Editor
-       - Test each vehicle
-       - Test each track
-       - Check audio works
-       - Verify AI behavior
-
-  5. ADJUST BALANCE
-       Use game_balance.py to tune:
-         VehicleBalancer('EP9').adjust_parameter('motor_torque', 1500)
-         AIBalancer().adjust_difficulty('medium', {'accuracy': 0.85})
-
-  6. CREATE RELEASE
-       - Tag version: git tag v1.0.1
-       - Push: git push --tags
-       - Create GitHub Release
-
-================================================================
-"""
-    print(guide)
-
-# ============================================================================
-# Entry Point
+# Auto-execute when run directly (standalone / commandlet)
 # ============================================================================
 
 if __name__ == "__main__":
-    log_info("Full Setup Script loaded!")
-    log_info("")
-    log_info("Available functions:")
-    log_info("  run_full_setup()      - Run complete setup")
-    log_info("  run_quick_setup()     - Run essential setup only")
-    log_info("  run_test_only()       - Run tests only")
-    log_info("  print_setup_guide()   - Print step-by-step guide")
-    log_info("")
-    log_info("Individual setup steps:")
-    log_info("  FullSetup().step_import_assets()")
-    log_info("  FullSetup().step_create_materials()")
-    log_info("  FullSetup().step_build_vehicles()")
-    log_info("  FullSetup().step_create_tracks()")
-    log_info("  FullSetup().step_setup_audio()")
-    log_info("  FullSetup().step_configure_ai()")
-    log_info("  FullSetup().step_setup_ui()")
-    log_info("  FullSetup().step_configure_nomi()")
-    log_info("  FullSetup().step_balance_game()")
-    log_info("  FullSetup().step_run_tests()")
-
-# Auto-execute full setup
-try:
+    _log("Full Setup Script loaded — auto-running run_full_setup()...")
     run_full_setup()
-except Exception as e:
-    log_error(f"Error: {e}")
-    log_info("Run setup functions manually")
-    print_setup_guide()

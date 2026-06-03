@@ -295,9 +295,10 @@ def fix_all_issues():
 # Entry Point
 # ============================================================================
 
-try:
-    fix_all_issues()
-except Exception as e:
-    log_info(f"Error: {e}")
-    import traceback
-    traceback.print_exc()
+if __name__ == "__main__":
+    try:
+        fix_all_issues()
+    except Exception as e:
+        log_info(f"Error: {e}")
+        import traceback
+        traceback.print_exc()

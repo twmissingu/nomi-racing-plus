@@ -23,7 +23,7 @@
                 "range_km": 427
             },
             "aerodynamics": {
-                "drag_coefficient": 0.30,
+                "drag_coefficient": 0.3,
                 "frontal_area_m2": 2.0,
                 "downforce_coefficient": 3.5,
                 "downforce_max_kg": 2000
@@ -40,10 +40,22 @@
                     "max_rpm": 15000,
                     "idle_rpm": 0,
                     "torque_curve": [
-                        {"rpm": 0, "torque": 1.0},
-                        {"rpm": 4000, "torque": 1.0},
-                        {"rpm": 10000, "torque": 0.7},
-                        {"rpm": 15000, "torque": 0.0}
+                        {
+                            "rpm": 0,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 4000,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 10000,
+                            "torque": 0.7
+                        },
+                        {
+                            "rpm": 15000,
+                            "torque": 0.0
+                        }
                     ]
                 },
                 "transmission": {
@@ -112,10 +124,22 @@
                     "max_rpm": 12000,
                     "idle_rpm": 0,
                     "torque_curve": [
-                        {"rpm": 0, "torque": 1.0},
-                        {"rpm": 3500, "torque": 1.0},
-                        {"rpm": 8000, "torque": 0.6},
-                        {"rpm": 12000, "torque": 0.0}
+                        {
+                            "rpm": 0,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 3500,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 8000,
+                            "torque": 0.6
+                        },
+                        {
+                            "rpm": 12000,
+                            "torque": 0.0
+                        }
                     ]
                 },
                 "transmission": {
@@ -184,10 +208,22 @@
                     "max_rpm": 12000,
                     "idle_rpm": 0,
                     "torque_curve": [
-                        {"rpm": 0, "torque": 1.0},
-                        {"rpm": 3000, "torque": 1.0},
-                        {"rpm": 8000, "torque": 0.5},
-                        {"rpm": 12000, "torque": 0.0}
+                        {
+                            "rpm": 0,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 3000,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 8000,
+                            "torque": 0.5
+                        },
+                        {
+                            "rpm": 12000,
+                            "torque": 0.0
+                        }
                     ]
                 },
                 "transmission": {
@@ -260,11 +296,26 @@
                     "max_rpm": 21000,
                     "idle_rpm": 0,
                     "torque_curve": [
-                        {"rpm": 0, "torque": 1.0},
-                        {"rpm": 6000, "torque": 1.0},
-                        {"rpm": 12000, "torque": 0.85},
-                        {"rpm": 18000, "torque": 0.50},
-                        {"rpm": 21000, "torque": 0.0}
+                        {
+                            "rpm": 0,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 6000,
+                            "torque": 1.0
+                        },
+                        {
+                            "rpm": 12000,
+                            "torque": 0.85
+                        },
+                        {
+                            "rpm": 18000,
+                            "torque": 0.5
+                        },
+                        {
+                            "rpm": 21000,
+                            "torque": 0.0
+                        }
                     ]
                 },
                 "transmission": {
@@ -275,12 +326,12 @@
                 "suspension": {
                     "spring_rate_front": 180000,
                     "spring_rate_rear": 200000,
-                    "damping_ratio": 0.70,
+                    "damping_ratio": 0.7,
                     "max_compression": 120,
                     "max_droop": 90
                 },
                 "tires": {
-                    "friction_force": 1.10,
+                    "friction_force": 1.1,
                     "lateral_stiffness": 25.0,
                     "longitudinal_stiffness": 22.0
                 }

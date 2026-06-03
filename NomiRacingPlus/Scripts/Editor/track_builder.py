@@ -34,10 +34,17 @@ def log_error(message):
     unreal.log_error(f"[TrackBuilder] {message}")
 
 def load_track_config():
-    """Load track configuration from JSON"""
+    """Load track configuration from JSON, normalising dict → list if needed."""
     try:
         with open(TRACK_CONFIG_PATH, 'r') as f:
-            return json.load(f)
+            config = json.load(f)
+
+        # JSON stores tracks as dict keyed by ID, but the builder expects a
+        # list so we can iterate/next().  Normalise inline.
+        if isinstance(config.get("tracks"), dict):
+            config["tracks"] = list(config["tracks"].values())
+
+        return config
     except Exception as e:
         log_error(f"Failed to load track config: {e}")
         return None
@@ -607,80 +614,59 @@ class TrackBuilder:
 # Main Track Creation Functions
 # ============================================================================
 
+def _create_track_level(track_id: str) -> bool:
+    """Create or open a level for the given track ID."""
+    level_path = f"/Game/Maps/{track_id}"
+    try:
+        if unreal.EditorAssetLibrary.does_asset_exist(level_path):
+            unreal.EditorLevelLibrary.load_level(level_path)
+        else:
+            unreal.EditorLevelLibrary.new_level(level_path)
+        return True
+    except Exception as e:
+        log_error(f"Failed to create/load level {level_path}: {e}")
+        return False
+
+
+def _save_track_level(track_id: str) -> None:
+    """Save the current level for the given track."""
+    level_path = f"/Game/Maps/{track_id}"
+    try:
+        unreal.EditorAssetLibrary.save_asset(level_path, only_if_is_dirty=True)
+        log_info(f"Saved level: {level_path}")
+    except Exception as e:
+        log_error(f"Failed to save level {level_path}: {e}")
+
+
 def create_nio_city_circuit():
-    """Create NIO City Circuit track"""
+    _create_track("NIOCityCircuit", "NIO City Circuit")
+
+def _create_track(name_id: str, display_name: str):
+    """Generic helper to create a track by name."""
     config = load_track_config()
     if not config:
-        log_error("Failed to load track config")
         return
-
-    track_config = next((t for t in config["tracks"] if t["name"] == "NIO City Circuit"), None)
+    track_config = next((t for t in config["tracks"] if t["name"] == display_name), None)
     if not track_config:
-        log_error("Track config not found: NIO City Circuit")
+        log_error(f"Track config not found: {display_name}")
         return
-
-    builder = TrackBuilder("NIOCityCircuit", track_config)
+    if not _create_track_level(name_id):
+        return
+    builder = TrackBuilder(name_id, track_config)
     builder.build_track()
+    _save_track_level(name_id)
 
 def create_shanghai_pudong():
-    """Create Shanghai Pudong track"""
-    config = load_track_config()
-    if not config:
-        log_error("Failed to load track config")
-        return
-
-    track_config = next((t for t in config["tracks"] if t["name"] == "Shanghai Pudong"), None)
-    if not track_config:
-        log_error("Track config not found: Shanghai Pudong")
-        return
-
-    builder = TrackBuilder("ShanghaiPudong", track_config)
-    builder.build_track()
+    _create_track("ShanghaiPudong", "Shanghai Pudong")
 
 def create_speedway_oval():
-    """Create Speedway Oval track"""
-    config = load_track_config()
-    if not config:
-        log_error("Failed to load track config")
-        return
-
-    track_config = next((t for t in config["tracks"] if t["name"] == "Speedway Oval"), None)
-    if not track_config:
-        log_error("Track config not found: Speedway Oval")
-        return
-
-    builder = TrackBuilder("SpeedwayOval", track_config)
-    builder.build_track()
+    _create_track("SpeedwayOval", "Speedway Oval")
 
 def create_mountain_pass():
-    """Create Mountain Pass track"""
-    config = load_track_config()
-    if not config:
-        log_error("Failed to load track config")
-        return
-
-    track_config = next((t for t in config["tracks"] if t["name"] == "Mountain Pass"), None)
-    if not track_config:
-        log_error("Track config not found: Mountain Pass")
-        return
-
-    builder = TrackBuilder("MountainPass", track_config)
-    builder.build_track()
+    _create_track("MountainPass", "Mountain Pass")
 
 def create_desert_rally():
-    """Create Desert Rally track"""
-    config = load_track_config()
-    if not config:
-        log_error("Failed to load track config")
-        return
-
-    track_config = next((t for t in config["tracks"] if t["name"] == "Desert Rally"), None)
-    if not track_config:
-        log_error("Track config not found: Desert Rally")
-        return
-
-    builder = TrackBuilder("DesertRally", track_config)
-    builder.build_track()
+    _create_track("DesertRally", "Desert Rally")
 
 def create_all_tracks():
     """Create all tracks"""
@@ -695,6 +681,9 @@ def create_all_tracks():
 def create_main_menu_level():
     """Create main menu level"""
     log_info("Creating main menu level...")
+
+    if not _create_track_level("MainMenu"):
+        return
 
     # Create simple level with camera position
     menu_config = {
@@ -720,6 +709,7 @@ def create_main_menu_level():
     if camera_actor:
         builder.track_actors.append(camera_actor)
 
+    _save_track_level("MainMenu")
     log_info("Main menu level created")
 
 # ============================================================================
@@ -727,19 +717,9 @@ def create_main_menu_level():
 # ============================================================================
 
 if __name__ == "__main__":
-    log_info("Track Builder loaded!")
-    log_info("Available functions:")
-    log_info("  create_nio_city_circuit()")
-    log_info("  create_shanghai_pudong()")
-    log_info("  create_speedway_oval()")
-    log_info("  create_mountain_pass()")
-    log_info("  create_desert_rally()")
-    log_info("  create_all_tracks()")
-    log_info("  create_main_menu_level()")
-
-# Auto-execute if run directly
-try:
-    create_all_tracks()
-except Exception as e:
-    log_error(f"Error: {e}")
-    log_info("Run individual track creation functions manually")
+    log_info("Track Builder — auto-running create_all_tracks()...")
+    try:
+        create_all_tracks()
+    except Exception as e:
+        log_error(f"Error: {e}")
+        log_info("Run individual track creation functions manually")

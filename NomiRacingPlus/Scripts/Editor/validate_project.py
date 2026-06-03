@@ -261,9 +261,10 @@ def run_validation():
     return validator.run_all_checks()
 
 # Auto-execute
-try:
-    run_validation()
-except Exception as e:
-    log_fail(f"Validation error: {e}")
-    import traceback
-    traceback.print_exc()
+if __name__ == "__main__":
+    try:
+        run_validation()
+    except Exception as e:
+        log_fail(f"Validation error: {e}")
+        import traceback
+        traceback.print_exc()

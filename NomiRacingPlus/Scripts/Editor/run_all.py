@@ -20,52 +20,18 @@ _log = lambda msg: unreal.log(f"[Runner] {msg}")
 _log_warn = lambda msg: unreal.log_warning(f"[Runner] {msg}")
 _log_err = lambda msg: unreal.log_error(f"[Runner] {msg}")
 
-# Determine the scripts directory.
-# When loaded via exec(open(...)), __file__ is not defined, so we
-# fall back to the known project-relative path.
-_scripts_dir = ""
-if "__file__" in dir():
-    _scripts_dir = os.path.dirname(os.path.abspath(__file__))
+# Bootstrap: find Scripts/Editor path (__file__ not available under exec())
+_project_dir = unreal.Paths.project_dir()
+_scripts_dir = os.path.join(_project_dir, "Scripts", "Editor")
+if _scripts_dir not in sys.path:
+    sys.path.insert(0, _scripts_dir)
 
-# Candidate search paths for the editor scripts
-_SEARCH_PATHS = [
-    _scripts_dir,
-    # Project-relative paths (common locations)
-    os.path.join(os.getcwd(), "NomiRacingPlus", "Scripts", "Editor"),
-    os.path.join(os.getcwd(), "Scripts", "Editor"),
-]
-
-def _find_script(name: str) -> str:
-    """Locate a sibling script by name."""
-    for base in _SEARCH_PATHS:
-        if not base:
-            continue
-        candidate = os.path.join(base, name)
-        if os.path.isfile(candidate):
-            return candidate
-    return ""
-
-
-def _load_module(name: str):
-    """Load a sibling script by executing it into the caller's globals."""
-    path = _find_script(name)
-    if not path:
-        _log_warn(f"Module not found: {name}")
-        return False
-    try:
-        exec(open(path, encoding="utf-8").read(), globals())
-        _log(f"Loaded module: {name}")
-        return True
-    except Exception as e:
-        _log_err(f"Failed to load {name}: {e}")
-        return False
-
-# Load all sub-modules into this script's namespace
-_load_module("batch_import.py")
-_load_module("lod_generation.py")
-_load_module("material_setup.py")
-_load_module("blueprint_compile.py")
-_load_module("asset_validator.py")
+# Import all sub-modules properly (guarded auto-execute blocks won't fire)
+import batch_import              # noqa: E402
+import lod_generation            # noqa: E402
+import material_setup            # noqa: E402
+import blueprint_compile         # noqa: E402
+import asset_validator           # noqa: E402
 
 
 # ---------------------------------------------------------------------------

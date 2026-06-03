@@ -260,8 +260,9 @@ if __name__ == "__main__":
     log_info("  create_all_vehicle_blueprints()")
 
 # Auto-execute if run directly
-try:
-    create_all_vehicle_blueprints()
-except Exception as e:
-    log_error(f"Error: {e}")
-    log_info("Run individual vehicle creation functions manually")
+if __name__ == "__main__":
+    try:
+        create_all_vehicle_blueprints()
+    except Exception as e:
+        log_error(f"Error: {e}")
+        log_info("Run individual vehicle creation functions manually")

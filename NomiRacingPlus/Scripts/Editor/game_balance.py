@@ -434,10 +434,11 @@ if __name__ == "__main__":
     log_info("  apply_simulation_preset()")
 
 # Auto-execute analysis
-try:
-    analyzer = BalanceAnalyzer()
-    analyzer.analyze_vehicle_balance()
-    analyzer.suggest_adjustments()
-except Exception as e:
-    log_error(f"Error: {e}")
-    log_info("Run balance functions manually")
+if __name__ == "__main__":
+    try:
+        analyzer = BalanceAnalyzer()
+        analyzer.analyze_vehicle_balance()
+        analyzer.suggest_adjustments()
+    except Exception as e:
+        log_error(f"Error: {e}")
+        log_info("Run balance functions manually")

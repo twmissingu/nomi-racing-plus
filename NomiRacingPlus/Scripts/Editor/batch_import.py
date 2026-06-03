@@ -34,48 +34,8 @@ MESH_IMPORT_TASKS = {
     },
 }
 
-# Default import settings optimised for NIO Racing Plus vehicle meshes
-DEFAULT_MESH_IMPORT_OPTIONS = {
-    "import_mesh": True,
-    "import_materials": True,
-    "import_textures": True,
-    "import_as_skeletal": False,
-    "auto_generate_collision": True,
-    "combine_meshes": False,
-    "generate_lightmap_u_vs": False,
-    "generate_missing_collision": True,
-    "force_front_x_axis": False,
-    "convert_scene_unit": True,
-    "normal_import_method": unreal.FBXNormalImportMethod.FBXNIM_IMPORT_NORMALS,
-    "normal_generation_method": unreal.FBXNormalGenerationMethod.MIKK_T_SPACE,
-    "material_import_method": unreal.FBXMaterialImportMethod.FBXMIM_IMPORT_AS_MATERIAL_INSTANCES,
-    "static_mesh_import_data": {
-        "auto_generate_collision": True,
-        "generate_lightmap_u_vs": False,
-        "source_lightmap_index": 1,
-        "target_lightmap_index": 1,
-    },
-}
-
-TEXTURE_IMPORT_OPTIONS = {
-    "srgb": True,            # Albedo / UI textures
-    "compression": "default",
-    "generate_mipmaps": True,
-    "flip_green_channel": False,
-}
-
-NORMAL_MAP_IMPORT_OPTIONS = {
-    "srgb": False,
-    "compression": "normalmap",
-    "generate_mipmaps": True,
-    "flip_green_channel": True,  # UE5 expects flipped green for BC5 normal maps
-}
-
-AUDIO_IMPORT_OPTIONS = {
-    "sample_rate": 44100,
-    "channels": 2,
-}
-
+# Mesh import uses default factory settings — UE5 auto-detects format (FBX/GLB/OBJ).
+# No explicit FbxImportUI configuration: setting removed/renamed properties crashes UE5.7.
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -91,8 +51,7 @@ def _log(msg: str, level: str = "info"):
     dispatch.get(level, unreal.log)(f"[BatchImport] {msg}")
 
 
-def _make_import_task(filepath: str, destination_path: str,
-                      options: dict | None = None) -> unreal.AssetImportTask:
+def _make_import_task(filepath: str, destination_path: str) -> unreal.AssetImportTask:
     """Build an AssetImportTask for the given file."""
     task = unreal.AssetImportTask()
     task.set_editor_property("filename", filepath)
@@ -157,23 +116,18 @@ def import_meshes(source_dir: str, destination_path: str,
     for fpath in files:
         task = _make_import_task(str(fpath), destination_path)
 
-        # Configure FBX-specific options via factory
-        factory = unreal.FbxFactory()
-        import_ui = unreal.FbxImportUI()
-        import_ui.set_editor_property("import_mesh", True)
-        import_ui.set_editor_property("import_textures", True)
-        import_ui.set_editor_property("import_materials", True)
-        import_ui.set_editor_property("import_as_skeletal", import_as_skeletal)
-        import_ui.set_editor_property("auto_generate_collision", not import_as_skeletal)
-        import_ui.set_editor_property("combine_meshes", combine_meshes)
+        # Apply default factory — UE5 auto-detects format (FBX/GLB/OBJ).
+        # Avoid explicit FbxImportUI configuration which crashes on UE5.7.
+        ext = fpath.suffix.lower()
+        if ext in (".fbx", ".obj"):
+            task.set_editor_property("factory", unreal.FbxFactory())
+        # GLTF/GLB uses UnrealEd's built-in importer — no factory needed.
 
-        if import_as_skeletal:
-            anim_ui = unreal.FbxImportUI()
-            import_ui.set_editor_property("import_animations", False)
-
-        task.set_editor_property("factory", factory)
-
-        unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
+        try:
+            unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
+        except Exception as e:
+            _log(f"  Import task failed for {fpath.name}: {e}", "error")
+            continue
 
         if task.get_editor_property("result"):
             for path in task.get_editor_property("result"):
