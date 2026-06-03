@@ -7,7 +7,7 @@
 #if WITH_AUTOMATION_TESTS
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraSystemModeTest, "NomiRacing.CameraSystem.CameraMode",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraSystemModeTest::RunTest(const FString& Parameters)
 {
@@ -47,7 +47,7 @@ bool FCameraSystemModeTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraSystemModeNameTest, "NomiRacing.CameraSystem.CameraModeName",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraSystemModeNameTest::RunTest(const FString& Parameters)
 {
@@ -82,7 +82,7 @@ bool FCameraSystemModeNameTest::RunTest(const FString& Parameters)
 // The FOV behavior is exercised indirectly through GetCurrentFOV() after mode/speed changes.
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraSystemReplayTest, "NomiRacing.CameraSystem.ReplaySystem",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraSystemReplayTest::RunTest(const FString& Parameters)
 {
@@ -126,7 +126,7 @@ bool FCameraSystemReplayTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraSystemCinematicTest, "NomiRacing.CameraSystem.CinematicSystem",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraSystemCinematicTest::RunTest(const FString& Parameters)
 {
@@ -153,7 +153,7 @@ bool FCameraSystemCinematicTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraSystemConfigTest, "NomiRacing.CameraSystem.CameraConfig",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraSystemConfigTest::RunTest(const FString& Parameters)
 {
@@ -189,7 +189,7 @@ bool FCameraSystemConfigTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraSystemShakeTest, "NomiRacing.CameraSystem.CameraShake",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraSystemShakeTest::RunTest(const FString& Parameters)
 {
@@ -217,7 +217,7 @@ bool FCameraSystemShakeTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraSystemReplayAngleTest, "NomiRacing.CameraSystem.ReplayCameraAngle",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraSystemReplayAngleTest::RunTest(const FString& Parameters)
 {

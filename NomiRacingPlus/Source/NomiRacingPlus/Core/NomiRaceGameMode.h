@@ -120,12 +120,18 @@ protected:
 	// Has the race started?
 	bool bRaceStarted = false;
 
+	// Player's starting position (tracked for achievements like Underdog)
+	int32 PlayerStartingPosition = 0;
+
 private:
 	// Initialize race manager
 	void InitializeRaceManager();
 
 	// Spawn player vehicle
 	void SpawnPlayerVehicle();
+
+	// Get spawn class for a vehicle type (shared between player and AI)
+	TSubclassOf<APawn> GetVehicleSpawnClass(ENIOVehicleType VehicleType) const;
 
 	// Handle race events
 	UFUNCTION()

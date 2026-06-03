@@ -72,7 +72,7 @@ FAIDefensiveAction UAIDefensiveEvaluator::Evaluate(const FAISensorData& SensorDa
 	}
 
 	// Select defensive strategy
-	EDefensiveStrategy Strategy = SelectStrategy(Attacker, ThreatLevel);
+	EDefensiveStrategy Strategy = SelectStrategy(Attacker, ThreatLevel, SensorData);
 
 	if (Strategy == EDefensiveStrategy::None)
 	{
@@ -181,7 +181,7 @@ float UAIDefensiveEvaluator::CalculateThreatLevel(const FAIDetectedVehicle& Atta
 	return FMath::Clamp(Threat, 0.0f, 1.0f);
 }
 
-EDefensiveStrategy UAIDefensiveEvaluator::SelectStrategy(const FAIDetectedVehicle& Attacker, float ThreatLevel) const
+EDefensiveStrategy UAIDefensiveEvaluator::SelectStrategy(const FAIDetectedVehicle& Attacker, float ThreatLevel, const FAISensorData& SensorData) const
 {
 	float AttackSide = GetAttackSide(Attacker);
 
@@ -194,7 +194,7 @@ EDefensiveStrategy UAIDefensiveEvaluator::SelectStrategy(const FAIDetectedVehicl
 	// If attacker is off to one side, block that side
 	if (FMath::Abs(Attacker.LateralOffset) > 0.3f)
 	{
-		bool bCanBlockAttackerSide = CanBlockSide(Attacker.LateralOffset, false, false);
+		bool bCanBlockAttackerSide = CanBlockSide(Attacker.LateralOffset, SensorData.bTrackEdgeLeft, SensorData.bTrackEdgeRight);
 
 		if (bCanBlockAttackerSide)
 		{

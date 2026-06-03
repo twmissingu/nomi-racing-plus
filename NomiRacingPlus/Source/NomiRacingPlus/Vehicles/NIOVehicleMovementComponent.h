@@ -211,6 +211,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UTirePhysicsModel> TireModel;
 
+public:
 	// Front tire preset
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Tire")
 	FTireModelPreset FrontTirePreset;

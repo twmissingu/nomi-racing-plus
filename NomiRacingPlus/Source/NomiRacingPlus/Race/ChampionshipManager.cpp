@@ -1,6 +1,7 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
 #include "Race/ChampionshipManager.h"
+#include "Race/RaceProgression.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
 

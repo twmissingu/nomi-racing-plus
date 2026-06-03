@@ -247,7 +247,7 @@ bool FAIBehaviorTreeRaceFactorsTest::RunTest(const FString& Parameters)
 	StraightFactors.RacePosition = 3;
 	StraightFactors.TotalRacers = 8;
 
-	BehaviorTree->UpdateDecisions(StraightFactors);
+		BehaviorTree->UpdateDecisions(StraightFactors, 0.0f);
 	TestTrue(TEXT("Throttle should be positive on straight"), BehaviorTree->GetThrottleInput() >= 0.0f);
 
 	// Test 5: Update decisions with corner approach
@@ -259,7 +259,7 @@ bool FAIBehaviorTreeRaceFactorsTest::RunTest(const FString& Parameters)
 	CornerFactors.CornerSharpness = 0.8f;
 	CornerFactors.DistanceToWaypoint = 500.0f;
 
-	BehaviorTree->UpdateDecisions(CornerFactors);
+	BehaviorTree->UpdateDecisions(CornerFactors, 0.0f);
 	TestTrue(TEXT("Brake should be positive for sharp corner"), BehaviorTree->GetBrakeInput() >= 0.0f);
 
 	// Test 6: Update decisions with vehicle ahead (close)
@@ -270,7 +270,7 @@ bool FAIBehaviorTreeRaceFactorsTest::RunTest(const FString& Parameters)
 	CloseFactors.DistanceToVehicleAhead = 800.0f;
 	CloseFactors.bIsPlayerAhead = true;
 
-	BehaviorTree->UpdateDecisions(CloseFactors);
+	BehaviorTree->UpdateDecisions(CloseFactors, 0.0f);
 	// Should adjust behavior when vehicle is close ahead
 	TestTrue(TEXT("Close vehicle should influence decisions"), true);
 
@@ -283,7 +283,7 @@ bool FAIBehaviorTreeRaceFactorsTest::RunTest(const FString& Parameters)
 	SlipFactors.SlipstreamStrength = 0.8f;
 	SlipFactors.DistanceToVehicleAhead = 1000.0f;
 
-	BehaviorTree->UpdateDecisions(SlipFactors);
+	BehaviorTree->UpdateDecisions(SlipFactors, 0.0f);
 	TestTrue(TEXT("Slipstream should influence behavior"), true);
 
 	// Test 8: Set difficulty and verify it accepts the value

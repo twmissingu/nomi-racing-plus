@@ -97,11 +97,11 @@ bool FAIWaypointTest::RunTest(const FString& Parameters)
 	Waypoint.CornerSharpness = 0.7f;
 
 	// Test 2: Verify waypoint values
-	TestEqual(TEXT("Waypoint location X"), Waypoint.Location.X, 1000.0f);
-	TestEqual(TEXT("Waypoint location Y"), Waypoint.Location.Y, 2000.0f);
-	TestEqual(TEXT("Waypoint speed"), Waypoint.RecommendedSpeed, 150.0f);
+	TestEqual(TEXT("Waypoint location X"), Waypoint.Location.X, 1000.0);
+	TestEqual(TEXT("Waypoint location Y"), Waypoint.Location.Y, 2000.0);
+	TestEqual(TEXT("Waypoint speed"), static_cast<double>(Waypoint.RecommendedSpeed), 150.0);
 	TestTrue(TEXT("Waypoint should be corner"), Waypoint.bIsCorner);
-	TestEqual(TEXT("Corner sharpness"), Waypoint.CornerSharpness, 0.7f);
+	TestEqual(TEXT("Corner sharpness"), static_cast<double>(Waypoint.CornerSharpness), 0.7);
 
 	// Test 3: Create waypoint array
 	TArray<FAIWaypoint> Waypoints;
@@ -180,7 +180,7 @@ bool FAIBehaviorTreeTest::RunTest(const FString& Parameters)
 	Factors.DistanceToVehicleAhead = 1500.0f;
 	Factors.bSlipstreamAvailable = false;
 
-	BehaviorTree->UpdateDecisions(Factors);
+	BehaviorTree->UpdateDecisions(Factors, 0.0f);
 	// Should not crash
 
 	return true;

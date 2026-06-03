@@ -12,6 +12,12 @@ void UAIRubberBandScaler::TickComponent(float DeltaTime, ELevelTick TickType, FA
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	// Skip smoothing if UpdateState was never called (stale data guard)
+	if (!bStateUpdated)
+	{
+		return;
+	}
+
 	// Smooth the effect over time
 	if (State.bActive)
 	{
@@ -21,10 +27,13 @@ void UAIRubberBandScaler::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	{
 		SmoothedEffect = SmoothEffect(SmoothedEffect, 0.0f, DeltaTime);
 	}
+
+	bStateUpdated = false;
 }
 
 void UAIRubberBandScaler::UpdateState(float DistanceToPlayer, int32 AIRacePosition, int32 PlayerRacePosition, float RaceProgress)
 {
+	bStateUpdated = true;
 	State.DistanceToPlayer = DistanceToPlayer;
 	State.PositionDelta = AIRacePosition - PlayerRacePosition;
 

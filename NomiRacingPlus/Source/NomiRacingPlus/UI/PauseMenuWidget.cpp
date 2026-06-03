@@ -68,7 +68,7 @@ void UPauseMenuWidget::OnRestart()
 		AGameModeBase* GM = World->GetAuthGameMode();
 		if (GM)
 		{
-			GM->RestartGame();
+			GM->ResetLevel();
 		}
 	}
 }

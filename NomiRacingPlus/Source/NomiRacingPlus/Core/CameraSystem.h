@@ -36,7 +36,8 @@ enum class ECinematicShotType : uint8
 	DutchAngle        UMETA(DisplayName = "Dutch Angle"),
 	OverShoulder      UMETA(DisplayName = "Over Shoulder"),
 	Helicopter        UMETA(DisplayName = "Helicopter"),
-	StaticBumper      UMETA(DisplayName = "Static Bumper")
+	StaticBumper      UMETA(DisplayName = "Static Bumper"),
+	Count             UMETA(Hidden)
 };
 
 /**
@@ -247,7 +248,7 @@ public:
 	void CycleCameraMode();
 
 	// Get camera mode name
-	UFUNCTION(BlueprintCallable, Category = "Camera")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Camera")
 	FString GetCameraModeName() const;
 
 	// Camera Configuration
@@ -558,6 +559,16 @@ private:
 
 	// Replay record timer
 	float ReplayRecordTimer = 0.0f;
+
+	// Circular buffer head index (avoids RemoveAt(0) on large arrays)
+	int32 ReplayHeadIndex = 0;
+
+	// Map linear index (0=oldest) to circular buffer index
+	int32 GetReplayIndex(int32 LinearIdx) const
+	{
+		int32 Count = ReplayData.Num();
+		return (Count > 0) ? (ReplayHeadIndex + LinearIdx) % Count : 0;
+	}
 
 	// Vehicle reference
 	UPROPERTY()

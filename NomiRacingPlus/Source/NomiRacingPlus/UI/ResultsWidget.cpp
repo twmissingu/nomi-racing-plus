@@ -53,7 +53,7 @@ void UResultsWidget::SetResults(const FRaceSessionResult& Result, bool bIsBajaMo
 	// Total time: MM:SS.mmm
 	if (TotalTimeText)
 	{
-		TotalTimeText->SetText(FText::FromString(FormatTime(Result.TotalTime)));
+		TotalTimeText->SetText(FText::FromString(FormatTime(Result.TotalRaceTime)));
 	}
 
 	// Best lap: format time, or "N/A" for Baja mode
@@ -69,44 +69,7 @@ void UResultsWidget::SetResults(const FRaceSessionResult& Result, bool bIsBajaMo
 		}
 	}
 
-	// Gap to first: format time difference
-	if (GapToFirstText)
-	{
-		if (Result.FinalPosition == 1)
-		{
-			GapToFirstText->SetText(FText::FromString(TEXT("--")));
-		}
-		else
-		{
-			GapToFirstText->SetText(FText::FromString(FString::Printf(TEXT("+%s"), *FormatTime(Result.GapToFirst))));
-		}
-	}
-
-	// Points change: "+N" or "-N"
-	if (PointsChangeText)
-	{
-		const int32 Points = Result.PointsChange;
-		if (Points >= 0)
-		{
-			PointsChangeText->SetText(FText::FromString(FString::Printf(TEXT("+%d"), Points)));
-		}
-		else
-		{
-			PointsChangeText->SetText(FText::FromString(FString::Printf(TEXT("%d"), Points)));
-		}
-
-		// Color code: green for positive, red for negative
-		if (Points >= 0)
-		{
-			PointsChangeText->SetColorAndOpacity(FSlateColor(FLinearColor(0.2f, 0.8f, 0.2f)));
-		}
-		else
-		{
-			PointsChangeText->SetColorAndOpacity(FSlateColor(FLinearColor(0.9f, 0.2f, 0.2f)));
-		}
-	}
-
-	// Baja mode adjustments: hide BestLap, show arrival rate label
+	// Baja mode adjustments: hide BestLap, show completion status
 	if (bIsBajaMode)
 	{
 		if (BestLapText)
@@ -114,16 +77,16 @@ void UResultsWidget::SetResults(const FRaceSessionResult& Result, bool bIsBajaMo
 			BestLapText->SetVisibility(ESlateVisibility::Collapsed);
 		}
 
-		// If GapToFirstText exists, relabel it conceptually for Baja "到达率"
+		// Show completion status
 		if (GapToFirstText)
 		{
-			// GapToFirst in Baja mode represents arrival rate
-			GapToFirstText->SetText(FText::FromString(Result.bFinished ? TEXT("100%") : TEXT("DNF")));
+			const bool bFinished = Result.FinalPosition > 0 && Result.FinalPosition <= Result.TotalRacers;
+			GapToFirstText->SetText(FText::FromString(bFinished ? TEXT("100%") : TEXT("DNF")));
 		}
 	}
 
-	UE_LOG(LogNomiResults, Log, TEXT("Results set: Position=%d, TotalTime=%.3f, BestLap=%.3f, Baja=%d"),
-		Result.FinalPosition, Result.TotalTime, Result.BestLapTime, bIsBajaMode ? 1 : 0);
+	UE_LOG(LogNomiResults, Log, TEXT("Results set: Position=%d, TotalRaceTime=%.3f, BestLap=%.3f, Baja=%d"),
+		Result.FinalPosition, Result.TotalRaceTime, Result.BestLapTime, bIsBajaMode ? 1 : 0);
 }
 
 void UResultsWidget::OnRematch()

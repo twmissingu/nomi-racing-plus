@@ -291,8 +291,8 @@ void UNIOVehicleMovementComponent::ApplyRegenerativeBraking(float DeltaTime)
 			{
 				// Reduce motor RPM to simulate energy recovery
 				// The Chaos vehicle system handles the actual physics
-				// We just need to reduce the motor output
-				SetMotorInput(-RegenTorque / MaxMotorTorque * 0.1f);
+				// Apply regenerative braking torque via additional brake force
+				SetBrakeInput(FMath::Clamp(BrakeInput + (RegenTorque / PeakMotorTorque) * 0.1f, 0.0f, 1.0f));
 			}
 		}
 	}

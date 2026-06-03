@@ -41,7 +41,7 @@ void UMenuManager::ShowMainMenu()
 {
 	SwitchToState(EMenuState::MainMenu);
 
-	if (OwningPlayer.IsValid())
+	if (IsValid(OwningPlayer.Get()))
 	{
 		FInputModeUIOnly InputMode;
 		OwningPlayer->SetInputMode(InputMode);
@@ -73,7 +73,7 @@ void UMenuManager::ShowLoadingScreen()
 {
 	SwitchToState(EMenuState::Loading);
 
-	if (OwningPlayer.IsValid())
+	if (IsValid(OwningPlayer.Get()))
 	{
 		FInputModeGameOnly InputMode;
 		OwningPlayer->SetInputMode(InputMode);
@@ -92,7 +92,7 @@ void UMenuManager::ShowPauseMenu()
 
 	SwitchToState(EMenuState::Paused);
 
-	if (OwningPlayer.IsValid())
+	if (IsValid(OwningPlayer.Get()))
 	{
 		FInputModeGameAndUI InputMode;
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -107,7 +107,7 @@ void UMenuManager::ShowResults(const FRaceSessionResult& Result)
 {
 	SwitchToState(EMenuState::Results);
 
-	if (OwningPlayer.IsValid())
+	if (IsValid(OwningPlayer.Get()))
 	{
 		FInputModeUIOnly InputMode;
 		OwningPlayer->SetInputMode(InputMode);
@@ -153,7 +153,7 @@ void UMenuManager::StartRace()
 	Config.NumLaps = MenuContext.Laps;
 
 	// Find RaceManager in world and start the race
-	if (OwningPlayer.IsValid() && OwningPlayer->GetWorld())
+	if (IsValid(OwningPlayer.Get()) && OwningPlayer->GetWorld())
 	{
 		TArray<AActor*> RaceManagers;
 		UGameplayStatics::GetAllActorsOfClass(OwningPlayer->GetWorld(), ARaceManager::StaticClass(), RaceManagers);
@@ -216,7 +216,7 @@ void UMenuManager::SetRaceSettings(int32 AI, int32 Diff, int32 InLaps, int32 InW
 
 UUserWidget* UMenuManager::CreateWidgetForState(EMenuState State)
 {
-	if (!OwningPlayer.IsValid())
+	if (!IsValid(OwningPlayer.Get()))
 	{
 		UE_LOG(LogNomiMenu, Error, TEXT("CreateWidgetForState: OwningPlayer is null"));
 		return nullptr;

@@ -15,29 +15,29 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FVehicleStateManagerTest,
 	"NomiRacingPlus.Vehicle.StateManager",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FNIOVehiclePhysicsTest,
 	"NomiRacingPlus.Vehicle.NIOPhysics",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FVehicleDriftDetectionTest,
 	"NomiRacingPlus.Vehicle.DriftDetection",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FElectricTorqueCurveTest,
 	"NomiRacingPlus.Vehicle.ElectricTorque",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FTireModelIntegrationTest,
 	"NomiRacingPlus.Vehicle.TireModelIntegration",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )

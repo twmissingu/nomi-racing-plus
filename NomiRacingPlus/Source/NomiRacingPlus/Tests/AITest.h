@@ -19,53 +19,53 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIDifficultySettingsTest,
 	"NomiRacingPlus.AI.DifficultySettings",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIStateTransitionTest,
 	"NomiRacingPlus.AI.StateTransitions",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIWaypointTest,
 	"NomiRacingPlus.AI.Waypoints",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIBehaviorTreeTest,
 	"NomiRacingPlus.AI.BehaviorTree",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIOvertakeEvaluatorTest,
 	"NomiRacingPlus.AI.OvertakeEvaluator",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIDefensiveEvaluatorTest,
 	"NomiRacingPlus.AI.DefensiveEvaluator",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAISlipstreamSystemTest,
 	"NomiRacingPlus.AI.SlipstreamSystem",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIRubberBandScalerTest,
 	"NomiRacingPlus.AI.RubberBandScaler",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAISensorSystemTest,
 	"NomiRacingPlus.AI.SensorSystem",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )

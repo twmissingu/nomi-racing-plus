@@ -150,7 +150,7 @@ struct NOMIRACINGPLUS_API FRacerData
 /**
  * Race event delegate
  */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRaceEvent, ERaceEvent, Event, const FRacerData&, RacerData);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRaceEvent, ERaceEvent, const FRacerData&);
 
 /**
  * Race Manager - controls race flow, timing, and positions
@@ -261,8 +261,7 @@ public:
 
 	// Event system
 
-	// Race event delegate
-	UPROPERTY(BlueprintAssignable, Category = "Race|Events")
+	// Race event delegate (C++ only, not BlueprintAssignable to support AddLambda in tests)
 	FOnRaceEvent OnRaceEvent;
 
 protected:

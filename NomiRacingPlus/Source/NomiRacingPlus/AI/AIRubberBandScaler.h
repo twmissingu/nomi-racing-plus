@@ -181,4 +181,7 @@ private:
 
 	// Smoothed effect for gradual transitions
 	float SmoothedEffect = 0.0f;
+
+	// Guard: true when UpdateState has been called since last Tick
+	bool bStateUpdated = false;
 };

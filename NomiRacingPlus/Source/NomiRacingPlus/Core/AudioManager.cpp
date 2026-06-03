@@ -293,24 +293,26 @@ void UAudioManager::PlayMusic(USoundCue* MusicCue)
 		return;
 	}
 
-	// Stop and destroy current music component to prevent memory leak
-	if (MusicAudioComponent)
+	// Create music component on first use; reuse on subsequent calls
+	if (!MusicAudioComponent)
 	{
-		MusicAudioComponent->Stop();
-		MusicAudioComponent->DestroyComponent();
-		MusicAudioComponent = nullptr;
-	}
-
-	// Create new music component
-	MusicAudioComponent = CreateAudioComponent(MusicCue);
-	if (MusicAudioComponent)
-	{
+		MusicAudioComponent = CreateAudioComponent(MusicCue);
+		if (!MusicAudioComponent)
+		{
+			return;
+		}
 		MusicAudioComponent->bAutoActivate = true;
 		MusicAudioComponent->bIsMusic = true;
-		CurrentMusicVolume = 1.0f;
-		MusicAudioComponent->SetVolumeMultiplier(GetVolume(EAudioCategory::Music));
-		MusicAudioComponent->Play();
 	}
+	else
+	{
+		MusicAudioComponent->Stop();
+		MusicAudioComponent->SetSound(MusicCue);
+	}
+
+	CurrentMusicVolume = 1.0f;
+	MusicAudioComponent->SetVolumeMultiplier(GetVolume(EAudioCategory::Music));
+	MusicAudioComponent->Play();
 }
 
 void UAudioManager::StopMusic()
@@ -335,22 +337,24 @@ void UAudioManager::PlayNOMIVoice(USoundCue* VoiceCue)
 		return;
 	}
 
-	// Stop and destroy current NOMI voice component to prevent memory leak
-	if (NOMIAudioComponent)
+	// Create NOMI audio component on first use; reuse on subsequent calls
+	if (!NOMIAudioComponent)
+	{
+		NOMIAudioComponent = CreateAudioComponent(VoiceCue);
+		if (!NOMIAudioComponent)
+		{
+			return;
+		}
+		NOMIAudioComponent->bAutoActivate = true;
+	}
+	else
 	{
 		NOMIAudioComponent->Stop();
-		NOMIAudioComponent->DestroyComponent();
-		NOMIAudioComponent = nullptr;
+		NOMIAudioComponent->SetSound(VoiceCue);
 	}
 
-	// Play new voice
-	NOMIAudioComponent = CreateAudioComponent(VoiceCue);
-	if (NOMIAudioComponent)
-	{
-		NOMIAudioComponent->bAutoActivate = true;
-		NOMIAudioComponent->SetVolumeMultiplier(GetVolume(EAudioCategory::NOMI));
-		NOMIAudioComponent->Play();
-	}
+	NOMIAudioComponent->SetVolumeMultiplier(GetVolume(EAudioCategory::NOMI));
+	NOMIAudioComponent->Play();
 }
 
 UAudioComponent* UAudioManager::CreateAudioComponent(USoundCue* SoundCue)

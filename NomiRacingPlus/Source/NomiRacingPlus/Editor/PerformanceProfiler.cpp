@@ -8,8 +8,7 @@
 #include "Engine/Engine.h"
 
 #if STATS
-#include "GpuProfiler.h"
-#include "RenderCoreGlobals.h"
+#include "GPUProfiler.h"
 #endif
 
 // ============================================================================
@@ -19,7 +18,7 @@
 static int32 SafeGetDrawCallCount()
 {
 #if STATS
-	return static_cast<int32>(GNumDrawCallsRHI);
+	return static_cast<int32>(GNumDrawCallsRHI[0]);
 #else
 	return 0;
 #endif
@@ -28,7 +27,7 @@ static int32 SafeGetDrawCallCount()
 static int32 SafeGetTriangleCount()
 {
 #if STATS
-	return static_cast<int32>(GNumPrimitivesDrawnRHI);
+	return static_cast<int32>(GNumPrimitivesDrawnRHI[0]);
 #else
 	return 0;
 #endif

@@ -5,6 +5,8 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Widget.h"
+#include "GameFramework/GameModeBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
 
 URaceHUD::URaceHUD(const FObjectInitializer& ObjectInitializer)
@@ -15,6 +17,26 @@ URaceHUD::URaceHUD(const FObjectInitializer& ObjectInitializer)
 void URaceHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// Auto-connect AccessibilityManager from owning player controller (or game mode)
+	if (!AccessibilityManager)
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			AccessibilityManager = PC->FindComponentByClass<UAccessibilityManager>();
+			if (!AccessibilityManager)
+			{
+				if (AGameModeBase* GM = UGameplayStatics::GetGameMode(this))
+				{
+					AccessibilityManager = GM->FindComponentByClass<UAccessibilityManager>();
+				}
+			}
+		}
+		if (AccessibilityManager)
+		{
+			ApplyAccessibilitySettings();
+		}
+	}
 
 	// Initialize visibility
 	if (NOMICommentBox)

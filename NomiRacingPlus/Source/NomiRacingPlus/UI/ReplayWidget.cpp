@@ -166,7 +166,7 @@ void UReplayWidget::OnCameraAngleChanged(int32 CameraIndex)
 {
 	if (CameraSystem)
 	{
-		CameraSystem->SetCameraMode(CameraIndex);
+		CameraSystem->SetCameraMode(static_cast<ECameraMode>(CameraIndex));
 	}
 
 	UpdateButtonStates();
@@ -217,7 +217,7 @@ void UReplayWidget::UpdateButtonStates()
 		{CameraBumperBtn, 5},
 	};
 
-	const int32 ActiveCamera = CameraSystem ? CameraSystem->GetActiveCameraMode() : -1;
+	const int32 ActiveCamera = CameraSystem ? static_cast<int32>(CameraSystem->GetCameraMode()) : -1;
 
 	for (const FCameraEntry& Entry : CameraEntries)
 	{

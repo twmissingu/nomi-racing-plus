@@ -5,8 +5,6 @@
 #include "CoreMinimal.h"
 #include "AssetValidator.generated.h"
 
-#if WITH_EDITOR
-
 /**
  * Asset validation result
  */
@@ -201,5 +199,3 @@ private:
 	// Get asset type from path
 	FString GetAssetType(const FString& AssetPath) const;
 };
-
-#endif // WITH_EDITOR

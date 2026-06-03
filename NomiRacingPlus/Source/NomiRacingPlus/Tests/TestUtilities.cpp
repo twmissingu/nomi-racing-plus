@@ -381,7 +381,7 @@ bool NomiTestUtils::ValidateVehicleStateManagerDefaults(
 {
 	if (!StateManager)
 	{
-		Test->AddError(FString::Printf(TEXT("[%s] StateManager is null"), *Context.IsEmpty() ? TEXT("StateManagerDefaults") : *Context));
+		Test->AddError(FString::Printf(TEXT("[%s] StateManager is null"), Context.IsEmpty() ? TEXT("StateManagerDefaults") : *Context));
 		return false;
 	}
 
@@ -552,7 +552,7 @@ bool NomiTestUtils::ValidateRaceState(
 {
 	if (!RaceManager)
 	{
-		Test->AddError(FString::Printf(TEXT("[%s] RaceManager is null"), *Context.IsEmpty() ? TEXT("RaceState") : *Context));
+		Test->AddError(FString::Printf(TEXT("[%s] RaceManager is null"), Context.IsEmpty() ? TEXT("RaceState") : *Context));
 		return false;
 	}
 

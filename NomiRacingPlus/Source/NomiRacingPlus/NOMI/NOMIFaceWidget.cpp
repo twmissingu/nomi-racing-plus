@@ -8,7 +8,7 @@ UNOMIFaceWidget::UNOMIFaceWidget(const FObjectInitializer& ObjectInitializer)
 {
 	// Default eye states
 	LeftEyeState.Openness = 1.0f;
-	LeftEyeState.ShapeType = 0;
+	LeftEyeState.ShapeType = ENOMIEyeShape::Normal;
 	LeftEyeState.PupilSize = 0.5f;
 	LeftEyeState.Color = FLinearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
@@ -16,7 +16,7 @@ UNOMIFaceWidget::UNOMIFaceWidget(const FObjectInitializer& ObjectInitializer)
 
 	// Default mouth state
 	MouthState.OpenAmount = 0.0f;
-	MouthState.ShapeType = 0;
+	MouthState.ShapeType = ENOMIMouthShape::Neutral;
 	MouthState.WidthScale = 1.0f;
 }
 
@@ -47,18 +47,18 @@ void UNOMIFaceWidget::SetMouthOpen(float Amount)
 	// Switch to speaking shape when mouth is open
 	if (Amount > 0.1f)
 	{
-		MouthState.ShapeType = 4; // Speaking
+		MouthState.ShapeType = ENOMIMouthShape::Speaking;
 	}
-	else if (MouthState.ShapeType == 4)
+	else if (MouthState.ShapeType == ENOMIMouthShape::Speaking)
 	{
 		// Return to expression default
 		ApplyExpressionSettings(CurrentExpression);
 	}
 }
 
-void UNOMIFaceWidget::SetMouthShape(int32 ShapeType)
+void UNOMIFaceWidget::SetMouthShape(ENOMIMouthShape ShapeType)
 {
-	MouthState.ShapeType = FMath::Clamp(ShapeType, 0, 4);
+	MouthState.ShapeType = ShapeType;
 }
 
 void UNOMIFaceWidget::ApplyExpressionSettings(ENOMIExpression Expression)
@@ -67,102 +67,102 @@ void UNOMIFaceWidget::ApplyExpressionSettings(ENOMIExpression Expression)
 	{
 	case ENOMIExpression::Neutral:
 		// Default neutral face
-		LeftEyeState.ShapeType = 0;  // Normal
-		RightEyeState.ShapeType = 0;
+		LeftEyeState.ShapeType = ENOMIEyeShape::Normal;
+		RightEyeState.ShapeType = ENOMIEyeShape::Normal;
 		LeftEyeState.PupilSize = 0.5f;
 		RightEyeState.PupilSize = 0.5f;
-		MouthState.ShapeType = 0;    // Neutral
+		MouthState.ShapeType = ENOMIMouthShape::Neutral;
 		MouthState.WidthScale = 1.0f;
 		MouthState.OpenAmount = 0.0f;
 		break;
 
 	case ENOMIExpression::Happy:
 		// Happy: slightly closed eyes, smile
-		LeftEyeState.ShapeType = 1;  // Happy (slightly closed)
-		RightEyeState.ShapeType = 1;
+		LeftEyeState.ShapeType = ENOMIEyeShape::Happy;
+		RightEyeState.ShapeType = ENOMIEyeShape::Happy;
 		LeftEyeState.Openness = 0.7f;
 		RightEyeState.Openness = 0.7f;
 		LeftEyeState.PupilSize = 0.6f;
 		RightEyeState.PupilSize = 0.6f;
-		MouthState.ShapeType = 1;    // Smile
+		MouthState.ShapeType = ENOMIMouthShape::Smile;
 		MouthState.WidthScale = 1.2f;
 		MouthState.OpenAmount = 0.1f;
 		break;
 
 	case ENOMIExpression::Sad:
 		// Sad: droopy eyes, frown
-		LeftEyeState.ShapeType = 2;  // Sad
-		RightEyeState.ShapeType = 2;
+		LeftEyeState.ShapeType = ENOMIEyeShape::Sad;
+		RightEyeState.ShapeType = ENOMIEyeShape::Sad;
 		LeftEyeState.Openness = 0.6f;
 		RightEyeState.Openness = 0.6f;
 		LeftEyeState.PupilSize = 0.4f;
 		RightEyeState.PupilSize = 0.4f;
-		MouthState.ShapeType = 2;    // Frown
+		MouthState.ShapeType = ENOMIMouthShape::Frown;
 		MouthState.WidthScale = 0.8f;
 		MouthState.OpenAmount = 0.0f;
 		break;
 
 	case ENOMIExpression::Sleepy:
 		// Sleepy: half-closed eyes, small mouth
-		LeftEyeState.ShapeType = 0;  // Normal but half closed
-		RightEyeState.ShapeType = 0;
+		LeftEyeState.ShapeType = ENOMIEyeShape::Normal;
+		RightEyeState.ShapeType = ENOMIEyeShape::Normal;
 		LeftEyeState.Openness = 0.3f;
 		RightEyeState.Openness = 0.3f;
 		LeftEyeState.PupilSize = 0.3f;
 		RightEyeState.PupilSize = 0.3f;
-		MouthState.ShapeType = 0;    // Neutral, small
+		MouthState.ShapeType = ENOMIMouthShape::Neutral;
 		MouthState.WidthScale = 0.6f;
 		MouthState.OpenAmount = 0.05f;
 		break;
 
 	case ENOMIExpression::Curious:
 		// Curious: wide eyes, small smile
-		LeftEyeState.ShapeType = 3;  // Surprised/wide
-		RightEyeState.ShapeType = 3;
+		LeftEyeState.ShapeType = ENOMIEyeShape::Surprised;
+		RightEyeState.ShapeType = ENOMIEyeShape::Surprised;
 		LeftEyeState.Openness = 1.0f;
 		RightEyeState.Openness = 1.0f;
 		LeftEyeState.PupilSize = 0.7f;
 		RightEyeState.PupilSize = 0.7f;
-		MouthState.ShapeType = 0;    // Neutral
+		MouthState.ShapeType = ENOMIMouthShape::Neutral;
 		MouthState.WidthScale = 0.9f;
 		MouthState.OpenAmount = 0.05f;
 		break;
 
 	case ENOMIExpression::Surprised:
 		// Surprised: very wide eyes, open mouth
-		LeftEyeState.ShapeType = 3;  // Surprised
-		RightEyeState.ShapeType = 3;
+		LeftEyeState.ShapeType = ENOMIEyeShape::Surprised;
+		RightEyeState.ShapeType = ENOMIEyeShape::Surprised;
 		LeftEyeState.Openness = 1.0f;
 		RightEyeState.Openness = 1.0f;
 		LeftEyeState.PupilSize = 0.2f; // Small pupils = surprised
 		RightEyeState.PupilSize = 0.2f;
-		MouthState.ShapeType = 3;    // Surprised (O shape)
+		MouthState.ShapeType = ENOMIMouthShape::Surprised;
 		MouthState.WidthScale = 0.7f;
 		MouthState.OpenAmount = 0.6f;
 		break;
 
 	case ENOMIExpression::Confused:
 		// Confused: asymmetric eyes, wavy mouth
-		LeftEyeState.ShapeType = 0;  // Normal
-		RightEyeState.ShapeType = 2; // Sad (different from left = confused)
+		LeftEyeState.ShapeType = ENOMIEyeShape::Normal;
+		RightEyeState.ShapeType = ENOMIEyeShape::Sad; // Different from left = confused
 		LeftEyeState.Openness = 0.8f;
 		RightEyeState.Openness = 0.6f;
 		LeftEyeState.PupilSize = 0.5f;
 		RightEyeState.PupilSize = 0.4f;
-		MouthState.ShapeType = 0;    // Neutral, slightly open
+		MouthState.ShapeType = ENOMIMouthShape::Neutral;
 		MouthState.WidthScale = 0.9f;
 		MouthState.OpenAmount = 0.1f;
 		break;
 
 	case ENOMIExpression::Excited:
 		// Excited: wide eyes, big smile
-		LeftEyeState.ShapeType = 3;  // Wide
-		RightEyeState.ShapeType = 3;
+		LeftEyeState.ShapeType = ENOMIEyeShape::Surprised;
+		RightEyeState.ShapeType = ENOMIEyeShape::Surprised;
 		LeftEyeState.Openness = 1.0f;
 		RightEyeState.Openness = 1.0f;
 		LeftEyeState.PupilSize = 0.8f; // Large pupils = excited
 		RightEyeState.PupilSize = 0.8f;
-		MouthState.ShapeType = 1;    // Big smile
+		MouthState.ShapeType = ENOMIMouthShape::Smile;
 		MouthState.WidthScale = 1.4f;
 		MouthState.OpenAmount = 0.3f;
 		break;

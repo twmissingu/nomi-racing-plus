@@ -37,7 +37,7 @@ void FPerformanceBenchmarkUtils::LogBenchmarkResult(FAutomationTestBase* Test, c
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FPacejkaForceBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.PacejkaForceCalculation",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FPacejkaForceBenchmark::RunTest(const FString& Parameters)
 {
@@ -71,7 +71,7 @@ bool FPacejkaForceBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FPacejkaPresetsBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.PacejkaAllPresets",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FPacejkaPresetsBenchmark::RunTest(const FString& Parameters)
 {
@@ -112,7 +112,7 @@ bool FPacejkaPresetsBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FThermalModelBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.ThermalModelUpdate",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FThermalModelBenchmark::RunTest(const FString& Parameters)
 {
@@ -141,7 +141,7 @@ bool FThermalModelBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FThermalGripBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.ThermalGripMultiplier",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FThermalGripBenchmark::RunTest(const FString& Parameters)
 {
@@ -167,7 +167,7 @@ bool FThermalGripBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSurfaceGripBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.SurfaceGripMultiplier",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FSurfaceGripBenchmark::RunTest(const FString& Parameters)
 {
@@ -202,7 +202,7 @@ bool FSurfaceGripBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSlipRatioBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.SlipRatioCalculation",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FSlipRatioBenchmark::RunTest(const FString& Parameters)
 {
@@ -233,7 +233,7 @@ bool FSlipRatioBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSlipAngleBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.SlipAngleCalculation",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FSlipAngleBenchmark::RunTest(const FString& Parameters)
 {
@@ -263,7 +263,7 @@ bool FSlipAngleBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FFullTirePhysicsStepBenchmark,
 	"NomiRacing.Performance.VehiclePhysics.FullTirePhysicsStep",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FFullTirePhysicsStepBenchmark::RunTest(const FString& Parameters)
 {
@@ -314,7 +314,7 @@ bool FFullTirePhysicsStepBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FRubberBandScalerBenchmark,
 	"NomiRacing.Performance.AI.RubberBandScalerUpdate",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FRubberBandScalerBenchmark::RunTest(const FString& Parameters)
 {
@@ -345,7 +345,7 @@ bool FRubberBandScalerBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FRubberBandReadBenchmark,
 	"NomiRacing.Performance.AI.RubberBandSpeedMultiplierRead",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FRubberBandReadBenchmark::RunTest(const FString& Parameters)
 {
@@ -376,7 +376,7 @@ bool FRubberBandReadBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FOvertakeEvaluatorBenchmark,
 	"NomiRacing.Performance.AI.OvertakeEvaluatorDecision",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FOvertakeEvaluatorBenchmark::RunTest(const FString& Parameters)
 {
@@ -425,7 +425,7 @@ bool FOvertakeEvaluatorBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FDefensiveEvaluatorBenchmark,
 	"NomiRacing.Performance.AI.DefensiveEvaluatorDecision",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FDefensiveEvaluatorBenchmark::RunTest(const FString& Parameters)
 {
@@ -463,7 +463,7 @@ bool FDefensiveEvaluatorBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSlipstreamWakeBenchmark,
 	"NomiRacing.Performance.AI.SlipstreamWakeCalculation",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FSlipstreamWakeBenchmark::RunTest(const FString& Parameters)
 {
@@ -505,7 +505,7 @@ bool FSlipstreamWakeBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIFullDecisionBenchmark,
 	"NomiRacing.Performance.AI.FullDecisionPipeline",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FAIFullDecisionBenchmark::RunTest(const FString& Parameters)
 {
@@ -542,7 +542,7 @@ bool FAIFullDecisionBenchmark::RunTest(const FString& Parameters)
 		VariedFactors.CornerSharpness = VariedFactors.bIsInCorner ? 0.3f + (Counter % 5) * 0.1f : 0.0f;
 		VariedFactors.TrackPosition = (Counter % 100) * 0.01f;
 
-		BehaviorTree->UpdateDecisions(VariedFactors);
+		BehaviorTree->UpdateDecisions(VariedFactors, 0.016f);
 		Counter++;
 	});
 
@@ -557,7 +557,7 @@ bool FAIFullDecisionBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIInputReadBenchmark,
 	"NomiRacing.Performance.AI.InputRead",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FAIInputReadBenchmark::RunTest(const FString& Parameters)
 {
@@ -571,7 +571,7 @@ bool FAIInputReadBenchmark::RunTest(const FString& Parameters)
 	Factors.DistanceToVehicleAhead = 500.0f;
 	Factors.bIsInCorner = true;
 	Factors.CornerSharpness = 0.5f;
-	BehaviorTree->UpdateDecisions(Factors);
+		BehaviorTree->UpdateDecisions(Factors, 0.016f);
 
 	constexpr int32 Iterations = 100000;
 	float Sink = 0.0f;
@@ -599,7 +599,7 @@ bool FAIInputReadBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FFOVBenchmark,
 	"NomiRacing.Performance.Rendering.DynamicFOVCalculation",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FFOVBenchmark::RunTest(const FString& Parameters)
 {
@@ -633,7 +633,7 @@ bool FFOVBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCameraModeSwitchBenchmark,
 	"NomiRacing.Performance.Rendering.CameraModeSwitch",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraModeSwitchBenchmark::RunTest(const FString& Parameters)
 {
@@ -665,7 +665,7 @@ bool FCameraModeSwitchBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FReplayInterpolationBenchmark,
 	"NomiRacing.Performance.Rendering.ReplayDataInterpolation",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FReplayInterpolationBenchmark::RunTest(const FString& Parameters)
 {
@@ -707,7 +707,7 @@ bool FReplayInterpolationBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCameraConfigLookupBenchmark,
 	"NomiRacing.Performance.Rendering.CameraConfigLookup",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCameraConfigLookupBenchmark::RunTest(const FString& Parameters)
 {
@@ -743,7 +743,7 @@ bool FCameraConfigLookupBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCinematicShotBenchmark,
 	"NomiRacing.Performance.Rendering.CinematicShotSetup",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCinematicShotBenchmark::RunTest(const FString& Parameters)
 {
@@ -782,7 +782,7 @@ bool FCinematicShotBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCombinedFrameBenchmark,
 	"NomiRacing.Performance.Combined.FullGameFrame",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FCombinedFrameBenchmark::RunTest(const FString& Parameters)
 {
@@ -819,7 +819,7 @@ bool FCombinedFrameBenchmark::RunTest(const FString& Parameters)
 		Factors.DistanceToVehicleAhead = 500.0f + (Counter % 20) * 100.0f;
 		Factors.bIsInCorner = (Counter % 4 == 0);
 		Factors.CornerSharpness = Factors.bIsInCorner ? 0.4f : 0.0f;
-		BehaviorTree->UpdateDecisions(Factors);
+	BehaviorTree->UpdateDecisions(Factors, 0.016f);
 
 		// 3. Rubber band update
 		RubberBand->UpdateState(3000.0f, 3, 1, 0.5f);
@@ -842,7 +842,7 @@ bool FCombinedFrameBenchmark::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FMemoryAllocBenchmark,
 	"NomiRacing.Performance.Combined.MemoryAllocationStress",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FMemoryAllocBenchmark::RunTest(const FString& Parameters)
 {

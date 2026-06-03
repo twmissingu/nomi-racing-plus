@@ -408,6 +408,32 @@ uint32 UNomiGameInstance::CalculateChecksum(const FString& Content)
 	return FCrc::MemCrc32(Converter.Get(), Converter.Length());
 }
 
+// Helper: serialize any JSON value to string
+static FString SerializeJsonValue(const TSharedPtr<FJsonValue>& Val)
+{
+	switch (Val->Type)
+	{
+	case EJson::String: return FString::Printf(TEXT("\"%s\""), *Val->AsString());
+	case EJson::Number: return FString::Printf(TEXT("%g"), Val->AsNumber());
+	case EJson::Boolean: return Val->AsBool() ? TEXT("true") : TEXT("false");
+	case EJson::Null: return TEXT("null");
+	case EJson::Object: return SerializeSorted(Val->AsObject());
+	case EJson::Array:
+	{
+		FString Result = TEXT("[");
+		const TArray<TSharedPtr<FJsonValue>>& Arr = Val->AsArray();
+		for (int32 j = 0; j < Arr.Num(); ++j)
+		{
+			if (j > 0) Result += TEXT(",");
+			Result += SerializeJsonValue(Arr[j]);
+		}
+		Result += TEXT("]");
+		return Result;
+	}
+	default: return TEXT("null");
+	}
+}
+
 // Helper: serialize a JSON object with sorted keys for deterministic checksum
 static FString SerializeSorted(const TSharedPtr<FJsonObject>& Obj)
 {
@@ -440,21 +466,8 @@ static FString SerializeSorted(const TSharedPtr<FJsonObject>& Obj)
 			Result += SerializeSorted(Val->AsObject());
 			break;
 		case EJson::Array:
-		{
-			Result += TEXT("[");
-			const TArray<TSharedPtr<FJsonValue>>& Arr = Val->AsArray();
-			for (int32 j = 0; j < Arr.Num(); ++j)
-			{
-				if (j > 0) Result += TEXT(",");
-				// For array elements, use default serialization
-				FString ElemStr;
-				TSharedRef<TJsonWriter<>> ElemWriter = TJsonWriterFactory<>::Create(&ElemStr);
-				FJsonSerializer::Serialize(Arr[j].ToSharedRef(), ElemWriter);
-				Result += ElemStr;
-			}
-			Result += TEXT("]");
+			Result += SerializeJsonValue(Val);
 			break;
-		}
 		default:
 			Result += TEXT("null");
 			break;

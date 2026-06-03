@@ -22,47 +22,47 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIRaceStateResponseTest,
 	"NomiRacingPlus.Integration.AIRace.StateResponse",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIRubberBandRacePositionTest,
 	"NomiRacingPlus.Integration.AIRace.RubberBandPosition",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIDifficultyRaceImpactTest,
 	"NomiRacingPlus.Integration.AIRace.DifficultyImpact",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIBehaviorTreeRaceFactorsTest,
 	"NomiRacingPlus.Integration.AIRace.BehaviorTreeFactors",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIOvertakeRaceContextTest,
 	"NomiRacingPlus.Integration.AIRace.OvertakeContext",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIDefenseRaceContextTest,
 	"NomiRacingPlus.Integration.AIRace.DefenseContext",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAISlipstreamRaceContextTest,
 	"NomiRacingPlus.Integration.AIRace.SlipstreamContext",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAIMultiAgentRaceCoordinationTest,
 	"NomiRacingPlus.Integration.AIRace.MultiAgentCoordination",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )

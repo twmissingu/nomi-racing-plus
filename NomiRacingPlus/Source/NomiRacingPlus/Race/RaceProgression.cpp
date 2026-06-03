@@ -1,12 +1,8 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
 #include "Race/RaceProgression.h"
-#include "Kismet/GameplayStatics.h"
+#include "Race/ProgressionSerializer.h"
 #include "NomiRacingPlus.h"
-#include "Dom/JsonObject.h"
-#include "Serialization/JsonReader.h"
-#include "Serialization/JsonSerializer.h"
-#include "Serialization/JsonWriter.h"
 
 URaceProgression::URaceProgression()
 {
@@ -745,6 +741,10 @@ void URaceProgression::UpdateStreaks(const FRaceSessionResult& SessionResult)
 	if (SessionResult.FinalPosition <= 3)
 	{
 		Statistics.CurrentPodiumStreak++;
+		if (Statistics.CurrentPodiumStreak > Statistics.BestPodiumStreak)
+		{
+			Statistics.BestPodiumStreak = Statistics.CurrentPodiumStreak;
+		}
 	}
 	else
 	{
@@ -972,275 +972,12 @@ float URaceProgression::GetUnlockProgress() const
 
 bool URaceProgression::SaveProgression()
 {
-	FString SavePath = GetSavePath();
-
-	// Create save data JSON using proper JSON serialization
-	TSharedPtr<FJsonObject> RootObj = MakeShared<FJsonObject>();
-
-	// Statistics
-	TSharedPtr<FJsonObject> StatsObj = MakeShared<FJsonObject>();
-	StatsObj->SetNumberField(TEXT("total_races"), Statistics.TotalRaces);
-	StatsObj->SetNumberField(TEXT("total_wins"), Statistics.TotalWins);
-	StatsObj->SetNumberField(TEXT("total_podiums"), Statistics.TotalPodiums);
-	StatsObj->SetNumberField(TEXT("total_laps"), Statistics.TotalLaps);
-	StatsObj->SetNumberField(TEXT("total_distance"), Statistics.TotalDistance);
-	StatsObj->SetNumberField(TEXT("total_drift_time"), Statistics.TotalDriftTime);
-	StatsObj->SetNumberField(TEXT("total_overtakes"), Statistics.TotalOvertakes);
-	StatsObj->SetNumberField(TEXT("best_lap_time"), Statistics.BestLapTime);
-	StatsObj->SetStringField(TEXT("best_lap_track"), Statistics.BestLapTrack);
-	StatsObj->SetStringField(TEXT("best_lap_vehicle"), Statistics.BestLapVehicle);
-	StatsObj->SetNumberField(TEXT("max_speed"), Statistics.MaxSpeed);
-	StatsObj->SetNumberField(TEXT("championship_wins"), Statistics.ChampionshipWins);
-	StatsObj->SetNumberField(TEXT("total_play_time"), Statistics.TotalPlayTime);
-	StatsObj->SetNumberField(TEXT("total_clean_races"), Statistics.TotalCleanRaces);
-	StatsObj->SetNumberField(TEXT("total_collisions"), Statistics.TotalCollisions);
-	StatsObj->SetNumberField(TEXT("current_win_streak"), Statistics.CurrentWinStreak);
-	StatsObj->SetNumberField(TEXT("best_win_streak"), Statistics.BestWinStreak);
-	StatsObj->SetNumberField(TEXT("current_podium_streak"), Statistics.CurrentPodiumStreak);
-
-	// Completed tracks array
-	TArray<TSharedPtr<FJsonValue>> TracksArray;
-	for (const FString& Track : Statistics.CompletedTracks)
-	{
-		TracksArray.Add(MakeShared<FJsonValueString>(Track));
-	}
-	StatsObj->SetArrayField(TEXT("completed_tracks"), TracksArray);
-
-	// Used vehicles array
-	TArray<TSharedPtr<FJsonValue>> VehiclesArray;
-	for (const FString& Vehicle : Statistics.UsedVehicles)
-	{
-		VehiclesArray.Add(MakeShared<FJsonValueString>(Vehicle));
-	}
-	StatsObj->SetArrayField(TEXT("used_vehicles"), VehiclesArray);
-
-	// Per-track stats
-	TSharedPtr<FJsonObject> TrackStatsObj = MakeShared<FJsonObject>();
-	for (const auto& Pair : Statistics.TrackStats)
-	{
-		TSharedPtr<FJsonObject> TS = MakeShared<FJsonObject>();
-		TS->SetNumberField(TEXT("races_completed"), Pair.Value.RacesCompleted);
-		TS->SetNumberField(TEXT("wins"), Pair.Value.Wins);
-		TS->SetNumberField(TEXT("best_lap_time"), Pair.Value.BestLapTime);
-		TS->SetStringField(TEXT("best_lap_vehicle"), Pair.Value.BestLapVehicle);
-		TS->SetNumberField(TEXT("total_laps"), Pair.Value.TotalLaps);
-		TS->SetNumberField(TEXT("best_position"), Pair.Value.BestPosition);
-		TS->SetNumberField(TEXT("best_race_time"), Pair.Value.BestRaceTime);
-		TS->SetNumberField(TEXT("total_distance"), Pair.Value.TotalDistance);
-		TrackStatsObj->SetObjectField(Pair.Key, TS);
-	}
-	StatsObj->SetObjectField(TEXT("track_stats"), TrackStatsObj);
-
-	// Per-vehicle stats
-	TSharedPtr<FJsonObject> VehicleStatsObj = MakeShared<FJsonObject>();
-	for (const auto& Pair : Statistics.VehicleStats)
-	{
-		TSharedPtr<FJsonObject> VS = MakeShared<FJsonObject>();
-		VS->SetNumberField(TEXT("races_completed"), Pair.Value.RacesCompleted);
-		VS->SetNumberField(TEXT("wins"), Pair.Value.Wins);
-		VS->SetNumberField(TEXT("best_lap_time"), Pair.Value.BestLapTime);
-		VS->SetStringField(TEXT("best_lap_track"), Pair.Value.BestLapTrack);
-		VS->SetNumberField(TEXT("total_distance"), Pair.Value.TotalDistance);
-		VS->SetNumberField(TEXT("max_speed"), Pair.Value.MaxSpeed);
-		VS->SetNumberField(TEXT("total_drift_time"), Pair.Value.TotalDriftTime);
-		VehicleStatsObj->SetObjectField(Pair.Key, VS);
-	}
-	StatsObj->SetObjectField(TEXT("vehicle_stats"), VehicleStatsObj);
-
-	RootObj->SetObjectField(TEXT("statistics"), StatsObj);
-
-	// Achievements
-	TSharedPtr<FJsonObject> AchievementsObj = MakeShared<FJsonObject>();
-	for (const auto& Pair : Achievements)
-	{
-		TSharedPtr<FJsonObject> AchObj = MakeShared<FJsonObject>();
-		AchObj->SetBoolField(TEXT("unlocked"), Pair.Value.bUnlocked);
-		AchObj->SetNumberField(TEXT("progress"), Pair.Value.Progress);
-		AchievementsObj->SetObjectField(FString::FromInt((int32)Pair.Key), AchObj);
-	}
-	RootObj->SetObjectField(TEXT("achievements"), AchievementsObj);
-
-	// Unlockables
-	TSharedPtr<FJsonObject> UnlockablesObj = MakeShared<FJsonObject>();
-	for (const auto& Pair : Unlockables)
-	{
-		TSharedPtr<FJsonObject> UnlockObj = MakeShared<FJsonObject>();
-		UnlockObj->SetBoolField(TEXT("unlocked"), Pair.Value.bUnlocked);
-		UnlockablesObj->SetObjectField(Pair.Key, UnlockObj);
-	}
-	RootObj->SetObjectField(TEXT("unlockables"), UnlockablesObj);
-
-	// Serialize to string
-	FString JsonString;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
-	FJsonSerializer::Serialize(RootObj.ToSharedRef(), Writer);
-
-	return FFileHelper::SaveStringToFile(JsonString, *SavePath);
+	return ProgressionSerializer::Save(GetSavePath(), Statistics, Achievements, Unlockables);
 }
 
 bool URaceProgression::LoadProgression()
 {
-	FString SavePath = GetSavePath();
-
-	if (!FPaths::FileExists(SavePath))
-	{
-		return false;
-	}
-
-	FString JsonString;
-	if (!FFileHelper::LoadFileToString(JsonString, *SavePath))
-	{
-		return false;
-	}
-
-	TSharedPtr<FJsonObject> JsonObject;
-	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
-
-	if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
-	{
-		// Load statistics
-		const TSharedPtr<FJsonObject>* StatsObj;
-		if (JsonObject->TryGetObjectField(TEXT("statistics"), StatsObj))
-		{
-			(*StatsObj)->TryGetNumberField(TEXT("total_races"), Statistics.TotalRaces);
-			(*StatsObj)->TryGetNumberField(TEXT("total_wins"), Statistics.TotalWins);
-			(*StatsObj)->TryGetNumberField(TEXT("total_podiums"), Statistics.TotalPodiums);
-			(*StatsObj)->TryGetNumberField(TEXT("total_laps"), Statistics.TotalLaps);
-			(*StatsObj)->TryGetNumberField(TEXT("total_distance"), Statistics.TotalDistance);
-			(*StatsObj)->TryGetNumberField(TEXT("total_drift_time"), Statistics.TotalDriftTime);
-			(*StatsObj)->TryGetNumberField(TEXT("total_overtakes"), Statistics.TotalOvertakes);
-			(*StatsObj)->TryGetNumberField(TEXT("best_lap_time"), Statistics.BestLapTime);
-			(*StatsObj)->TryGetStringField(TEXT("best_lap_track"), Statistics.BestLapTrack);
-			(*StatsObj)->TryGetStringField(TEXT("best_lap_vehicle"), Statistics.BestLapVehicle);
-			(*StatsObj)->TryGetNumberField(TEXT("max_speed"), Statistics.MaxSpeed);
-			(*StatsObj)->TryGetNumberField(TEXT("championship_wins"), Statistics.ChampionshipWins);
-			(*StatsObj)->TryGetNumberField(TEXT("total_play_time"), Statistics.TotalPlayTime);
-			(*StatsObj)->TryGetNumberField(TEXT("total_clean_races"), Statistics.TotalCleanRaces);
-			(*StatsObj)->TryGetNumberField(TEXT("total_collisions"), Statistics.TotalCollisions);
-			(*StatsObj)->TryGetNumberField(TEXT("current_win_streak"), Statistics.CurrentWinStreak);
-			(*StatsObj)->TryGetNumberField(TEXT("best_win_streak"), Statistics.BestWinStreak);
-			(*StatsObj)->TryGetNumberField(TEXT("current_podium_streak"), Statistics.CurrentPodiumStreak);
-
-			// Load completed tracks
-			const TArray<TSharedPtr<FJsonValue>>* TracksArray;
-			if ((*StatsObj)->TryGetArrayField(TEXT("completed_tracks"), TracksArray))
-			{
-				for (const auto& Val : *TracksArray)
-				{
-					FString TrackName;
-					if (Val->TryGetString(TrackName))
-					{
-						Statistics.CompletedTracks.Add(TrackName);
-					}
-				}
-			}
-
-			// Load used vehicles
-			const TArray<TSharedPtr<FJsonValue>>* VehiclesArray;
-			if ((*StatsObj)->TryGetArrayField(TEXT("used_vehicles"), VehiclesArray))
-			{
-				for (const auto& Val : *VehiclesArray)
-				{
-					FString VehicleName;
-					if (Val->TryGetString(VehicleName))
-					{
-						Statistics.UsedVehicles.Add(VehicleName);
-					}
-				}
-			}
-
-			// Load per-track stats
-			const TSharedPtr<FJsonObject>* TrackStatsObj;
-			if ((*StatsObj)->TryGetObjectField(TEXT("track_stats"), TrackStatsObj))
-			{
-				for (const auto& Pair : (*TrackStatsObj)->Values)
-				{
-					const TSharedPtr<FJsonObject>* TSObj;
-					if (Pair.Value->TryGetObject(TSObj))
-					{
-						FTrackStatistics TS;
-						TS.TrackName = Pair.Key;
-						(*TSObj)->TryGetNumberField(TEXT("races_completed"), TS.RacesCompleted);
-						(*TSObj)->TryGetNumberField(TEXT("wins"), TS.Wins);
-						(*TSObj)->TryGetNumberField(TEXT("best_lap_time"), TS.BestLapTime);
-						(*TSObj)->TryGetStringField(TEXT("best_lap_vehicle"), TS.BestLapVehicle);
-						(*TSObj)->TryGetNumberField(TEXT("total_laps"), TS.TotalLaps);
-						(*TSObj)->TryGetNumberField(TEXT("best_position"), TS.BestPosition);
-						(*TSObj)->TryGetNumberField(TEXT("best_race_time"), TS.BestRaceTime);
-						(*TSObj)->TryGetNumberField(TEXT("total_distance"), TS.TotalDistance);
-						Statistics.TrackStats.Add(Pair.Key, TS);
-					}
-				}
-			}
-
-			// Load per-vehicle stats
-			const TSharedPtr<FJsonObject>* VehicleStatsObj;
-			if ((*StatsObj)->TryGetObjectField(TEXT("vehicle_stats"), VehicleStatsObj))
-			{
-				for (const auto& Pair : (*VehicleStatsObj)->Values)
-				{
-					const TSharedPtr<FJsonObject>* VSObj;
-					if (Pair.Value->TryGetObject(VSObj))
-					{
-						FVehicleStatistics VS;
-						VS.VehicleName = Pair.Key;
-						(*VSObj)->TryGetNumberField(TEXT("races_completed"), VS.RacesCompleted);
-						(*VSObj)->TryGetNumberField(TEXT("wins"), VS.Wins);
-						(*VSObj)->TryGetNumberField(TEXT("best_lap_time"), VS.BestLapTime);
-						(*VSObj)->TryGetStringField(TEXT("best_lap_track"), VS.BestLapTrack);
-						(*VSObj)->TryGetNumberField(TEXT("total_distance"), VS.TotalDistance);
-						(*VSObj)->TryGetNumberField(TEXT("max_speed"), VS.MaxSpeed);
-						(*VSObj)->TryGetNumberField(TEXT("total_drift_time"), VS.TotalDriftTime);
-						Statistics.VehicleStats.Add(Pair.Key, VS);
-					}
-				}
-			}
-		}
-
-		// Load achievements
-		const TSharedPtr<FJsonObject>* AchievementsObj;
-		if (JsonObject->TryGetObjectField(TEXT("achievements"), AchievementsObj))
-		{
-			for (const auto& Pair : (*AchievementsObj)->Values)
-			{
-				const TSharedPtr<FJsonObject>* AchObj;
-				if (Pair.Value->TryGetObject(AchObj))
-				{
-					int32 Key = FCString::Atoi(*Pair.Key);
-					EAchievement AchievementType = static_cast<EAchievement>(Key);
-					FAchievementData* Data = Achievements.Find(AchievementType);
-					if (Data)
-					{
-						(*AchObj)->TryGetBoolField(TEXT("unlocked"), Data->bUnlocked);
-						(*AchObj)->TryGetNumberField(TEXT("progress"), Data->Progress);
-					}
-				}
-			}
-		}
-
-		// Load unlockables
-		const TSharedPtr<FJsonObject>* UnlockablesObj;
-		if (JsonObject->TryGetObjectField(TEXT("unlockables"), UnlockablesObj))
-		{
-			for (const auto& Pair : (*UnlockablesObj)->Values)
-			{
-				const TSharedPtr<FJsonObject>* UnlockObj;
-				if (Pair.Value->TryGetObject(UnlockObj))
-				{
-					FUnlockableItem* Item = Unlockables.Find(Pair.Key);
-					if (Item)
-					{
-						(*UnlockObj)->TryGetBoolField(TEXT("unlocked"), Item->bUnlocked);
-					}
-				}
-			}
-		}
-
-		UE_LOG(LogNomiRace, Log, TEXT("Progression loaded successfully"));
-		return true;
-	}
-
-	return false;
+	return ProgressionSerializer::Load(GetSavePath(), Statistics, Achievements, Unlockables);
 }
 
 void URaceProgression::CheckAchievements()
@@ -1330,8 +1067,8 @@ void URaceProgression::CheckAchievements()
 			UnlockAchievement(EAchievement::PerfectRace);
 		}
 
-		// Underdog (win from last place)
-		if (LastSession.FinalPosition == 1 && LastSession.TotalRacers > 1)
+		// Underdog (win from last place — starting position must be last)
+		if (LastSession.FinalPosition == 1 && LastSession.StartingPosition == LastSession.TotalRacers)
 		{
 			// This would need position tracking during the race, simplified here
 			UnlockAchievement(EAchievement::Underdog);

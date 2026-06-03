@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Race/RaceProgression.h"
+#include "Race/ChampionshipTypes.h"
 #include "ChampionshipManager.generated.h"
+
+class URaceProgression;
 
 /**
  * Predefined championship series definitions

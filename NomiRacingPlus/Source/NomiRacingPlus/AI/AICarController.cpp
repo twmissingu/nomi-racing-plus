@@ -372,7 +372,7 @@ void AAICarController::UpdateAIDecision(float DeltaTime)
 		}
 
 		// Update behavior tree
-		BehaviorTree->UpdateDecisions(Factors);
+		BehaviorTree->UpdateDecisions(Factors, DeltaTime);
 
 		// Apply behavior tree inputs
 		float BTThrottle = BehaviorTree->GetThrottleInput();

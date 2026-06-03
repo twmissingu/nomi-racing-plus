@@ -8,8 +8,10 @@
 #include "NOMI/CommentaryEngine.h"
 #include "RaceHUD.generated.h"
 
-// Forward declaration
+// Forward declarations
 class UAccessibilityManager;
+class UTextBlock;
+class UProgressBar;
 
 /**
  * HUD data structure for binding

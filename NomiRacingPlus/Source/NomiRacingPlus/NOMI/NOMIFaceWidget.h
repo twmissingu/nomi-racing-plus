@@ -8,6 +8,31 @@
 #include "NOMIFaceWidget.generated.h"
 
 /**
+ * NOMI eye shape types
+ */
+UENUM(BlueprintType)
+enum class ENOMIEyeShape : uint8
+{
+	Normal     UMETA(DisplayName = "Normal"),
+	Happy      UMETA(DisplayName = "Happy (slightly closed)"),
+	Sad        UMETA(DisplayName = "Sad"),
+	Surprised  UMETA(DisplayName = "Surprised (wide)")
+};
+
+/**
+ * NOMI mouth shape types
+ */
+UENUM(BlueprintType)
+enum class ENOMIMouthShape : uint8
+{
+	Neutral    UMETA(DisplayName = "Neutral"),
+	Smile      UMETA(DisplayName = "Smile"),
+	Frown      UMETA(DisplayName = "Frown"),
+	Surprised  UMETA(DisplayName = "Surprised (O shape)"),
+	Speaking   UMETA(DisplayName = "Speaking")
+};
+
+/**
  * Eye shape data for rendering
  */
 USTRUCT(BlueprintType)
@@ -19,9 +44,9 @@ struct NOMIRACINGPLUS_API FNOMIEyeState
 	UPROPERTY(BlueprintReadOnly, Category = "NOMI|Eye")
 	float Openness = 1.0f;
 
-	// Eye shape type (0=normal, 1=happy, 2=sad, 3=angry, 4=surprised)
+	// Eye shape type
 	UPROPERTY(BlueprintReadOnly, Category = "NOMI|Eye")
-	int32 ShapeType = 0;
+	ENOMIEyeShape ShapeType = ENOMIEyeShape::Normal;
 
 	// Pupil size (0=small, 1=large)
 	UPROPERTY(BlueprintReadOnly, Category = "NOMI|Eye")
@@ -44,9 +69,9 @@ struct NOMIRACINGPLUS_API FNOMIMouthState
 	UPROPERTY(BlueprintReadOnly, Category = "NOMI|Mouth")
 	float OpenAmount = 0.0f;
 
-	// Mouth shape type (0=neutral, 1=smile, 2=frown, 3=surprised, 4=speaking)
+	// Mouth shape type
 	UPROPERTY(BlueprintReadOnly, Category = "NOMI|Mouth")
-	int32 ShapeType = 0;
+	ENOMIMouthShape ShapeType = ENOMIMouthShape::Neutral;
 
 	// Mouth width scale
 	UPROPERTY(BlueprintReadOnly, Category = "NOMI|Mouth")
@@ -80,7 +105,7 @@ public:
 
 	// Set mouth shape type
 	UFUNCTION(BlueprintCallable, Category = "NOMI|Face")
-	void SetMouthShape(int32 ShapeType);
+	void SetMouthShape(ENOMIMouthShape ShapeType);
 
 	// Get current expression
 	UFUNCTION(BlueprintCallable, Category = "NOMI|Face")

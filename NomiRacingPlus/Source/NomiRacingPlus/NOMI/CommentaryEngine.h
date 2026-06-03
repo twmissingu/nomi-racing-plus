@@ -231,6 +231,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NOMI|Comments")
 	float CommentFrequency = 0.7f;
 
+	// Path to default comment pool JSON (configurable via INI or Blueprint)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NOMI|Comments", meta = (FilePathFilter = "json"))
+	FFilePath DefaultCommentPoolPath;
+
 	// Maximum queue size
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NOMI|Comments")
 	int32 MaxQueueSize = 2;

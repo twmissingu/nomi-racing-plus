@@ -16,11 +16,19 @@ void UCommentaryEngine::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Try to load default comment pool
-	FString DefaultPath = FPaths::ProjectContentDir() + TEXT("NOMI/Comments/DefaultComments.json");
+	// Try to load default comment pool from configurable path
+	FString DefaultPath = DefaultCommentPoolPath.FilePath;
+	if (DefaultPath.IsEmpty())
+	{
+		DefaultPath = FPaths::ProjectContentDir() + TEXT("NOMI/Comments/DefaultComments.json");
+	}
 	if (FPaths::FileExists(DefaultPath))
 	{
 		LoadCommentPool(DefaultPath);
+	}
+	else
+	{
+		UE_LOG(LogNomiNOMI, Warning, TEXT("Default comment pool not found at: %s"), *DefaultPath);
 	}
 
 	bIsReady = true;

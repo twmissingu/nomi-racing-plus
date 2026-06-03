@@ -60,8 +60,8 @@ FOvertakeOpportunity UAIOvertakeEvaluator::Evaluate(const FAISensorData& SensorD
 		return Result;
 	}
 
-	// Calculate speed advantage
-	float SpeedAdvantage = CurrentSpeedKmh - (CurrentSpeedKmh - Target.RelativeSpeed);
+	// Speed advantage: how much faster we are than the target (positive = we're faster)
+	float SpeedAdvantage = Target.RelativeSpeed;
 
 	// Analyze gaps on both sides
 	float GapInside = AnalyzeGapWidth(Target, true);

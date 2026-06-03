@@ -29,6 +29,9 @@ void ACheckpoint::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Cache RaceManager reference for performance
+	CachedRaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+
 	// Bind overlap event
 	TriggerVolume->OnComponentBeginOverlap.AddDynamic(this, &ACheckpoint::OnOverlapBegin);
 }
@@ -49,8 +52,8 @@ void ACheckpoint::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActo
 		return;
 	}
 
-	// Find race manager in level
-	ARaceManager* RaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+	// Use cached RaceManager reference (cached in BeginPlay for performance)
+	ARaceManager* RaceManager = CachedRaceManager.Get();
 	if (!RaceManager)
 	{
 		return;

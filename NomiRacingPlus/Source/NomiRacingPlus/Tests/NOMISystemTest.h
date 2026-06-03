@@ -13,29 +13,29 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCommentaryEngineInitTest,
 	"NomiRacingPlus.NOMI.CommentaryEngineInit",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCommentMatchingTest,
 	"NomiRacingPlus.NOMI.CommentMatching",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCommentQueueTest,
 	"NomiRacingPlus.NOMI.CommentQueue",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCommentCooldownTest,
 	"NomiRacingPlus.NOMI.CommentCooldown",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FNOMIEmotionTest,
 	"NomiRacingPlus.NOMI.Emotion",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )

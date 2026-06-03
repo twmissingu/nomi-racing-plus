@@ -13,23 +13,23 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FRaceManagerStateMachineTest,
 	"NomiRacingPlus.Race.StateMachine",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FRaceCheckpointTest,
 	"NomiRacingPlus.Race.Checkpoints",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FRacePositionCalculationTest,
 	"NomiRacingPlus.Race.Positions",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FRaceTimerTest,
 	"NomiRacingPlus.Race.Timer",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )

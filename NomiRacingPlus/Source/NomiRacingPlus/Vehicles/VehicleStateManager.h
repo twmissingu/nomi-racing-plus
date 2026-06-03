@@ -103,6 +103,42 @@ enum class ENIOVehicleType : uint8
 };
 
 /**
+ * Vehicle display specs for UI
+ */
+USTRUCT(BlueprintType)
+struct NOMIRACINGPLUS_API FVehicleSpecs
+{
+	GENERATED_BODY()
+
+	// Display name
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	FString VehicleName;
+
+	// Max power in HP
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	float MaxPower = 0.0f;
+
+	// Max torque in Nm
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	float MaxTorque = 0.0f;
+
+	// 0-100 km/h time in seconds
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	float ZeroToHundredTime = 0.0f;
+
+	// Top speed in km/h
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	float TopSpeed = 0.0f;
+
+	// Drivetrain type description
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	FString DrivetrainType;
+
+	// Build from performance config
+	static FVehicleSpecs FromPerformanceConfig(const FNIOPerformanceConfig& Config, const FString& DisplayName);
+};
+
+/**
  * Vehicle performance configuration data
  * Loaded from JSON or set in Blueprint
  */
@@ -189,6 +225,10 @@ public:
 	// Set performance config
 	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
 	void SetPerformanceConfig(const FNIOPerformanceConfig& InConfig) { PerformanceConfig = InConfig; }
+
+	// Get vehicle specs for a given vehicle type (for UI display)
+	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
+	static FVehicleSpecs GetVehicleSpecs(ENIOVehicleType VehicleType);
 
 	// Check if vehicle is NIO brand
 	UFUNCTION(BlueprintCallable, Category = "Vehicle State")

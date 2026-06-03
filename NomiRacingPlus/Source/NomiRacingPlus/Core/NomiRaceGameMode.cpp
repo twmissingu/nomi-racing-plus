@@ -179,26 +179,8 @@ void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 	{
 		ENIOVehicleType VehicleType = AIVehicleTypes[i % AIVehicleTypes.Num()];
 
-		// Determine spawn class based on vehicle type
-		TSubclassOf<APawn> SpawnClass;
-		switch (VehicleType)
-		{
-		case ENIOVehicleType::EP9:
-			SpawnClass = ANIO_EP9::StaticClass();
-			break;
-		case ENIOVehicleType::ET7:
-			SpawnClass = ANIO_ET7::StaticClass();
-			break;
-		case ENIOVehicleType::ES7:
-			SpawnClass = ANIO_ES7::StaticClass();
-			break;
-		case ENIOVehicleType::SU7Ultra:
-			SpawnClass = AXiaomi_SU7Ultra::StaticClass();
-			break;
-		default:
-			SpawnClass = ANIO_ET7::StaticClass();
-			break;
-		}
+		// Determine spawn class based on vehicle type (shared helper)
+		TSubclassOf<APawn> SpawnClass = GetVehicleSpawnClass(VehicleType);
 
 		// Spawn the vehicle
 		FActorSpawnParameters SpawnParams;
@@ -274,7 +256,24 @@ void ANomiRaceGameMode::InitializeRaceManager()
 	if (RaceManager)
 	{
 		// Bind to race events
-		RaceManager->OnRaceEvent.AddDynamic(this, &ANomiRaceGameMode::OnRaceEvent);
+		RaceManager->OnRaceEvent.AddUObject(this, &ANomiRaceGameMode::OnRaceEvent);
+	}
+}
+
+TSubclassOf<APawn> ANomiRaceGameMode::GetVehicleSpawnClass(ENIOVehicleType VehicleType) const
+{
+	switch (VehicleType)
+	{
+	case ENIOVehicleType::EP9:
+		return ANIO_EP9::StaticClass();
+	case ENIOVehicleType::ET7:
+		return ANIO_ET7::StaticClass();
+	case ENIOVehicleType::ES7:
+		return ANIO_ES7::StaticClass();
+	case ENIOVehicleType::SU7Ultra:
+		return AXiaomi_SU7Ultra::StaticClass();
+	default:
+		return ANIO_EP9::StaticClass();
 	}
 }
 
@@ -293,25 +292,7 @@ void ANomiRaceGameMode::SpawnPlayerVehicle()
 	}
 
 	// Determine spawn class based on vehicle type
-	TSubclassOf<APawn> SpawnClass;
-	switch (PlayerVehicleType)
-	{
-	case ENIOVehicleType::EP9:
-		SpawnClass = ANIO_EP9::StaticClass();
-		break;
-	case ENIOVehicleType::ET7:
-		SpawnClass = ANIO_ET7::StaticClass();
-		break;
-	case ENIOVehicleType::ES7:
-		SpawnClass = ANIO_ES7::StaticClass();
-		break;
-	case ENIOVehicleType::SU7Ultra:
-		SpawnClass = AXiaomi_SU7Ultra::StaticClass();
-		break;
-	default:
-		SpawnClass = ANIO_EP9::StaticClass();
-		break;
-	}
+	TSubclassOf<APawn> SpawnClass = GetVehicleSpawnClass(PlayerVehicleType);
 
 	// Spawn player vehicle
 	FActorSpawnParameters SpawnParams;
@@ -358,6 +339,12 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 				NOMIController->AttachToVehicle(PlayerPawn);
 			}
 		}
+		// Track starting position for achievements
+		if (RacerData.bIsPlayer)
+		{
+			PlayerStartingPosition = RacerData.Position;
+			UE_LOG(LogNomiRacing, Verbose, TEXT("Player starting position: %d"), PlayerStartingPosition);
+		}
 		break;
 
 	case ERaceEvent::RaceFinish:
@@ -368,6 +355,7 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 		{
 			FRaceSessionResult SessionResult;
 			SessionResult.FinalPosition = RacerData.Position;
+			SessionResult.StartingPosition = PlayerStartingPosition;
 			SessionResult.TotalRacers = RaceManager->GetAllRacers().Num();
 			SessionResult.NumLaps = RacerData.LapTimes.Num();
 			SessionResult.LapTimes = RacerData.LapTimes;

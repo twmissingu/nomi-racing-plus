@@ -224,6 +224,83 @@ FString UVehicleStateManager::GetVehicleDisplayName() const
 	}
 }
 
+FVehicleSpecs FVehicleSpecs::FromPerformanceConfig(const FNIOPerformanceConfig& Config, const FString& DisplayName)
+{
+	FVehicleSpecs Specs;
+	Specs.VehicleName = DisplayName;
+	Specs.MaxPower = Config.PowerKw * 1.34102f; // kW to HP
+	Specs.MaxTorque = Config.TorqueNm;
+	Specs.ZeroToHundredTime = Config.Acceleration0100;
+	Specs.TopSpeed = Config.TopSpeedKph;
+	Specs.DrivetrainType = Config.DriveType;
+	return Specs;
+}
+
+FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
+{
+	FNIOPerformanceConfig Config;
+	FString DisplayName;
+
+	switch (VehicleType)
+	{
+	case ENIOVehicleType::EP9:
+		Config.MassKg = 1735.0f;
+		Config.PowerKw = 1000.0f;
+		Config.TorqueNm = 1480.0f;
+		Config.DriveType = TEXT("AWD_quad_motor");
+		Config.TopSpeedKph = 313.0f;
+		Config.Acceleration0100 = 2.7f;
+		DisplayName = TEXT("NIO EP9");
+		break;
+	case ENIOVehicleType::ET7:
+		Config.MassKg = 2379.0f;
+		Config.PowerKw = 480.0f;
+		Config.TorqueNm = 850.0f;
+		Config.DriveType = TEXT("AWD_dual_motor");
+		Config.TopSpeedKph = 250.0f;
+		Config.Acceleration0100 = 3.8f;
+		DisplayName = TEXT("NIO ET7");
+		break;
+	case ENIOVehicleType::ES7:
+		Config.MassKg = 2400.0f;
+		Config.PowerKw = 480.0f;
+		Config.TorqueNm = 850.0f;
+		Config.DriveType = TEXT("AWD_dual_motor");
+		Config.TopSpeedKph = 200.0f;
+		Config.Acceleration0100 = 3.9f;
+		DisplayName = TEXT("NIO ES7");
+		break;
+	case ENIOVehicleType::ET5:
+		Config.MassKg = 2070.0f;
+		Config.PowerKw = 360.0f;
+		Config.TorqueNm = 700.0f;
+		Config.DriveType = TEXT("AWD_dual_motor");
+		Config.TopSpeedKph = 200.0f;
+		Config.Acceleration0100 = 4.0f;
+		DisplayName = TEXT("NIO ET5");
+		break;
+	case ENIOVehicleType::SU7Ultra:
+		Config.MassKg = 1900.0f;
+		Config.PowerKw = 1138.0f;
+		Config.TorqueNm = 1200.0f;
+		Config.DriveType = TEXT("AWD_dual_motor");
+		Config.TopSpeedKph = 350.0f;
+		Config.Acceleration0100 = 1.98f;
+		DisplayName = TEXT("Xiaomi SU7 Ultra");
+		break;
+	default:
+		Config.PowerKw = 200.0f;
+		Config.TorqueNm = 400.0f;
+		Config.DriveType = TEXT("RWD");
+		Config.TopSpeedKph = 180.0f;
+		Config.Acceleration0100 = 5.0f;
+		DisplayName = TEXT("Custom Vehicle");
+		break;
+	}
+
+	return FVehicleSpecs::FromPerformanceConfig(Config, DisplayName);
+}
+
 void UVehicleStateManager::CheckStuckAndFlip(float DeltaTime)
 {
 	AActor* Owner = GetOwner();
@@ -310,21 +387,9 @@ void UVehicleStateManager::ResetVehicle()
 	FVector ResetLocation = Owner->GetActorLocation();
 	FRotator ResetRotation = FRotator(0.0f, Owner->GetActorRotation().Yaw, 0.0f);
 
-	// Use cached RaceManager if available, otherwise fall back to GetAllActorsOfClass
+	// Find all checkpoint actors in the world
 	TArray<AActor*> Checkpoints;
-	if (CachedRaceManager.IsValid())
-	{
-		// Get checkpoints from RaceManager's checkpoint system
-		if (UCheckpointSystem* CheckpointSys = CachedRaceManager->FindComponentByClass<UCheckpointSystem>())
-		{
-			CheckpointSys->GetAllCheckpoints(Checkpoints);
-		}
-	}
-
-	if (Checkpoints.Num() == 0)
-	{
-		UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), Checkpoints);
-	}
+	UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), Checkpoints);
 
 	if (Checkpoints.Num() > 0)
 	{

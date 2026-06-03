@@ -12,7 +12,7 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FPacejkaBasicForceTest,
 	"NomiRacing.Vehicles.TirePhysics.PacejkaBasicForce",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FPacejkaBasicForceTest::RunTest(const FString& Parameters)
 {
@@ -46,7 +46,7 @@ bool FPacejkaBasicForceTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FPacejkaInvalidCoeffsTest,
 	"NomiRacing.Vehicles.TirePhysics.PacejkaInvalidCoeffs",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FPacejkaInvalidCoeffsTest::RunTest(const FString& Parameters)
 {
@@ -70,7 +70,7 @@ bool FPacejkaInvalidCoeffsTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSlipRatioZeroSpeedTest,
 	"NomiRacing.Vehicles.TirePhysics.SlipRatioZeroSpeed",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FSlipRatioZeroSpeedTest::RunTest(const FString& Parameters)
 {
@@ -86,7 +86,7 @@ bool FSlipRatioZeroSpeedTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSlipRatioMatchingSpeedTest,
 	"NomiRacing.Vehicles.TirePhysics.SlipRatioMatchingSpeed",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FSlipRatioMatchingSpeedTest::RunTest(const FString& Parameters)
 {
@@ -111,7 +111,7 @@ bool FSlipRatioMatchingSpeedTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FNIOTirePresetsExistTest,
 	"NomiRacing.Vehicles.TirePhysics.NIOTirePresetsExist",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FNIOTirePresetsExistTest::RunTest(const FString& Parameters)
 {
@@ -149,7 +149,7 @@ bool FNIOTirePresetsExistTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FThermalGripOptimalTest,
 	"NomiRacing.Vehicles.TirePhysics.ThermalGripOptimal",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FThermalGripOptimalTest::RunTest(const FString& Parameters)
 {
@@ -171,7 +171,7 @@ bool FThermalGripOptimalTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FThermalGripColdTest,
 	"NomiRacing.Vehicles.TirePhysics.ThermalGripCold",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FThermalGripColdTest::RunTest(const FString& Parameters)
 {
@@ -192,7 +192,7 @@ bool FThermalGripColdTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FThermalGripOverheatTest,
 	"NomiRacing.Vehicles.TirePhysics.ThermalGripOverheat",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FThermalGripOverheatTest::RunTest(const FString& Parameters)
 {
@@ -218,7 +218,7 @@ bool FThermalGripOverheatTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSurfaceGripTarmacTest,
 	"NomiRacing.Vehicles.TirePhysics.SurfaceGripTarmac",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FSurfaceGripTarmacTest::RunTest(const FString& Parameters)
 {
@@ -251,7 +251,7 @@ bool FSurfaceGripTarmacTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FTireWearBasicTest,
 	"NomiRacing.Vehicles.TirePhysics.TireWearBasic",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FTireWearBasicTest::RunTest(const FString& Parameters)
 {

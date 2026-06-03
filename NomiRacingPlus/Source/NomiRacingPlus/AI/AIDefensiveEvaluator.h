@@ -140,7 +140,7 @@ private:
 	float CalculateThreatLevel(const FAIDetectedVehicle& Attacker, float CurrentSpeed) const;
 
 	// Select defensive strategy
-	EDefensiveStrategy SelectStrategy(const FAIDetectedVehicle& Attacker, float ThreatLevel) const;
+	EDefensiveStrategy SelectStrategy(const FAIDetectedVehicle& Attacker, float ThreatLevel, const FAISensorData& SensorData) const;
 
 	// Determine which side the attacker is approaching from
 	float GetAttackSide(const FAIDetectedVehicle& Attacker) const;
