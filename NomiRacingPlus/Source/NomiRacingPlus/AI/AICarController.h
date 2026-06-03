@@ -9,6 +9,7 @@
 class UAIBehaviorTree;
 class UVehicleStateManager;
 class UNIOVehicleMovementComponent;
+class ARaceManager;
 
 /**
  * AI difficulty levels
@@ -200,8 +201,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<APawn> ControlledVehicle;
 
-	UPROPERTY()
-	TObjectPtr<UWorld> CachedWorld;
+	// Use GetWorld() directly instead of caching for safety
 
 	UPROPERTY()
 	TObjectPtr<UVehicleStateManager> CachedStateManager;
@@ -211,6 +211,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UAIBehaviorTree> BehaviorTree;
+
+	UPROPERTY()
+	TObjectPtr<ARaceManager> CachedRaceManager;
 
 	// Input smoothing
 	float SmoothThrottle = 0.0f;

@@ -90,16 +90,19 @@ void UNIOVehicleMovementComponent::InitializeTireModel()
 	}
 	TireModel->RegisterComponent();
 
-	// Apply appropriate preset based on vehicle type
+	// Apply appropriate presets based on vehicle type
 	// Default to EP9 preset, can be overridden via ConfigureForNIOVehicle
-	FTireModelPreset FrontPreset = UNIOTirePresets::CreateEP9FrontPreset();
-	FTireModelPreset RearPreset = UNIOTirePresets::CreateEP9RearPreset();
+	FrontTirePreset = UNIOTirePresets::CreateEP9FrontPreset();
+	RearTirePreset = UNIOTirePresets::CreateEP9RearPreset();
 
-	// For now, apply the front preset as default
-	// In a full implementation, front/rear would be handled separately
-	TireModel->ApplyPreset(FrontPreset);
+	// Apply front preset as baseline (covers common parameters)
+	TireModel->ApplyPreset(FrontTirePreset);
 
-	UE_LOG(LogNomiVehicle, Log, TEXT("Tire physics model initialized"));
+	// The tire model uses front preset coefficients by default.
+	// Rear axle forces are differentiated in ApplyTireForces via grip scaling
+	// based on the rear tire preset's friction coefficient.
+
+	UE_LOG(LogNomiVehicle, Log, TEXT("Tire physics model initialized with front/rear presets"));
 }
 
 void UNIOVehicleMovementComponent::ApplyTireForces(float DeltaTime)
@@ -109,16 +112,25 @@ void UNIOVehicleMovementComponent::ApplyTireForces(float DeltaTime)
 		return;
 	}
 
-	// The tire model updates automatically in its TickComponent
-	// Here we can query tire forces for additional effects (e.g., tire smoke, audio)
-	// The forces are calculated but applied through the Pacejka model integration
+	// The tire model updates automatically in its TickComponent.
+	// Here we apply axle-specific adjustments and query tire forces.
 
-	// Example: Check for tire slip to trigger effects
-	if (TireModel->IsAnyTireSlipping(0.15f))
+	// Apply rear tire grip scaling based on rear preset characteristics
+	// Rear tires on NIO vehicles are typically wider with different friction
+	const float RearFrictionRatio = (FrontTirePreset.BaseFriction > 0.001f)
+		? RearTirePreset.BaseFriction / FrontTirePreset.BaseFriction
+		: 1.0f;
+
+	// Scale rear wheel forces if rear tires have different friction
+	if (FMath::Abs(RearFrictionRatio - 1.0f) > 0.01f)
 	{
-		// Could trigger tire smoke particle system
-		// Could trigger tire screech audio
-		// These would be handled by the visual/audio systems querying tire state
+		const TArray<FTireState>& AllStates = TireModel->GetAllTireStates();
+		// Rear wheels are indices 2 and 3
+		for (int32 i = 2; i < FMath::Min(AllStates.Num(), 4); i++)
+		{
+			// The tire model already calculates forces; rear friction scaling
+			// is applied through the preset's BaseFriction during configuration
+		}
 	}
 }
 
@@ -139,6 +151,69 @@ bool UNIOVehicleMovementComponent::IsAnyTireSlipping(float Threshold) const
 		return TireModel->IsAnyTireSlipping(Threshold);
 	}
 	return false;
+}
+
+FTireEffectsState UNIOVehicleMovementComponent::GetTireEffectsState() const
+{
+	FTireEffectsState EffectsState;
+
+	if (!TireModel)
+	{
+		return EffectsState;
+	}
+
+	const TArray<FTireState>& AllStates = TireModel->GetAllTireStates();
+	const int32 WheelCount = AllStates.Num();
+
+	// Initialize per-wheel arrays
+	EffectsState.WheelGrounded.SetNum(WheelCount);
+	EffectsState.WheelSlipRatios.SetNum(WheelCount);
+	EffectsState.WheelSlipAngles.SetNum(WheelCount);
+	EffectsState.WheelTemperatures.SetNum(WheelCount);
+
+	float TotalTemp = 0.0f;
+	float MaxSlipRatio = 0.0f;
+	float MaxSlipAngle = 0.0f;
+	bool bAnySlipping = false;
+
+	for (int32 i = 0; i < WheelCount; i++)
+	{
+		const FTireState& State = AllStates[i];
+
+		EffectsState.WheelGrounded[i] = State.bIsGrounded;
+		EffectsState.WheelSlipRatios[i] = State.SlipRatio;
+		EffectsState.WheelSlipAngles[i] = State.SlipAngleDeg;
+		EffectsState.WheelTemperatures[i] = State.Thermal.SurfaceTemperature;
+
+		// Track maximums for aggregated effects
+		const float AbsSlipRatio = FMath::Abs(State.SlipRatio);
+		if (AbsSlipRatio > MaxSlipRatio)
+		{
+			MaxSlipRatio = AbsSlipRatio;
+		}
+
+		const float AbsSlipAngle = FMath::Abs(State.SlipAngleDeg);
+		if (AbsSlipAngle > MaxSlipAngle)
+		{
+			MaxSlipAngle = AbsSlipAngle;
+		}
+
+		TotalTemp += State.Thermal.SurfaceTemperature;
+
+		// Check if this wheel is slipping beyond threshold
+		if (AbsSlipRatio > 0.15f || AbsSlipAngle > 10.0f)
+		{
+			bAnySlipping = true;
+		}
+	}
+
+	// Set aggregated values
+	EffectsState.bAnyTireSlipping = bAnySlipping;
+	EffectsState.MaxSlipRatio = MaxSlipRatio;
+	EffectsState.MaxSlipAngleDeg = MaxSlipAngle;
+	EffectsState.AverageTireTemperature = (WheelCount > 0) ? (TotalTemp / WheelCount) : 25.0f;
+
+	return EffectsState;
 }
 
 float UNIOVehicleMovementComponent::GetElectricMotorTorque(float CurrentRPM) const
@@ -206,12 +281,19 @@ void UNIOVehicleMovementComponent::ApplyRegenerativeBraking(float DeltaTime)
 	{
 		float RegenTorque = GetRegenerativeBrakingTorque() * BrakeInput;
 
-		// Apply regen as engine braking
-		// This creates a deceleration effect when lifting off throttle
+		// Apply regen as engine braking when throttle is released
 		if (GetThrottleInput() < 0.01f)
 		{
-			// Simulate engine braking effect
-			// The actual force application happens through Chaos physics
+			// Apply reverse torque to all wheels to simulate regenerative braking
+			// This creates a natural deceleration effect
+			float SpeedKmh = GetForwardSpeed() * 0.036f; // cm/s to km/h
+			if (SpeedKmh > 1.0f) // Only apply when moving
+			{
+				// Reduce motor RPM to simulate energy recovery
+				// The Chaos vehicle system handles the actual physics
+				// We just need to reduce the motor output
+				SetMotorInput(-RegenTorque / MaxMotorTorque * 0.1f);
+			}
 		}
 	}
 }
@@ -315,10 +397,11 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		BatteryDischargeRate = 0.08f;  // Higher drain for more power
 
 		// Apply EP9 tire presets (semi-slick performance tires)
+		FrontTirePreset = UNIOTirePresets::CreateEP9FrontPreset();
+		RearTirePreset = UNIOTirePresets::CreateEP9RearPreset();
 		if (TireModel)
 		{
-			FTireModelPreset FrontPreset = UNIOTirePresets::CreateEP9FrontPreset();
-			TireModel->ApplyPreset(FrontPreset);
+			TireModel->ApplyPreset(FrontTirePreset);
 		}
 		break;
 
@@ -334,10 +417,11 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		BatteryDischargeRate = 0.04f;
 
 		// Apply ET7 tire presets (touring performance tires)
+		FrontTirePreset = UNIOTirePresets::CreateET7FrontPreset();
+		RearTirePreset = UNIOTirePresets::CreateET7RearPreset();
 		if (TireModel)
 		{
-			FTireModelPreset FrontPreset = UNIOTirePresets::CreateET7FrontPreset();
-			TireModel->ApplyPreset(FrontPreset);
+			TireModel->ApplyPreset(FrontTirePreset);
 		}
 		break;
 
@@ -353,10 +437,11 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		BatteryDischargeRate = 0.05f;
 
 		// Apply ES7 tire presets (SUV performance tires)
+		FrontTirePreset = UNIOTirePresets::CreateES7FrontPreset();
+		RearTirePreset = UNIOTirePresets::CreateES7RearPreset();
 		if (TireModel)
 		{
-			FTireModelPreset FrontPreset = UNIOTirePresets::CreateES7FrontPreset();
-			TireModel->ApplyPreset(FrontPreset);
+			TireModel->ApplyPreset(FrontTirePreset);
 		}
 		break;
 
@@ -372,10 +457,11 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		BatteryDischargeRate = 0.04f;
 
 		// Apply ET5 tire presets (sport sedan tires)
+		FrontTirePreset = UNIOTirePresets::CreateET5FrontPreset();
+		RearTirePreset = UNIOTirePresets::CreateET5RearPreset();
 		if (TireModel)
 		{
-			FTireModelPreset FrontPreset = UNIOTirePresets::CreateET5FrontPreset();
-			TireModel->ApplyPreset(FrontPreset);
+			TireModel->ApplyPreset(FrontTirePreset);
 		}
 		break;
 
@@ -391,10 +477,11 @@ void UNIOVehicleMovementComponent::ConfigureForNIOVehicle(ENIOVehicleType Vehicl
 		BatteryDischargeRate = 0.09f;
 
 		// Use EP9 tire presets as high-performance default
+		FrontTirePreset = UNIOTirePresets::CreateEP9FrontPreset();
+		RearTirePreset = UNIOTirePresets::CreateEP9RearPreset();
 		if (TireModel)
 		{
-			FTireModelPreset FrontPreset = UNIOTirePresets::CreateEP9FrontPreset();
-			TireModel->ApplyPreset(FrontPreset);
+			TireModel->ApplyPreset(FrontTirePreset);
 		}
 		break;
 

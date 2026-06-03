@@ -82,6 +82,27 @@ enum class ETireSurfaceType : uint8
 };
 
 /**
+ * Result of a ground contact raycast for a single wheel
+ */
+USTRUCT(BlueprintType)
+struct NOMIRACINGPLUS_API FTireGroundContact
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ground")
+	bool bHitGround = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ground")
+	float DistanceToGround = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ground")
+	ETireSurfaceType SurfaceType = ETireSurfaceType::Tarmac;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Ground")
+	FVector HitNormal = FVector::UpVector;
+};
+
+/**
  * Surface-specific grip and drag parameters
  */
 USTRUCT(BlueprintType)
@@ -341,6 +362,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tire|State")
 	bool IsAnyTireSlipping(float Threshold = 0.15f) const;
 
+	// Perform ground contact detection for a wheel via raycast
+	UFUNCTION(BlueprintCallable, Category = "Tire|Ground")
+	FTireGroundContact CheckGroundContact(int32 WheelIndex, const FVector& WheelWorldPos, float TraceLength) const;
+
 	// Get average tire temperature across all wheels
 	UFUNCTION(BlueprintCallable, Category = "Tire|Thermal")
 	float GetAverageTireTemperature() const;
@@ -366,6 +391,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tire|Config", meta = (ClampMin = "2", ClampMax = "8"))
 	int32 NumWheels = 4;
 
+	// Wheel offsets from vehicle center (cm): X=forward, Y=right, Z=up
+	// FL, FR, RL, RR
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tire|Config")
+	TArray<FVector> WheelOffsets;
+
+	// Suspension rest length (cm) for ground detection
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tire|Config", meta = (ClampMin = "5.0", ClampMax = "100.0"))
+	float SuspensionRestLength = 35.0f;
+
+	// Vehicle mass (kg) for suspension force calculation
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tire|Config", meta = (ClampMin = "100.0", ClampMax = "5000.0"))
+	float VehicleMassKg = 1800.0f;
+
+	// Aerodynamic downforce coefficient for load calculation
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tire|Config")
+	float DownforceCoefficient = 0.0f;
+
+	// Frontal area (m^2) for downforce calculation
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tire|Config")
+	float FrontalArea = 2.2f;
+
 private:
 	// Initialize default surface parameters
 	void InitializeDefaultSurfaceParams();
@@ -382,7 +428,16 @@ private:
 	// Calculate grip from thermal state
 	float CalculateThermalGrip(const FTireThermalState& Thermal) const;
 
+	// Get wheel world position relative to vehicle center
+	FVector GetWheelWorldPosition(int32 WheelIndex, const FTransform& VehicleTransform) const;
+
+	// Calculate suspension force (wheel load) for a wheel
+	float CalculateSuspensionForce(int32 WheelIndex, float VehicleSpeedCmS, const FVector& VehicleAcceleration, bool bIsGrounded) const;
+
 	// Cached vehicle component reference
 	UPROPERTY()
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> VehicleMovement;
+
+	// Previous velocity for acceleration calculation
+	FVector PreviousVelocity = FVector::ZeroVector;
 };

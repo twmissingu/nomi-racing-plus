@@ -5,7 +5,11 @@
 #include "GameFramework/Pawn.h"
 #include "Components/PrimitiveComponent.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
+#include "Race/RaceManager.h"
+#include "Race/CheckpointSystem.h"
+#include "Kismet/GameplayStatics.h"
 
 UVehicleStateManager::UVehicleStateManager()
 {
@@ -17,14 +21,16 @@ void UVehicleStateManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CachedWorld = GetWorld();
-
 	// Find vehicle root component and cache component references
 	if (AActor* Owner = GetOwner())
 	{
 		VehicleRoot = Cast<UPrimitiveComponent>(Owner->GetRootComponent());
 		CachedChaosVehicle = Owner->FindComponentByClass<UChaosWheeledVehicleMovementComponent>();
 		CachedNIOMovement = Owner->FindComponentByClass<UNIOVehicleMovementComponent>();
+		LastPosition = Owner->GetActorLocation();
+
+		// Cache RaceManager for performance
+		CachedRaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
 	}
 
 	// Apply default performance config based on vehicle type
@@ -89,6 +95,7 @@ void UVehicleStateManager::TickComponent(float DeltaTime, ELevelTick TickType, F
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	UpdateStateFromPhysics(DeltaTime);
+	CheckStuckAndFlip(DeltaTime);
 }
 
 namespace VehicleConstants
@@ -215,4 +222,185 @@ FString UVehicleStateManager::GetVehicleDisplayName() const
 	case ENIOVehicleType::SU7Ultra: return TEXT("Xiaomi SU7 Ultra");
 	default: return TEXT("Custom Vehicle");
 	}
+}
+
+void UVehicleStateManager::CheckStuckAndFlip(float DeltaTime)
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || !GetWorld())
+	{
+		return;
+	}
+
+	const FVector CurrentPos = Owner->GetActorLocation();
+
+	// --- Stuck detection ---
+	if (FVector::Dist(CurrentPos, LastPosition) < StuckDistanceThreshold)
+	{
+		StuckTimer += DeltaTime;
+	}
+	else
+	{
+		StuckTimer = 0.0f;
+	}
+
+	const bool bWasStuck = bIsStuck;
+	if (StuckTimer > StuckThreshold)
+	{
+		bIsStuck = true;
+	}
+
+	// --- Flip detection ---
+	const FRotator Rotation = Owner->GetActorRotation();
+	const bool bAngleExceeded =
+		FMath::Abs(Rotation.Roll) > FlipAngleThreshold ||
+		FMath::Abs(Rotation.Pitch) > FlipAngleThreshold;
+
+	if (bAngleExceeded)
+	{
+		FlipTimer += DeltaTime;
+	}
+	else
+	{
+		FlipTimer = 0.0f;
+	}
+
+	const bool bWasFlipped = bIsFlipped;
+	if (FlipTimer > 1.0f)
+	{
+		bIsFlipped = true;
+	}
+
+	// --- Update last position ---
+	LastPosition = CurrentPos;
+
+	// --- Broadcast events on state change ---
+	if ((!bWasStuck && bIsStuck) || (!bWasFlipped && bIsFlipped))
+	{
+		ARaceManager* RaceManager = Cast<ARaceManager>(
+			UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+		if (RaceManager)
+		{
+			FRacerData RacerData;
+			RacerData.VehiclePawn = Cast<APawn>(Owner);
+
+			if (!bWasStuck && bIsStuck)
+			{
+				RaceManager->OnRaceEvent.Broadcast(ERaceEvent::VehicleStuck, RacerData);
+				UE_LOG(LogNomiVehicle, Warning, TEXT("Vehicle stuck detected: %s"), *GetVehicleDisplayName());
+			}
+			if (!bWasFlipped && bIsFlipped)
+			{
+				RaceManager->OnRaceEvent.Broadcast(ERaceEvent::VehicleFlipped, RacerData);
+				UE_LOG(LogNomiVehicle, Warning, TEXT("Vehicle flipped detected: %s"), *GetVehicleDisplayName());
+			}
+		}
+	}
+}
+
+void UVehicleStateManager::ResetVehicle()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || !GetWorld())
+	{
+		return;
+	}
+
+	// Find nearest checkpoint to teleport to
+	FVector ResetLocation = Owner->GetActorLocation();
+	FRotator ResetRotation = FRotator(0.0f, Owner->GetActorRotation().Yaw, 0.0f);
+
+	// Use cached RaceManager if available, otherwise fall back to GetAllActorsOfClass
+	TArray<AActor*> Checkpoints;
+	if (CachedRaceManager.IsValid())
+	{
+		// Get checkpoints from RaceManager's checkpoint system
+		if (UCheckpointSystem* CheckpointSys = CachedRaceManager->FindComponentByClass<UCheckpointSystem>())
+		{
+			CheckpointSys->GetAllCheckpoints(Checkpoints);
+		}
+	}
+
+	if (Checkpoints.Num() == 0)
+	{
+		UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), Checkpoints);
+	}
+
+	if (Checkpoints.Num() > 0)
+	{
+		// Find the nearest checkpoint
+		float BestDistSqr = TNumericLimits<float>::Max();
+		ACheckpoint* NearestCheckpoint = nullptr;
+
+		for (AActor* Actor : Checkpoints)
+		{
+			const float DistSqr = FVector::DistSquared(Owner->GetActorLocation(), Actor->GetActorLocation());
+			if (DistSqr < BestDistSqr)
+			{
+				BestDistSqr = DistSqr;
+				NearestCheckpoint = Cast<ACheckpoint>(Actor);
+			}
+		}
+
+		if (NearestCheckpoint)
+		{
+			ResetLocation = NearestCheckpoint->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
+
+			// Orient along track: find the next checkpoint to compute forward direction
+			ACheckpoint* NextCheckpoint = nullptr;
+			for (AActor* Actor : Checkpoints)
+			{
+				if (ACheckpoint* CP = Cast<ACheckpoint>(Actor))
+				{
+					if (CP->CheckpointIndex == NearestCheckpoint->CheckpointIndex + 1)
+					{
+						NextCheckpoint = CP;
+						break;
+					}
+				}
+			}
+
+			if (NextCheckpoint)
+			{
+				const FVector Forward = (NextCheckpoint->GetActorLocation() - NearestCheckpoint->GetActorLocation()).GetSafeNormal();
+				ResetRotation = Forward.Rotation();
+				ResetRotation.Pitch = 0.0f;
+				ResetRotation.Roll = 0.0f;
+			}
+		}
+	}
+	else
+	{
+		// Fallback: ground trace at current location
+		FHitResult HitResult;
+		FVector TraceStart = ResetLocation + FVector(0.0f, 0.0f, 500.0f);
+		FVector TraceEnd = ResetLocation - FVector(0.0f, 0.0f, 2000.0f);
+
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(Owner);
+
+		if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+		{
+			ResetLocation = HitResult.ImpactPoint + FVector(0.0f, 0.0f, 100.0f);
+		}
+	}
+
+	// Teleport vehicle
+	Owner->SetActorLocation(ResetLocation);
+	Owner->SetActorRotation(ResetRotation);
+
+	// Zero out velocity
+	if (VehicleRoot && VehicleRoot->IsSimulatingPhysics())
+	{
+		VehicleRoot->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		VehicleRoot->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	}
+
+	// Reset recovery state
+	StuckTimer = 0.0f;
+	FlipTimer = 0.0f;
+	bIsStuck = false;
+	bIsFlipped = false;
+
+	UE_LOG(LogNomiVehicle, Log, TEXT("Vehicle reset to nearest waypoint: %s"), *GetVehicleDisplayName());
 }

@@ -8,6 +8,7 @@
 
 class UChaosWheeledVehicleMovementComponent;
 class UNIOVehicleMovementComponent;
+class ARaceManager;
 
 /**
  * Vehicle state data structure for real-time telemetry
@@ -197,6 +198,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
 	FString GetVehicleDisplayName() const;
 
+	// Check if vehicle is stuck (nearly stationary with throttle applied)
+	UFUNCTION(BlueprintCallable, Category = "Recovery")
+	bool IsStuck() const { return bIsStuck; }
+
+	// Check if vehicle is flipped (upside down or severely tilted)
+	UFUNCTION(BlueprintCallable, Category = "Recovery")
+	bool IsFlipped() const { return bIsFlipped; }
+
+	// Reset vehicle to a safe position and orientation
+	UFUNCTION(BlueprintCallable, Category = "Recovery")
+	void ResetVehicle();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -219,12 +232,42 @@ private:
 	// Calculate slip angle for drift detection
 	float CalculateSlipAngle() const;
 
+	// Check for stuck/flip conditions and broadcast events
+	void CheckStuckAndFlip(float DeltaTime);
+
+	// --- Recovery State ---
+	UPROPERTY(BlueprintReadOnly, Category = "Recovery", meta = (AllowPrivateAccess = "true"))
+	float StuckTimer = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Recovery", meta = (AllowPrivateAccess = "true"))
+	float FlipTimer = 0.0f;
+
+	UPROPERTY()
+	FVector LastPosition = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Recovery", meta = (AllowPrivateAccess = "true"))
+	bool bIsStuck = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Recovery", meta = (AllowPrivateAccess = "true"))
+	bool bIsFlipped = false;
+
+	UPROPERTY(EditAnywhere, Category = "Recovery")
+	float StuckThreshold = 5.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Recovery")
+	float FlipAngleThreshold = 80.0f;
+
+	// Distance threshold in cm; if moved less than this per tick, vehicle is considered stationary
+	UPROPERTY(EditAnywhere, Category = "Recovery")
+	float StuckDistanceThreshold = 10.0f;
+
 	// Cached references
 	UPROPERTY()
 	TObjectPtr<UPrimitiveComponent> VehicleRoot;
 
+	// Cached RaceManager for performance (avoid GetAllActorsOfClass every tick)
 	UPROPERTY()
-	TObjectPtr<UWorld> CachedWorld;
+	TWeakObjectPtr<ARaceManager> CachedRaceManager;
 
 	UPROPERTY()
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> CachedChaosVehicle;

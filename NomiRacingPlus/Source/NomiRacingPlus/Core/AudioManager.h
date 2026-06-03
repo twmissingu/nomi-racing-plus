@@ -157,6 +157,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Audio|NOMI")
 	void PlayNOMIVoice(USoundCue* VoiceCue);
 
+	// MetaSound Integration
+
+	// Play motor sound using MetaSound (RPM-based pitch, throttle-based filter)
+	UFUNCTION(BlueprintCallable, Category = "Audio|MetaSound")
+	void PlayMotorMetaSound(float RPM, float Throttle, float Load);
+
+	// Update MetaSound motor parameters in real-time
+	UFUNCTION(BlueprintCallable, Category = "Audio|MetaSound")
+	void UpdateMotorMetaSound(float RPM, float Throttle, float Load);
+
+	// Stop MetaSound motor
+	UFUNCTION(BlueprintCallable, Category = "Audio|MetaSound")
+	void StopMotorMetaSound();
+
+	// Set environment reverb (tunnel/open/indoor)
+	UFUNCTION(BlueprintCallable, Category = "Audio|MetaSound")
+	void SetEnvironmentReverb(const FString& EnvironmentType);
+
+	// Toggle between basic audio and MetaSound
+	UFUNCTION(BlueprintCallable, Category = "Audio|MetaSound")
+	void SetUseMetaSound(bool bUseMeta) { bUseMetaSound = bUseMeta; }
+
+	// Is MetaSound enabled?
+	UFUNCTION(BlueprintCallable, Category = "Audio|MetaSound")
+	bool IsUsingMetaSound() const { return bUseMetaSound; }
+
 protected:
 	// Volume levels
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
@@ -222,6 +248,11 @@ private:
 	float MusicFadeTarget = 0.0f;
 	float MusicFadeSpeed = 0.0f;
 	float CurrentMusicVolume = 0.0f;
+
+	// MetaSound support
+	bool bUseMetaSound = true;
+	TObjectPtr<UAudioComponent> MotorMetaSoundComponent;
+	FString CurrentEnvironmentType = TEXT("open");
 
 	// Create audio component
 	UAudioComponent* CreateAudioComponent(USoundCue* SoundCue);

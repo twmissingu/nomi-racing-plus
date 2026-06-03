@@ -5,6 +5,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Vehicles/NIOVehicleBase.h"
 #include "Vehicles/NIOVehicleMovementComponent.h"
+#include "Vehicles/VehicleStateManager.h"
 #include "Race/RaceManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
@@ -25,6 +26,12 @@ void ANomiPlayerController::BeginPlay()
 			Subsystem->AddMappingContext(InputMapping.MappingContext, 0);
 		}
 	}
+
+	// Create and initialize menu manager
+	MenuManager = NewObject<UMenuManager>(this, TEXT("MenuManager"));
+	MenuManager->RegisterComponent();
+	MenuManager->Initialize(this);
+	MenuManager->ShowMainMenu();
 
 	UE_LOG(LogNomiRacing, Log, TEXT("Player controller initialized"));
 }
@@ -91,6 +98,11 @@ void ANomiPlayerController::SetupInputComponent()
 	{
 		EnhancedInput->BindAction(InputMapping.Actions.PauseAction, ETriggerEvent::Started, this, &ANomiPlayerController::OnPauseStarted);
 	}
+
+	if (InputMapping.Actions.ResetAction)
+	{
+		EnhancedInput->BindAction(InputMapping.Actions.ResetAction, ETriggerEvent::Started, this, &ANomiPlayerController::OnResetStarted);
+	}
 }
 
 void ANomiPlayerController::SetInputMapping(const FVehicleInputMapping& NewMapping)
@@ -132,6 +144,11 @@ void ANomiPlayerController::SetInputEnabled(bool bEnabled)
 
 void ANomiPlayerController::SetCameraModeByIndex(int32 Mode)
 {
+	if (CameraModeNames.Num() == 0)
+	{
+		return;
+	}
+
 	CameraMode = FMath::Clamp(Mode, 0, CameraModeNames.Num() - 1);
 
 	// Forward to camera system on vehicle
@@ -334,21 +351,54 @@ void ANomiPlayerController::OnHeadlightsStarted(const FInputActionValue& Value)
 
 void ANomiPlayerController::OnPauseStarted(const FInputActionValue& Value)
 {
-	// Toggle pause via RaceManager
-	ARaceManager* RaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
-	if (RaceManager)
+	TogglePauseMenu();
+}
+
+void ANomiPlayerController::OnResetStarted(const FInputActionValue& Value)
+{
+	OnResetVehicle();
+}
+
+void ANomiPlayerController::TogglePauseMenu()
+{
+	if (!MenuManager)
 	{
-		if (RaceManager->GetRaceState() == ERaceState::Racing)
+		return;
+	}
+
+	if (MenuManager->GetCurrentState() == EMenuState::Racing)
+	{
+		MenuManager->ShowPauseMenu();
+		UGameplayStatics::SetGamePaused(this, true);
+		UE_LOG(LogNomiRacing, Log, TEXT("Game paused via menu"));
+	}
+	else if (MenuManager->GetCurrentState() == EMenuState::Paused)
+	{
+		MenuManager->ReturnToPrevious();
+		UGameplayStatics::SetGamePaused(this, false);
+		UE_LOG(LogNomiRacing, Log, TEXT("Game resumed via menu"));
+	}
+}
+
+void ANomiPlayerController::OnResetVehicle()
+{
+	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
+	{
+		// Cache VehicleStateManager if not already cached
+		if (!CachedVehicleStateManager)
 		{
-			RaceManager->PauseRace();
-			UGameplayStatics::SetGamePaused(this, true);
-			UE_LOG(LogNomiRacing, Log, TEXT("Game paused"));
+			CachedVehicleStateManager = Vehicle->FindComponentByClass<UVehicleStateManager>();
 		}
-		else if (RaceManager->GetRaceState() == ERaceState::Paused)
+
+		if (CachedVehicleStateManager && (CachedVehicleStateManager->IsStuck() || CachedVehicleStateManager->IsFlipped()))
 		{
-			RaceManager->ResumeRace();
-			UGameplayStatics::SetGamePaused(this, false);
-			UE_LOG(LogNomiRacing, Log, TEXT("Game resumed"));
+			CachedVehicleStateManager->ResetVehicle();
+			UE_LOG(LogNomiRacing, Log, TEXT("Vehicle reset triggered"));
 		}
 	}
+}
+
+bool ANomiPlayerController::IsInMenu() const
+{
+	return MenuManager && MenuManager->GetCurrentState() != EMenuState::Racing;
 }

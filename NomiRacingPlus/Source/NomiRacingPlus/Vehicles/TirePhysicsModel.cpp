@@ -3,6 +3,8 @@
 #include "TirePhysicsModel.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "NomiRacingPlus.h"
+#include "Engine/World.h"
+#include "CollisionQueryParams.h"
 
 // ============================================================================
 // Pacejka Magic Formula Constants
@@ -78,6 +80,18 @@ void UTirePhysicsModel::BeginPlay()
 		TireStates[i].Thermal.CoreTemperature = PacejkaConstants::AmbientTemperature;
 		TireStates[i].Thermal.SurfaceTemperature = PacejkaConstants::AmbientTemperature;
 		TireStates[i].Thermal.WearFactor = 1.0f;
+	}
+
+	// Initialize default wheel offsets if not configured
+	if (WheelOffsets.Num() != NumWheels)
+	{
+		WheelOffsets.SetNum(NumWheels);
+		// Default offsets for a typical sedan (cm): FL, FR, RL, RR
+		// X = forward, Y = right, Z = up
+		WheelOffsets[0] = FVector(140.0f, -75.0f, -30.0f);  // Front Left
+		WheelOffsets[1] = FVector(140.0f,  75.0f, -30.0f);  // Front Right
+		WheelOffsets[2] = FVector(-140.0f, -75.0f, -30.0f);  // Rear Left
+		WheelOffsets[3] = FVector(-140.0f,  75.0f, -30.0f);  // Rear Right
 	}
 
 	// Initialize default surface parameters
@@ -516,15 +530,36 @@ void UTirePhysicsModel::UpdateSlipCalculations(float DeltaTime)
 	// Use configured wheel count (UE5.7 doesn't have GetWheelCount)
 	const int32 WheelCount = FMath::Min(TireStates.Num(), 4); // Default to 4 wheels
 
-	// Update each wheel with simplified physics
+	// Calculate vehicle acceleration for weight transfer
+	const FVector VehicleVelocity = Owner->GetVelocity();
+	const FVector VehicleAcceleration = (VehicleVelocity - PreviousVelocity) / FMath::Max(DeltaTime, 0.001f);
+	PreviousVelocity = VehicleVelocity;
+
+	// Update each wheel with physics
 	for (int32 i = 0; i < WheelCount; i++)
 	{
 		FTireState& State = TireStates[i];
 
-		// Simplified wheel state (UE5.7 compatible)
-		const bool bOnGround = true; // Assume on ground for now
-		const float WheelAngularVel = VehicleForwardSpeed / 0.35f; // Approximate from speed
-		const float WheelLoad = 1.0f; // Simplified load
+		// Calculate wheel world position
+		const FVector WheelWorldPos = GetWheelWorldPosition(i, VehicleTransform);
+
+		// Perform ground contact detection via raycast
+		const FTireGroundContact GroundContact = CheckGroundContact(i, WheelWorldPos, SuspensionRestLength * 2.0f);
+		const bool bOnGround = GroundContact.bHitGround;
+
+		// Calculate wheel angular velocity from vehicle speed and tire radius
+		const float TireRadiusM = ((CurrentPreset.TireWidthMm * CurrentPreset.AspectRatio / 100.0f) * 2.0f +
+			CurrentPreset.RimDiameterInches * 25.4f) / 2000.0f;
+		const float WheelAngularVel = (TireRadiusM > 0.001f) ? (VehicleForwardSpeed / (TireRadiusM * 100.0f)) : 0.0f;
+
+		// Calculate suspension force (wheel load)
+		const float WheelLoad = CalculateSuspensionForce(i, VehicleForwardSpeed, VehicleAcceleration, bOnGround);
+
+		// Update surface type from ground contact
+		if (bOnGround)
+		{
+			State.SurfaceType = GroundContact.SurfaceType;
+		}
 
 		State.bIsGrounded = bOnGround;
 		State.WheelLoad = WheelLoad;
@@ -534,8 +569,6 @@ void UTirePhysicsModel::UpdateSlipCalculations(float DeltaTime)
 		State.SlipRatio = CalculateSlipRatio(i, WheelAngularVel, VehicleForwardSpeed);
 
 		// Calculate slip angle (lateral)
-		const FVector VehicleVelocity = Owner->GetVelocity();
-
 		// Account for steering angle on front wheels
 		FVector WheelForwardDir = VehicleForward;
 		if (i == 0 || i == 1) // Front wheels (FL=0, FR=1)
@@ -635,4 +668,143 @@ void UTirePhysicsModel::UpdateTireWear(float DeltaTime, int32 WheelIndex, float 
 		// Severely worn: significant grip reduction
 		Thermal.ThermalGripMultiplier *= (0.5f + Thermal.WearFactor * 1.67f);
 	}
+}
+
+// ============================================================================
+// Ground Detection and Suspension
+// ============================================================================
+FTireGroundContact UTirePhysicsModel::CheckGroundContact(int32 WheelIndex, const FVector& WheelWorldPos, float TraceLength) const
+{
+	FTireGroundContact Result;
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return Result;
+	}
+
+	const AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return Result;
+	}
+
+	// Configure trace parameters
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(Owner);
+	QueryParams.bReturnPhysicalMaterial = true;
+
+	FHitResult HitResult;
+	const FVector TraceStart = WheelWorldPos;
+	const FVector TraceEnd = TraceStart - FVector(0.0f, 0.0f, TraceLength);
+
+	// Perform line trace downward from wheel position
+	const bool bHit = World->LineTraceSingleByChannel(
+		HitResult,
+		TraceStart,
+		TraceEnd,
+		ECC_Visibility,
+		QueryParams
+	);
+
+	if (bHit)
+	{
+		Result.bHitGround = true;
+		Result.DistanceToGround = HitResult.Distance;
+		Result.HitNormal = HitResult.ImpactNormal;
+
+		// Map physical material to surface type
+		if (HitResult.PhysMaterial.IsValid())
+		{
+			const EPhysicalSurface SurfaceType = HitResult.PhysMaterial->SurfaceType;
+
+			switch (SurfaceType)
+			{
+			case SurfaceType1:  // Typically defined in project settings
+				Result.SurfaceType = ETireSurfaceType::Tarmac;
+				break;
+			case SurfaceType2:
+				Result.SurfaceType = ETireSurfaceType::TarmacWet;
+				break;
+			case SurfaceType3:
+				Result.SurfaceType = ETireSurfaceType::Gravel;
+				break;
+			case SurfaceType4:
+				Result.SurfaceType = ETireSurfaceType::Grass;
+				break;
+			default:
+				Result.SurfaceType = ETireSurfaceType::Tarmac;
+				break;
+			}
+		}
+	}
+
+	return Result;
+}
+
+FVector UTirePhysicsModel::GetWheelWorldPosition(int32 WheelIndex, const FTransform& VehicleTransform) const
+{
+	if (!WheelOffsets.IsValidIndex(WheelIndex))
+	{
+		return VehicleTransform.GetLocation();
+	}
+
+	// Transform wheel offset from local to world space
+	return VehicleTransform.TransformPosition(WheelOffsets[WheelIndex]);
+}
+
+float UTirePhysicsModel::CalculateSuspensionForce(int32 WheelIndex, float VehicleSpeedCmS, const FVector& VehicleAcceleration, bool bIsGrounded) const
+{
+	if (!bIsGrounded)
+	{
+		return 0.0f;
+	}
+
+	constexpr float GravityCmS2 = 980.0f;  // cm/s^2
+
+	// Base static load (equal distribution)
+	const float TotalWeight = VehicleMassKg * GravityCmS2;
+	float WheelLoad = TotalWeight / static_cast<float>(FMath::Max(NumWheels, 1));
+
+	// Weight transfer from longitudinal acceleration (braking/acceleration)
+	// Front/rear weight transfer = (mass * accel * CG_height) / wheelbase
+	const float WheelbaseCm = 280.0f;  // Approximate wheelbase
+	const float CGHeightCm = 50.0f;    // Approximate CG height for NIO vehicles
+
+	// Decompose acceleration into forward component
+	const AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		const FVector Forward = Owner->GetActorForwardVector();
+		const float ForwardAccel = FVector::DotProduct(VehicleAcceleration, Forward);
+		const float LongitudinalTransfer = (VehicleMassKg * ForwardAccel * CGHeightCm) / WheelbaseCm;
+
+		// Apply longitudinal transfer: front wheels lose load on accel, gain on braking
+		const bool bIsFront = (WheelIndex == 0 || WheelIndex == 1);
+		WheelLoad += bIsFront ? LongitudinalTransfer * 0.5f : -LongitudinalTransfer * 0.5f;
+
+		// Weight transfer from lateral acceleration (cornering)
+		const float TrackWidthCm = 150.0f;  // Approximate track width
+		const FVector Right = Owner->GetActorRightVector();
+		const float LateralAccel = FVector::DotProduct(VehicleAcceleration, Right);
+		const float LateralTransfer = (VehicleMassKg * LateralAccel * CGHeightCm) / TrackWidthCm;
+
+		// Apply lateral transfer: left wheels lose load on right turn
+		const bool bIsLeft = (WheelIndex == 0 || WheelIndex == 2);
+		WheelLoad += bIsLeft ? LateralTransfer * 0.5f : -LateralTransfer * 0.5f;
+	}
+
+	// Aerodynamic downforce contribution (distributed 60/40 front/rear for NIO EP9)
+	if (DownforceCoefficient > 0.0f)
+	{
+		const float SpeedMs = FMath::Abs(VehicleSpeedCmS) * 0.01f;
+		const float DynamicPressure = 0.5f * 1.225f * SpeedMs * SpeedMs;
+		const float DownforceN = DynamicPressure * FrontalArea * DownforceCoefficient;
+		const float DownforceCgS = DownforceN * 100.0f;  // Convert to CGS units
+		const bool bIsFront = (WheelIndex == 0 || WheelIndex == 1);
+		WheelLoad += bIsFront ? DownforceCgS * 0.3f : DownforceCgS * 0.2f;  // 60/40 split across 2 wheels each
+	}
+
+	// Clamp to positive values (wheels can't pull the ground)
+	return FMath::Max(WheelLoad, 0.0f);
 }

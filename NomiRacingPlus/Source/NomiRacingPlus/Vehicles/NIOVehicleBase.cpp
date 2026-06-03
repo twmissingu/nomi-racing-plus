@@ -325,6 +325,64 @@ void ANIOVehicleBase::UpdateLights(float DeltaTime)
 
 void ANIOVehicleBase::UpdateAudio(float DeltaTime)
 {
-	// Motor sound would be handled by MetaSound in the actual implementation
-	// This is a placeholder for the audio system integration
+	if (!StateManager)
+	{
+		return;
+	}
+
+	const FNIOVehicleState& State = StateManager->GetVehicleState();
+
+	// Smooth RPM transitions for natural audio feel
+	const float RPMInterpSpeed = 5.0f;
+	CachedMotorRPM = FMath::FInterpTo(CachedMotorRPM, State.RPM, DeltaTime, RPMInterpSpeed);
+
+	if (MotorSound)
+	{
+		// Lazily create the motor audio component
+		if (!MotorAudioComponent)
+		{
+			MotorAudioComponent = NewObject<UAudioComponent>(this, TEXT("MotorAudio"));
+			if (MotorAudioComponent)
+			{
+				MotorAudioComponent->SetSound(MotorSound);
+				MotorAudioComponent->bAutoActivate = true;
+				MotorAudioComponent->bAutoDestroy = false;
+				MotorAudioComponent->SetVolumeMultiplier(0.0f);
+				MotorAudioComponent->RegisterComponent();
+				MotorAudioComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+			}
+		}
+
+		if (MotorAudioComponent && MotorAudioComponent->IsPlaying())
+		{
+			// Map RPM to pitch: idle ~0.8, redline ~1.6 (electric motor whine)
+			const float MinPitch = 0.8f;
+			const float MaxPitch = 1.6f;
+			const float MaxRPM = FMath::Max(State.RPM, 1000.0f); // Avoid division issues
+			float RPMRatio = FMath::Clamp(CachedMotorRPM / MaxRPM, 0.0f, 1.0f);
+			// Use speed-based ratio instead when RPM data is unreliable
+			if (CachedMotorRPM < 1.0f)
+			{
+				RPMRatio = FMath::Clamp(State.SpeedKmh / 250.0f, 0.0f, 1.0f);
+			}
+			MotorAudioComponent->SetPitchMultiplier(FMath::Lerp(MinPitch, MaxPitch, RPMRatio));
+
+			// Volume based on throttle input: louder under acceleration, quieter when coasting
+			const float MinVolume = 0.15f; // Quiet idle/whine
+			const float MaxVolume = 1.0f;
+			float VolumeTarget = FMath::Lerp(MinVolume, MaxVolume, FMath::Abs(State.ThrottleInput));
+			MotorAudioComponent->SetVolumeMultiplier(VolumeTarget);
+		}
+		else if (MotorAudioComponent && !MotorAudioComponent->IsPlaying() && MotorSound)
+		{
+			MotorAudioComponent->Play();
+		}
+	}
+	else if (MotorAudioComponent)
+	{
+		// Motor sound asset removed - clean up the component
+		MotorAudioComponent->Stop();
+		MotorAudioComponent->DestroyComponent();
+		MotorAudioComponent = nullptr;
+	}
 }

@@ -80,6 +80,10 @@ struct NOMIRACINGPLUS_API FRaceConfig
 	// Collision penalty (seconds)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Race")
 	float CollisionPenalty = 0.0f;
+
+	// Point-to-point race (no laps, Baja mode)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Race")
+	bool bIsPointToPoint = false;
 };
 
 /**
@@ -245,6 +249,16 @@ public:
 	// Are all racers finished?
 	bool AreAllRacersFinished() const;
 
+	// Baja Mode
+
+	// Get remaining distance to finish for a racer (meters)
+	UFUNCTION(BlueprintCallable, Category = "Race|Baja")
+	float GetDistanceToFinish(int32 RacerIndex) const;
+
+	// Get progress percentage for a racer (0-100)
+	UFUNCTION(BlueprintCallable, Category = "Race|Baja")
+	float GetProgressPercent(int32 RacerIndex) const;
+
 	// Event system
 
 	// Race event delegate
@@ -275,6 +289,18 @@ protected:
 	// Total checkpoints per lap
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Race")
 	int32 CheckpointsPerLap = 10;
+
+	// Baja mode flag
+	UPROPERTY(BlueprintReadOnly, Category = "Race|Baja")
+	bool bIsBajaMode = false;
+
+	// Total track distance in meters (for Baja mode)
+	UPROPERTY(EditAnywhere, Category = "Race|Baja")
+	float TotalTrackDistance = 5000.0f;
+
+	// World positions of each checkpoint (for distance calculation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Race|Baja")
+	TArray<FVector> CheckpointPositions;
 
 private:
 	// Update countdown

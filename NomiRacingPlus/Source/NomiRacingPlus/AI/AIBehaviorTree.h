@@ -11,6 +11,8 @@
 #include "AIRubberBandScaler.h"
 #include "AIBehaviorTree.generated.h"
 
+class ARaceManager;
+
 /**
  * AI behavior states
  */
@@ -40,6 +42,10 @@ struct NOMIRACINGPLUS_API FAIDecisionFactors
 	// Distance to next waypoint
 	UPROPERTY(BlueprintReadOnly, Category = "AI")
 	float DistanceToWaypoint = 0.0f;
+
+	// Direction to next waypoint (world space, normalized)
+	UPROPERTY(BlueprintReadOnly, Category = "AI")
+	FVector WaypointDirection = FVector::ZeroVector;
 
 	// Distance to vehicle ahead
 	UPROPERTY(BlueprintReadOnly, Category = "AI")
@@ -193,7 +199,7 @@ public:
 
 	// Update AI decisions
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	void UpdateDecisions(const FAIDecisionFactors& Factors);
+	void UpdateDecisions(const FAIDecisionFactors& Factors, float DeltaTime);
 
 	// Get current behavior state
 	UFUNCTION(BlueprintCallable, Category = "AI")
@@ -296,7 +302,7 @@ public:
 
 private:
 	// Behavior evaluation
-	void EvaluateBehavior(const FAIDecisionFactors& Factors);
+	void EvaluateBehavior(const FAIDecisionFactors& Factors, float DeltaTime);
 
 	// Calculate throttle/brake
 	void CalculateThrottleBrake(const FAIDecisionFactors& Factors);
@@ -319,6 +325,10 @@ private:
 	// Integrate subsystem results into final inputs
 	void IntegrateSubsystemResults();
 
+	// Handle AI anomaly (silent teleport to next waypoint)
+	UFUNCTION()
+	void HandleAIAnomaly();
+
 	// State transitions
 	void TransitionToState(EAIBehaviorState NewState);
 
@@ -338,6 +348,10 @@ private:
 	UPROPERTY()
 	TObjectPtr<UAIRubberBandScaler> RubberBandScaler;
 
+	// Cached race manager for position lookups
+	UPROPERTY()
+	TObjectPtr<ARaceManager> CachedRaceManager;
+
 	// Cached overtake and defensive results
 	FOvertakeOpportunity CurrentOvertakeOpportunity;
 	FAIDefensiveAction CurrentDefensiveAction;
@@ -349,4 +363,11 @@ private:
 
 	// Previous state for recovery
 	EAIBehaviorState PreviousState = EAIBehaviorState::Idle;
+
+	// AI Anomaly Recovery
+	UPROPERTY(EditAnywhere, Category = "AI|Recovery")
+	float AIAnomalyThreshold = 10.0f;
+
+	UPROPERTY()
+	float AIAnomalyTimer = 0.0f;
 };

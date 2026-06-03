@@ -10,6 +10,17 @@
 #include "NomiGameInstance.generated.h"
 
 /**
+ * Graphics preset levels
+ */
+UENUM(BlueprintType)
+enum class ENIOGraphicsPreset : uint8
+{
+	Low    UMETA(DisplayName = "Low"),
+	Medium UMETA(DisplayName = "Medium"),
+	High   UMETA(DisplayName = "High")
+};
+
+/**
  * Game settings saved to disk
  */
 USTRUCT(BlueprintType)
@@ -27,11 +38,15 @@ struct NOMIRACINGPLUS_API FNomiGameSettings
 
 	// Enable Lumen
 	UPROPERTY(BlueprintReadWrite, Category = "Settings|Graphics")
-bool bEnableLumen = true;
+	bool bEnableLumen = true;
 
 	// Enable motion blur
 	UPROPERTY(BlueprintReadWrite, Category = "Settings|Graphics")
 	bool bEnableMotionBlur = true;
+
+	// Graphics preset (Low, Medium, High)
+	UPROPERTY(BlueprintReadWrite, Category = "Settings|Graphics")
+	ENIOGraphicsPreset CurrentPreset = ENIOGraphicsPreset::Medium;
 
 	// Master volume (0-1)
 	UPROPERTY(BlueprintReadWrite, Category = "Settings|Audio")
@@ -113,6 +128,14 @@ public:
 	// Reset settings to defaults
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 	void ResetSettings();
+
+	// Apply a graphics preset (sets all quality levels and Nanite/Lumen)
+	UFUNCTION(BlueprintCallable, Category = "Settings|Graphics")
+	void ApplyGraphicsPreset(ENIOGraphicsPreset Preset);
+
+	// Get the current graphics preset
+	UFUNCTION(BlueprintCallable, Category = "Settings|Graphics")
+	ENIOGraphicsPreset GetCurrentGraphicsPreset() const { return Settings.CurrentPreset; }
 
 	// Progress Management
 
@@ -201,6 +224,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Progression")
 	TObjectPtr<URaceProgression> RaceProgression;
 
+	// Save format version
+	UPROPERTY(EditDefaultsOnly, Category = "Save")
+	FString SaveVersion = TEXT("1.0.0");
+
+	// Maximum number of backup files to keep
+	UPROPERTY(EditDefaultsOnly, Category = "Save")
+	int32 MaxBackups = 3;
+
 private:
 	// Get save file path
 	FString GetSaveFilePath(const FString& FileName) const;
@@ -210,4 +241,19 @@ private:
 
 	// Apply audio settings
 	void ApplyAudioSettings();
+
+	// Atomic save: write to .tmp then rename to avoid corruption on crash
+	bool AtomicWriteSave(const FString& FileName, const FString& JsonString);
+
+	// Rotate backups: shift save -> backup-1 -> backup-2, delete oldest
+	bool RotateBackups(const FString& FileName);
+
+	// Calculate CRC32 checksum of content
+	uint32 CalculateChecksum(const FString& Content);
+
+	// Validate save file integrity (version + checksum)
+	bool ValidateSaveIntegrity(const FString& FileName, FString& OutError);
+
+	// Attempt recovery from backup files
+	bool RecoverFromBackup(const FString& FileName);
 };

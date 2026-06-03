@@ -1,7 +1,12 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
 #include "AIBehaviorTree.h"
+#include "AICarController.h"
+#include "Race/RaceManager.h"
+#include "Race/CheckpointSystem.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/MovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NomiRacingPlus.h"
 
@@ -36,7 +41,11 @@ void UAIBehaviorTree::BeginPlay()
 	RubberBandScaler = NewObject<UAIRubberBandScaler>(Owner, TEXT("AIRubberBandScaler"));
 	RubberBandScaler->RegisterComponent();
 
-	UE_LOG(LogNomiAI, Log, TEXT("AIBehaviorTree initialized with all subsystems"));
+	// Cache race manager for position lookups
+	CachedRaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+
+	UE_LOG(LogNomiAI, Log, TEXT("AIBehaviorTree initialized with all subsystems (RaceManager: %s)"),
+		CachedRaceManager ? TEXT("Found") : TEXT("Not Found"));
 }
 
 void UAIBehaviorTree::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -70,12 +79,33 @@ void UAIBehaviorTree::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 
 	// Evaluate behavior
-	EvaluateBehavior(Factors);
+	EvaluateBehavior(Factors, DeltaTime);
+
+	// AI Anomaly Detection - completely stationary AI recovery
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		float SpeedCmPerSec = Owner->GetVelocity().Size();
+		float SpeedKmh = SpeedCmPerSec * 0.036f; // cm/s to km/h
+
+		if (SpeedKmh < 1.0f)
+		{
+			AIAnomalyTimer += DeltaTime;
+			if (AIAnomalyTimer > AIAnomalyThreshold)
+			{
+				HandleAIAnomaly();
+			}
+		}
+		else
+		{
+			AIAnomalyTimer = 0.0f;
+		}
+	}
 }
 
-void UAIBehaviorTree::UpdateDecisions(const FAIDecisionFactors& Factors)
+void UAIBehaviorTree::UpdateDecisions(const FAIDecisionFactors& Factors, float DeltaTime)
 {
-	EvaluateBehavior(Factors);
+	EvaluateBehavior(Factors, DeltaTime);
 }
 
 float UAIBehaviorTree::GetCombinedSpeedMultiplier() const
@@ -95,7 +125,7 @@ float UAIBehaviorTree::GetCombinedSpeedMultiplier() const
 	return Multiplier;
 }
 
-void UAIBehaviorTree::EvaluateBehavior(const FAIDecisionFactors& Factors)
+void UAIBehaviorTree::EvaluateBehavior(const FAIDecisionFactors& Factors, float DeltaTime)
 {
 	// Priority-based behavior evaluation
 	// 1. Stuck recovery (highest priority)
@@ -107,7 +137,7 @@ void UAIBehaviorTree::EvaluateBehavior(const FAIDecisionFactors& Factors)
 	// Check for stuck state
 	if (Factors.CurrentSpeed < 5.0f && ThrottleInput > 0.5f)
 	{
-		StuckTimer += 0.016f; // Approximate tick time
+		StuckTimer += DeltaTime;
 		if (StuckTimer > 3.0f)
 		{
 			TransitionToState(EAIBehaviorState::Stuck);
@@ -168,6 +198,99 @@ void UAIBehaviorTree::EvaluateBehavior(const FAIDecisionFactors& Factors)
 	IntegrateSubsystemResults();
 }
 
+void UAIBehaviorTree::HandleAIAnomaly()
+{
+	// 1. Get the AI pawn
+	APawn* AIPawn = Cast<APawn>(GetOwner());
+	if (!AIPawn)
+	{
+		AIAnomalyTimer = 0.0f;
+		return;
+	}
+
+	// 2. Find RaceManager in world
+	if (!CachedRaceManager)
+	{
+		CachedRaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+	}
+
+	if (!CachedRaceManager)
+	{
+		AIAnomalyTimer = 0.0f;
+		return;
+	}
+
+	// 3. Get the AI's current checkpoint index
+	FRacerData RacerData;
+	if (!CachedRaceManager->GetRacerData(AIPawn, RacerData))
+	{
+		AIAnomalyTimer = 0.0f;
+		return;
+	}
+
+	int32 CurrentCheckpoint = RacerData.CurrentCheckpoint;
+
+	// 4. Get the next checkpoint location
+	FVector NextLocation = FVector::ZeroVector;
+
+	// Find all checkpoint actors in the world
+	TArray<AActor*> CheckpointActors;
+	UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), CheckpointActors);
+
+	// Find checkpoint with next index (wrap around)
+	int32 NextCheckpointIndex = CurrentCheckpoint + 1;
+	ACheckpoint* NextCheckpoint = nullptr;
+
+	for (AActor* Actor : CheckpointActors)
+	{
+		ACheckpoint* Checkpoint = Cast<ACheckpoint>(Actor);
+		if (Checkpoint && Checkpoint->CheckpointIndex == NextCheckpointIndex)
+		{
+			NextCheckpoint = Checkpoint;
+			break;
+		}
+	}
+
+	// If next checkpoint not found, try first checkpoint (wrap around)
+	if (!NextCheckpoint)
+	{
+		for (AActor* Actor : CheckpointActors)
+		{
+			ACheckpoint* Checkpoint = Cast<ACheckpoint>(Actor);
+			if (Checkpoint && Checkpoint->CheckpointIndex == 0)
+			{
+				NextCheckpoint = Checkpoint;
+				break;
+			}
+		}
+	}
+
+	if (!NextCheckpoint)
+	{
+		AIAnomalyTimer = 0.0f;
+		return;
+	}
+
+	NextLocation = NextCheckpoint->GetActorLocation();
+
+	// 5. Teleport AI pawn to that location
+	AIPawn->SetActorLocation(NextLocation + FVector(0.0f, 0.0f, 100.0f));
+
+	// 6. Set velocity to zero
+	UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(AIPawn->GetRootComponent());
+	if (RootPrim)
+	{
+		RootPrim->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		RootPrim->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	}
+
+	// 7. Reset AIAnomalyTimer
+	AIAnomalyTimer = 0.0f;
+
+	// 8. Log (silent handling - no user-visible prompt)
+	UE_LOG(LogNomiAI, Warning, TEXT("AI anomaly detected - silent teleport to waypoint"));
+}
+
 void UAIBehaviorTree::CalculateThrottleBrake(const FAIDecisionFactors& Factors)
 {
 	float SpeedRatio = Factors.CurrentSpeed / FMath::Max(Factors.RecommendedSpeed, 1.0f);
@@ -204,9 +327,30 @@ void UAIBehaviorTree::CalculateThrottleBrake(const FAIDecisionFactors& Factors)
 
 void UAIBehaviorTree::CalculateSteering(const FAIDecisionFactors& Factors)
 {
-	// Base steering toward waypoint would be calculated here
-	// This is a placeholder - actual waypoint steering is in AICarController
-	SteeringInput = 0.0f;
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		SteeringInput = 0.0f;
+		return;
+	}
+
+	// Use waypoint direction provided by the controller to compute steering angle
+	if (!Factors.WaypointDirection.IsNearlyZero())
+	{
+		FVector VehicleForward = Owner->GetActorForwardVector();
+		FVector TargetDir = Factors.WaypointDirection.GetSafeNormal();
+
+		float DotProduct = FVector::DotProduct(VehicleForward, TargetDir);
+		float CrossZ = FVector::CrossProduct(VehicleForward, TargetDir).Z;
+		float AngleDeg = FMath::Atan2(CrossZ, DotProduct) * (180.0f / PI);
+
+		// Normalize to -1..1 (45 degrees = full steering)
+		SteeringInput = FMath::Clamp(AngleDeg / 45.0f, -1.0f, 1.0f);
+	}
+	else
+	{
+		SteeringInput = 0.0f;
+	}
 }
 
 void UAIBehaviorTree::EvaluateOvertake(const FAIDecisionFactors& Factors)
@@ -261,14 +405,23 @@ void UAIBehaviorTree::ApplyRubberBanding(const FAIDecisionFactors& Factors)
 	}
 
 	// Rubber band scaler needs player distance and race positions
-	// These would be provided by the race manager
-	// For now, use the factors we have
 	float DistanceToPlayer = Factors.bIsPlayerAhead ? -Factors.DistanceToVehicleAhead : Factors.DistanceToVehicleBehind;
+
+	// Get actual player position from race manager
+	int32 PlayerPosition = 1;
+	if (CachedRaceManager)
+	{
+		PlayerPosition = CachedRaceManager->GetPlayerPosition();
+		if (PlayerPosition <= 0)
+		{
+			PlayerPosition = 1;
+		}
+	}
 
 	RubberBandScaler->UpdateState(
 		DistanceToPlayer,
 		Factors.RacePosition,
-		1, // Player position (would come from race manager)
+		PlayerPosition,
 		Factors.TrackPosition
 	);
 }
