@@ -82,6 +82,37 @@ def _is_normal_map(filepath: str) -> bool:
     return any(tag in name for tag in ("normal", "nrm", "_n", "norm"))
 
 
+def _get_imported_paths(task: unreal.AssetImportTask) -> list[str]:
+    """Get imported asset paths from a completed AssetImportTask.
+
+    UE5.7's import_asset_tasks() return value (List[List[Object]]) is unreliable
+    — it often returns empty even when imports succeed. This helper reads the
+    task's imported_object_paths property (populated by the engine on success)
+    and falls back to constructing the expected path from filename stem when
+    that property is empty.
+
+    Args:
+        task: A completed AssetImportTask.
+
+    Returns:
+        List of imported asset path strings.
+    """
+    # Try the engine-populated property first (most reliable)
+    paths = task.get_editor_property("imported_object_paths")
+    if paths:
+        return list(paths)
+
+    # Fallback: construct expected path from filename stem + destination
+    fname = Path(task.get_editor_property("filename")).stem
+    dest = task.get_editor_property("destination_path")
+    expected = f"{dest}/{fname}"
+    if unreal.EditorAssetLibrary.does_asset_exist(expected):
+        return [expected]
+
+    # Nothing found
+    return []
+
+
 # ---------------------------------------------------------------------------
 # Import functions
 # ---------------------------------------------------------------------------
@@ -129,8 +160,9 @@ def import_meshes(source_dir: str, destination_path: str,
             _log(f"  Import task failed for {fpath.name}: {e}", "error")
             continue
 
-        if task.get_editor_property("result"):
-            for path in task.get_editor_property("result"):
+        paths = _get_imported_paths(task)
+        if paths:
+            for path in paths:
                 imported.append(path)
                 _log(f"  Imported: {path}")
         else:
@@ -170,12 +202,14 @@ def import_textures(source_dir: str, destination_path: str,
         task = _make_import_task(str(fpath), destination_path)
         tasks.append(task)
 
-    # Bulk import
+    # Bulk import — read imported_object_paths from each task (more reliable
+    # than the function return value in UE5.7)
     unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks(tasks)
 
     for task in tasks:
-        if task.get_editor_property("result"):
-            for path in task.get_editor_property("result"):
+        paths = _get_imported_paths(task)
+        if paths:
+            for path in paths:
                 imported.append(path)
                 _log(f"  Imported: {path}")
 
@@ -195,11 +229,11 @@ def _configure_texture(asset_path: str, is_normal: bool):
         return
 
     if is_normal:
-        texture.set_editor_property("s_rgb", False)
+        texture.set_editor_property("srgb", False)
         texture.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
         _log(f"  Configured as normal map: {asset_path}")
     else:
-        texture.set_editor_property("s_rgb", True)
+        texture.set_editor_property("srgb", True)
         texture.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_DEFAULT)
         _log(f"  Configured as sRGB: {asset_path}")
 
@@ -235,10 +269,13 @@ def import_audio(source_dir: str, destination_path: str) -> list[str]:
     unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks(tasks)
 
     for task in tasks:
-        if task.get_editor_property("result"):
-            for path in task.get_editor_property("result"):
+        paths = _get_imported_paths(task)
+        if paths:
+            for path in paths:
                 imported.append(path)
                 _log(f"  Imported: {path}")
+        else:
+            _log(f"  Failed: {task.get_editor_property('filename')}", "error")
 
     _log(f"Audio import complete: {len(imported)} asset(s)")
     return imported
@@ -275,16 +312,19 @@ def import_hdr(source_dir: str, destination_path: str) -> list[str]:
     unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks(tasks)
 
     for task in tasks:
-        if task.get_editor_property("result"):
-            for path in task.get_editor_property("result"):
+        paths = _get_imported_paths(task)
+        if paths:
+            for path in paths:
                 imported.append(path)
                 _log(f"  Imported: {path}")
 
                 # Configure HDR texture settings
                 texture = unreal.EditorAssetLibrary.load_asset(path)
                 if isinstance(texture, unreal.TextureCube):
-                    texture.set_editor_property("s_rgb", False)
+                    texture.set_editor_property("srgb", False)
                     _log(f"  Configured HDR cubemap: {path}")
+        else:
+            _log(f"  Failed: {task.get_editor_property('filename')}", "error")
 
     _log(f"HDR import complete: {len(imported)} asset(s)")
     return imported

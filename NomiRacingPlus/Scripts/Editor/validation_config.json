@@ -88,10 +88,10 @@
         },
         "shading_models": {
             "vehicle_body": "MSM_CLEAR_COAT",
-            "vehicle_glass": "MSM_DEFAULT_LIGHTING",
-            "vehicle_wheel": "MSM_DEFAULT_LIGHTING",
-            "vehicle_tire": "MSM_DEFAULT_LIGHTING",
-            "emissive": "MSM_DEFAULT_LIGHTING"
+            "vehicle_glass": "MSM_DEFAULT_LIT",
+            "vehicle_wheel": "MSM_DEFAULT_LIT",
+            "vehicle_tire": "MSM_DEFAULT_LIT",
+            "emissive": "MSM_DEFAULT_LIT"
         },
         "max_material_instructions": 256,
         "warn_material_instructions": 128

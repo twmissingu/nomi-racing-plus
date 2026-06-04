@@ -90,13 +90,17 @@ def _log_step(step: int, total: int, msg: str) -> None:
 
 def _has_slate() -> bool:
     """Check whether Slate (UI framework) is available.
-    AssetTools/import/create APIs require Slate — not available in commandlets.
+    
+    Uses env var NOMI_HEADLESS to detect commandlet/headless mode:
+      - .command file sets NOMI_HEADLESS=1 → HAS_SLATE=False
+      - UE5 Editor paste (no env var)      → HAS_SLATE=True
+
+    We do NOT call any C++ API for detection because:
+    - unreal.SlateApplication doesn't exist in UE5.7 Python API
+    - unreal.AssetToolsHelpers.get_asset_tools() crashes with
+      assertion failure in commandlet mode (can't catch)
     """
-    try:
-        app = unreal.SlateApplication.get()
-        return app is not None
-    except Exception:
-        return False
+    return os.environ.get("NOMI_HEADLESS") != "1"
 
 
 HAS_SLATE = _has_slate()
@@ -406,9 +410,19 @@ def run_quick_setup() -> None:
 
 
 # ============================================================================
-# Auto-execute when run directly (standalone / commandlet)
+# Auto-execute when run as headless commandlet (NOMI_HEADLESS=1)
+#
+# When pasting in UE5 Editor via exec(open(...).read()):
+#   __name__ is "__main__" but NOMI_HEADLESS is NOT set,
+#   so auto-run is SKIPPED (user calls run_full_setup() explicitly).
+#
+# When running via UE5-Cmd .command file:
+#   NOMI_HEADLESS=1 is set → auto-run fires automatically.
 # ============================================================================
 
 if __name__ == "__main__":
-    _log("Full Setup Script loaded — auto-running run_full_setup()...")
-    run_full_setup()
+    if os.environ.get("NOMI_HEADLESS") == "1":
+        _log("Headless commandlet mode — auto-running run_full_setup()...")
+        run_full_setup()
+    else:
+        _log("Editor mode — loaded. Call run_full_setup() or run_quick_setup() explicitly.")

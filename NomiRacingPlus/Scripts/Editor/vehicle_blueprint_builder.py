@@ -70,22 +70,19 @@ class VehicleBlueprintBuilder:
         blueprint_name = f"BP_NIO_{self.vehicle_type}"
 
         # Create Blueprint from WheeledVehiclePawn parent class
+        factory = unreal.BlueprintFactory()
+        factory.set_editor_property("parent_class", unreal.WheeledVehiclePawn)
+
         self.blueprint = asset_tools.create_asset(
             blueprint_name,
             blueprint_path,
             unreal.Blueprint,
-            unreal.BlueprintFactory()
+            factory
         )
 
         if not self.blueprint:
             log_error(f"Failed to create Blueprint: {blueprint_name}")
             return False
-
-        # Set parent class
-        self.blueprint.set_editor_property(
-            "parent_class",
-            unreal.WheeledVehiclePawn
-        )
 
         log_info(f"Created Blueprint: {blueprint_path}/{blueprint_name}")
         return True

@@ -76,7 +76,6 @@ def _find_all_blueprints(directory: str | None = None) -> list[str]:
 
     # Find all Blueprint asset types
     asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
-    blueprint_class = unreal.LoadObject(None, "/Script/Engine.Blueprint")
 
     # Use the asset registry to find all Blueprint assets
     # Filter for various Blueprint types
@@ -97,9 +96,15 @@ def _find_all_blueprints(directory: str | None = None) -> list[str]:
 
     # Filter to only Blueprint assets
     for asset_path in asset_data_list:
-        # Check if the asset is a Blueprint by attempting to load it
-        asset_class = unreal.EditorAssetLibrary.find_asset_data(asset_path).get_asset_class()
-        class_name_str = str(asset_class)
+        # Check if the asset is a Blueprint (use asset_class property, not method)
+        asset_data = unreal.EditorAssetLibrary.find_asset_data(asset_path)
+        if hasattr(asset_data, 'asset_class'):
+            class_name_str = str(asset_data.asset_class)
+        elif hasattr(asset_data, 'get_asset_class'):
+            class_name_str = str(asset_data.get_asset_class())
+        else:
+            # Fallback: derive from path or try loading
+            class_name_str = "Unknown"
 
         if "Blueprint" in class_name_str or "Widget" in class_name_str:
             all_blueprints.append(asset_path)
@@ -168,15 +173,8 @@ def compile_blueprint(asset_path: str, force: bool = False) -> CompileResult:
         # Mark as needing compilation
         bp.set_editor_property("status", unreal.BlueprintStatus.BS_Dirty)
 
-        # Compile
-        # In UE5, Blueprint compilation is done via the Kismet system
-        # Use the editor's compile function
-        compile_options = unreal.BlueprintCompileOptions()
-        compile_options.set_editor_property("save_on_success", True)
-
-        # Perform the compilation
-        # The compilation triggers the Blueprint compiler pipeline
-        bp.compile()
+        # Compile using UE5.7 BlueprintEditorLibrary
+        unreal.BlueprintEditorLibrary.compile_blueprint(bp)
 
         # Check result
         bp_status_after = bp.get_editor_property("status")

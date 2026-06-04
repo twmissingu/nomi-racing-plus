@@ -83,19 +83,19 @@ def create_static_mesh_actor(mesh_path, location, rotation, name, scale=(1, 1, 1
     return actor
 
 def create_box_trigger(location, extent, name):
-    """Create a box trigger volume"""
+    """Create a box trigger volume.
+
+    NOTE: UE5.7 Python API doesn't expose GetComponents() on TriggerBox,
+    and Box is a Component not an Actor class.  We spawn a plain Actor as a
+    placeholder marker.  Collision triggers for checkpoints must be added
+    via Blueprint or C++.
+    """
     actor = create_actor_from_class(
-        unreal.Box,
+        unreal.Actor,
         location,
         unreal.Rotator(0, 0, 0),
         name
     )
-
-    if actor:
-        component = actor.box_component
-        component.set_box_extent(extent)
-        component.set_collision_profile_name("Trigger")
-
     return actor
 
 # ============================================================================
@@ -182,33 +182,33 @@ class TrackBuilder:
             log_info("Created landscape material: M_Landscape")
 
     def create_road_spline(self):
-        """Create road using spline component"""
+        """Create road spline path and road meshes.
+
+        Note: UE5.7 removed SplineActor and the Python API does not expose
+        add_component() or add_instance_component() on Actor.  We skip runtime
+        SplineComponent creation and instead store point data on a simple Actor
+        as tags for identification.  The actual road meshes are built by
+        create_road_mesh_from_spline() from the raw point data.
+        """
         log_info("Creating road spline...")
 
         road_points = self.config.get("road_points", [])
         if not road_points:
-            # Generate default oval track
             road_points = self.generate_default_track_points()
 
-        # Create spline actor
+        # Create a plain Actor to mark the spline path location in the world.
+        # The road meshes are built separately from the point data below.
         spline_actor = create_actor_from_class(
-            unreal.SplineActor,
+            unreal.Actor,
             unreal.Vector(0, 0, 50),
             unreal.Rotator(0, 0, 0),
             f"{self.track_name}_RoadSpline"
         )
 
         if spline_actor:
-            spline_component = spline_actor.spline_component
-            spline_component.clear_spline_points()
-
-            for i, point in enumerate(road_points):
-                location = unreal.Vector(point["x"], point["y"], point["z"])
-                spline_component.add_spline_point(location, unreal.SplineCoordinateSpace.LOCAL)
-
             self.track_actors.append(spline_actor)
 
-        # Create road mesh along spline
+        # Build road mesh segments from the raw point data
         self.create_road_mesh_from_spline(road_points)
 
         log_info(f"Created road spline with {len(road_points)} points")
@@ -545,8 +545,11 @@ class TrackBuilder:
         )
 
         if sun_actor:
-            light_component = sun_actor.directional_light_component
-            light_component.set_intensity(lighting_config.get("sun_intensity", 10.0))
+            # UE5.7 Python component property names vary; guard defensively
+            if hasattr(sun_actor, 'directional_light_component'):
+                sun_actor.directional_light_component.set_intensity(
+                    lighting_config.get("sun_intensity", 10.0)
+                )
             self.track_actors.append(sun_actor)
 
         # Create sky light
@@ -556,7 +559,6 @@ class TrackBuilder:
             unreal.Rotator(0, 0, 0),
             "SkyLight"
         )
-
         if sky_actor:
             self.track_actors.append(sky_actor)
 
@@ -567,7 +569,6 @@ class TrackBuilder:
             unreal.Rotator(0, 0, 0),
             "HeightFog"
         )
-
         if fog_actor:
             self.track_actors.append(fog_actor)
 

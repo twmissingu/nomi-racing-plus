@@ -212,7 +212,7 @@ def create_vehicle_glass_material(destination_path: str = "/Game/Materials/Vehic
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
     mat.set_editor_property("two_sided", True)
     mat.set_editor_property("translucency_lighting_mode",
@@ -237,7 +237,7 @@ def create_vehicle_wheel_material(destination_path: str = "/Game/Materials/Vehic
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("two_sided", False)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Vehicle_Wheel")
@@ -258,7 +258,7 @@ def create_vehicle_tire_material(destination_path: str = "/Game/Materials/Vehicl
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("two_sided", False)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Vehicle_Tire")
@@ -279,7 +279,7 @@ def create_headlight_material(destination_path: str = "/Game/Materials/Vehicles"
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("two_sided", False)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Vehicle_Headlight")
@@ -301,7 +301,7 @@ def create_taillight_material(destination_path: str = "/Game/Materials/Vehicles"
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("two_sided", False)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Vehicle_Taillight")
@@ -322,7 +322,7 @@ def create_brake_light_material(destination_path: str = "/Game/Materials/Vehicle
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("two_sided", False)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Vehicle_BrakeLight")
@@ -350,7 +350,7 @@ def create_road_material(destination_path: str = "/Game/Materials/Environment") 
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("two_sided", False)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Road_Asphalt")
@@ -365,7 +365,7 @@ def create_concrete_material(destination_path: str = "/Game/Materials/Environmen
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Concrete")
     _log("  Concrete material created")
@@ -379,7 +379,7 @@ def create_metal_material(destination_path: str = "/Game/Materials/Environment")
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_Metal")
     _log("  Metal material created")
@@ -403,7 +403,7 @@ def create_nio_ui_material(destination_path: str = "/Game/Materials/UI") -> unre
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_UI_NIO_Panel")
@@ -418,7 +418,7 @@ def create_nio_emissive_border(destination_path: str = "/Game/Materials/UI") -> 
     if not mat:
         return None
 
-    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIGHTING)
+    mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
 
     unreal.EditorAssetLibrary.save_asset(f"{destination_path}/M_UI_NIO_Border")
