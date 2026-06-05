@@ -81,6 +81,17 @@ void UVehicleStateManager::BeginPlay()
 		PerformanceConfig.BodyType = TEXT("sedan");
 		break;
 
+	case ENIOVehicleType::SU7Ultra:
+		PerformanceConfig.MassKg = 1900.0f;
+		PerformanceConfig.PowerKw = 1138.0f;
+		PerformanceConfig.TorqueNm = 1200.0f;
+		PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
+		PerformanceConfig.TopSpeedKph = 350.0f;
+		PerformanceConfig.Acceleration0100 = 1.98f;
+		PerformanceConfig.WheelbaseMm = 3000.0f;
+		PerformanceConfig.BodyType = TEXT("sedan");
+		break;
+
 	default:
 		break;
 	}
@@ -354,8 +365,14 @@ void UVehicleStateManager::CheckStuckAndFlip(float DeltaTime)
 	// --- Broadcast events on state change ---
 	if ((!bWasStuck && bIsStuck) || (!bWasFlipped && bIsFlipped))
 	{
-		ARaceManager* RaceManager = Cast<ARaceManager>(
-			UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+		ARaceManager* RaceManager = CachedRaceManager;
+		if (!RaceManager)
+		{
+			// Fallback: try to find it (should not normally be needed)
+			RaceManager = Cast<ARaceManager>(
+				UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
+			CachedRaceManager = RaceManager;
+		}
 		if (RaceManager)
 		{
 			FRacerData RacerData;

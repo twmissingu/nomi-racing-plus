@@ -6,14 +6,13 @@
 #include "Kismet/GameplayStatics.h"
 #include "Race/RaceManager.h"
 
-// Forward-declared widget classes (replace with actual widget headers when created)
-// #include "UI/MainMenuWidget.h"
-// #include "UI/GarageWidget.h"
-// #include "UI/TrackSelectWidget.h"
-// #include "UI/RaceSettingsWidget.h"
-// #include "UI/LoadingScreenWidget.h"
-// #include "UI/PauseMenuWidget.h"
-// #include "UI/ResultsWidget.h"
+#include "UI/MainMenuWidget.h"
+#include "UI/GarageWidget.h"
+#include "UI/TrackSelectWidget.h"
+#include "UI/RaceSettingsWidget.h"
+#include "UI/LoadingScreenWidget.h"
+#include "UI/PauseMenuWidget.h"
+#include "UI/ResultsWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNomiMenu, Log, All);
 
@@ -85,11 +84,8 @@ void UMenuManager::ShowLoadingScreen()
 
 void UMenuManager::ShowPauseMenu()
 {
-	if (CurrentState == EMenuState::Racing)
-	{
-		StateStack.Push(EMenuState::Racing);
-	}
-
+	// SwitchToState already pushes CurrentState to the stack when transitioning
+	// to a non-MainMenu state. Avoid double-pushing Racing here.
 	SwitchToState(EMenuState::Paused);
 
 	if (IsValid(OwningPlayer.Get()))
@@ -152,9 +148,12 @@ void UMenuManager::StartRace()
 	Config.MaxAIOpponents = MenuContext.AICount;
 	Config.NumLaps = MenuContext.Laps;
 
-	// Find RaceManager in world and start the race
+	// Open the race track level. The level's World Settings should configure
+	// NomiRaceGameMode, which auto-starts the race after a delay.
+	// Store MenuContext in GameInstance so the GameMode can read vehicle/settings.
 	if (IsValid(OwningPlayer.Get()) && OwningPlayer->GetWorld())
 	{
+		// Check if we already have a RaceManager (i.e., we're on a race track)
 		TArray<AActor*> RaceManagers;
 		UGameplayStatics::GetAllActorsOfClass(OwningPlayer->GetWorld(), ARaceManager::StaticClass(), RaceManagers);
 
@@ -170,7 +169,10 @@ void UMenuManager::StartRace()
 		}
 		else
 		{
-			UE_LOG(LogNomiMenu, Warning, TEXT("No RaceManager found in world"));
+			// No RaceManager — we're on the menu level. Open the race track.
+			FString LevelName = MenuContext.TrackName.IsEmpty() ? TEXT("TestTrack") : MenuContext.TrackName;
+			UGameplayStatics::OpenLevel(OwningPlayer->GetWorld(), FName(*LevelName));
+			UE_LOG(LogNomiMenu, Log, TEXT("Opening race level: %s"), *LevelName);
 		}
 	}
 }
@@ -231,38 +233,31 @@ UUserWidget* UMenuManager::CreateWidgetForState(EMenuState State)
 	{
 	case EMenuState::MainMenu:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating MainMenu widget"));
-		// return CreateWidget<UMainMenuWidget>(OwningPlayer);
-		break;
+		return CreateWidget<UMainMenuWidget>(OwningPlayer);
 
 	case EMenuState::Garage:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating Garage widget (mode: %s)"), *MenuContext.GameMode);
-		// return CreateWidget<UGarageWidget>(OwningPlayer);
-		break;
+		return CreateWidget<UGarageWidget>(OwningPlayer);
 
 	case EMenuState::TrackSelect:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating TrackSelect widget (mode: %s)"), *MenuContext.GameMode);
-		// return CreateWidget<UTrackSelectWidget>(OwningPlayer);
-		break;
+		return CreateWidget<UTrackSelectWidget>(OwningPlayer);
 
 	case EMenuState::RaceSettings:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating RaceSettings widget"));
-		// return CreateWidget<URaceSettingsWidget>(OwningPlayer);
-		break;
+		return CreateWidget<URaceSettingsWidget>(OwningPlayer);
 
 	case EMenuState::Loading:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating LoadingScreen widget"));
-		// return CreateWidget<ULoadingScreenWidget>(OwningPlayer);
-		break;
+		return CreateWidget<ULoadingScreenWidget>(OwningPlayer);
 
 	case EMenuState::Paused:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating PauseMenu widget"));
-		// return CreateWidget<UPauseMenuWidget>(OwningPlayer);
-		break;
+		return CreateWidget<UPauseMenuWidget>(OwningPlayer);
 
 	case EMenuState::Results:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating Results widget"));
-		// return CreateWidget<UResultsWidget>(OwningPlayer);
-		break;
+		return CreateWidget<UResultsWidget>(OwningPlayer);
 
 	case EMenuState::Racing:
 		// Racing state does not have a widget

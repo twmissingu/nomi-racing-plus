@@ -124,8 +124,13 @@ void ANOMIController::BeginPlay()
 		}
 	}
 
+	FString MeshName = TEXT("None");
+	if (BodyMesh && BodyMesh->GetStaticMesh())
+	{
+		MeshName = BodyMesh->GetStaticMesh()->GetName();
+	}
 	UE_LOG(LogNomiNOMI, Log, TEXT("NOMI Controller initialized - Body mesh: %s, Face widget: %s"),
-		BodyMesh ? *BodyMesh->GetStaticMesh()->GetName() : TEXT("None"),
+		*MeshName,
 		FaceWidget ? TEXT("Set") : TEXT("None"));
 }
 

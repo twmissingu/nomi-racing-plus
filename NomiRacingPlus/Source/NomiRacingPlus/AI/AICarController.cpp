@@ -101,7 +101,10 @@ void AAICarController::OnPossess(APawn* InPawn)
 		BehaviorTree->RegisterComponent();
 
 		// Configure behavior tree based on difficulty
-		BehaviorTree->SetDifficulty(FMath::Clamp(GetCurrentSettings().SpeedMultiplier, 0.0f, 1.0f));
+		// Map difficulty enum to 0-1 scalar: Easy=0.25, Normal=0.5, Hard=0.75, Expert=1.0
+		const float DifficultyScalar[] = { 0.25f, 0.5f, 0.75f, 1.0f };
+		int32 DiffIdx = FMath::Clamp(static_cast<int32>(DifficultyLevel), 0, 3);
+		BehaviorTree->SetDifficulty(DifficultyScalar[DiffIdx]);
 
 		// Configure overtake evaluator personality based on difficulty
 		if (UAIOvertakeEvaluator* OvertakeEval = BehaviorTree->GetOvertakeEvaluator())
@@ -151,12 +154,13 @@ void AAICarController::GenerateDefaultWaypoints()
 
 	if (Checkpoints.Num() > 0)
 	{
-		// Sort checkpoints by index
+		// Sort checkpoints by index (must satisfy strict weak ordering)
 		Checkpoints.Sort([](const AActor& A, const AActor& B) {
 			const ACheckpoint* CA = Cast<ACheckpoint>(&A);
 			const ACheckpoint* CB = Cast<ACheckpoint>(&B);
 			if (CA && CB) return CA->CheckpointIndex < CB->CheckpointIndex;
-			return false;
+			// If either cast fails, sort by pointer address for deterministic ordering
+			return &A < &B;
 		});
 
 		// Use checkpoints as waypoints
@@ -491,7 +495,9 @@ void AAICarController::CalculateThrottleBrake(float& OutThrottle, float& OutBrak
 	if (CurrentWaypoint.bIsCorner)
 	{
 		float DistanceToCorner = FVector::Distance(ControlledVehicle->GetActorLocation(), CurrentWaypoint.Location);
-		float BrakingDistance = CurrentSpeed * Settings.BrakingDistanceMultiplier;
+		// Convert km/h to cm/s for consistent units: km/h * 100000/3600 ≈ km/h * 27.78
+		float SpeedCmPerSec = CurrentSpeed * 27.78f;
+		float BrakingDistance = SpeedCmPerSec * Settings.BrakingDistanceMultiplier;
 
 		if (DistanceToCorner < BrakingDistance)
 		{

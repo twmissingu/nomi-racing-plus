@@ -100,7 +100,7 @@ void ARaceManager::ResumeRace()
 
 void ARaceManager::EndRace()
 {
-	RaceState = ERaceState::Finished;
+	RaceState = ERaceState::PostRace;
 	UE_LOG(LogNomiRace, Log, TEXT("Race finished!"));
 
 	// Stop all AI controllers

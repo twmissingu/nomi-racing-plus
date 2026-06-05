@@ -175,7 +175,7 @@ void UTrackSelectWidget::OnSelectClicked()
 	if (MenuManager)
 	{
 		const FTrackInfo& SelectedTrack = AvailableTracks[CurrentTrackIndex];
-		MenuManager->SetTrack(SelectedTrack.DisplayName);
+		MenuManager->SetTrack(SelectedTrack.Name.ToString());
 		MenuManager->ShowRaceSettings();
 	}
 }

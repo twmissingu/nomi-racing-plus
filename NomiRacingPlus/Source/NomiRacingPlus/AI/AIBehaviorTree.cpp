@@ -72,6 +72,13 @@ void UAIBehaviorTree::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	Factors.bSlipstreamAvailable = SensorData.bSlipstreamAvailable;
 	Factors.SlipstreamStrength = SensorData.SlipstreamStrength;
 
+	// Populate CurrentSpeed from owner velocity (needed for stuck detection)
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		Factors.CurrentSpeed = Owner->GetVelocity().Size() * 0.036f; // cm/s to km/h
+	}
+
 	// Update slipstream system
 	if (SlipstreamSystem)
 	{

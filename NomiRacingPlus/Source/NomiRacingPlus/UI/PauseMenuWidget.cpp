@@ -56,6 +56,15 @@ void UPauseMenuWidget::OnContinue()
 		PC->SetInputMode(InputMode);
 		PC->SetShowMouseCursor(false);
 	}
+
+	// Unpause the game
+	UGameplayStatics::SetGamePaused(this, false);
+
+	// Update MenuManager state back to Racing
+	if (MenuManager)
+	{
+		MenuManager->ReturnToPrevious();
+	}
 }
 
 void UPauseMenuWidget::OnRestart()

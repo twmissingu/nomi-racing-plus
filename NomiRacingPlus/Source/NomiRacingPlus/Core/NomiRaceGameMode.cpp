@@ -476,7 +476,7 @@ bool ANomiRaceGameMode::StartChampionship(const FString& ChampionshipID)
 {
 	if (!ChampionshipManager)
 	{
-		UE_LOG(LogNomiRace, Error, TEXT("Cannot start championship: ChampionshipManager not available"));
+		UE_LOG(LogNomiRacing, Error, TEXT("Cannot start championship: ChampionshipManager not available"));
 		return false;
 	}
 
