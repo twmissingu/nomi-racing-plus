@@ -17,9 +17,9 @@ import traceback
 # Marker file — skip if setup was already completed
 # ---------------------------------------------------------------------------
 
-_MARKER_PATH = os.path.join(
+_MARKER_PATH = os.path.normpath(os.path.join(
     unreal.Paths.project_content_dir(), "..", ".setup_completed"
-)
+))
 
 
 def _is_setup_done() -> bool:

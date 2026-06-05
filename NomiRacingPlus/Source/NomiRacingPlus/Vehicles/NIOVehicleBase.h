@@ -9,6 +9,7 @@
 #include "Core/CameraSystem.h"
 #include "Components/SpotLightComponent.h"
 #include "Components/PointLightComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
 #include "NIOVehicleBase.generated.h"
@@ -82,6 +83,12 @@ protected:
 	// NIO movement component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NIO Vehicle")
 	TObjectPtr<UNIOVehicleMovementComponent> NIOMovement;
+
+	// Vehicle display mesh component (visual only — used when no SkeletalMesh is available)
+	// Named VehicleDisplayMesh to avoid conflict with AWheeledVehiclePawn's VehicleMesh (SkeletalMeshComponent)
+	// Set this via CDO in Python after pipeline import (merged GLB body mesh)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NIO Vehicle|Mesh")
+	TObjectPtr<UStaticMeshComponent> VehicleDisplayMesh;
 
 	// Camera system component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NIO Vehicle|Camera")

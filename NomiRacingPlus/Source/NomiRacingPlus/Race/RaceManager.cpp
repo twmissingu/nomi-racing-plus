@@ -294,21 +294,34 @@ void ARaceManager::RacerCrossFinishLine(APawn* VehiclePawn)
 
 	FRacerData& Racer = Racers[Index];
 
-	// Process finish line crossing:
-	// - First pass (CurrentLap == 0, CurrentCheckpoint == 0): triggers checkpoint 0 to start the race
-	// - Subsequent passes (CurrentLap > 0, CurrentCheckpoint == 0): triggers last checkpoint to complete lap
+	// Process finish line crossing.
+	//
+	// Race flow:
+	//   Lap=0, CP=0  → first crossing:   RacerPassCheckpoint(0)  → CP=1         (race start)
+	//   Lap=N, CP=0  → subsequent start: RacerPassCheckpoint(9)  → CP=0, Lap++  (new lap)
+	//   Lap=N, CP=9  → after CP8:        RacerPassCheckpoint(9)  → CP=0, Lap++  (lap completion)
+	//
+	// Cases 1 & 2 occur when the finish line trigger overlaps the start line
+	// and the racer's CP has wrapped to 0.  Case 3 occurs when the finish
+	// line is the *last* checkpoint (index CheckpointsPerLap-1) and the
+	// racer has just passed checkpoint 8.
 	if (Racer.CurrentCheckpoint == 0)
 	{
 		if (Racer.CurrentLap == 0)
 		{
-			// First crossing: treat as checkpoint 0 (start line)
 			RacerPassCheckpoint(VehiclePawn, 0);
 		}
 		else
 		{
-			// Subsequent crossings: treat as last checkpoint (finish line)
 			RacerPassCheckpoint(VehiclePawn, CheckpointsPerLap - 1);
 		}
+	}
+	else if (Racer.CurrentCheckpoint == CheckpointsPerLap - 1)
+	{
+		// Crossing the finish line after passing all intermediate checkpoints.
+		// This calls RacerPassCheckpoint(lastIndex) which wraps CP to 0 and
+		// increments the lap via the existing lap-completion logic.
+		RacerPassCheckpoint(VehiclePawn, CheckpointsPerLap - 1);
 	}
 }
 

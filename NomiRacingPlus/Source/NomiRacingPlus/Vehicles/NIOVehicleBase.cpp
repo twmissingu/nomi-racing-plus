@@ -33,6 +33,13 @@ ANIOVehicleBase::ANIOVehicleBase(const FObjectInitializer& ObjectInitializer)
 		NIOMovement->WheelSetups[3].BoneName = NAME_None;
 	}
 
+	// Create vehicle display mesh component (visual-only, no collision — physics handled by root)
+	// NOTE: Parent class AWheeledVehiclePawn already owns "VehicleMesh" (SkeletalMeshComponent), so we use a unique name.
+	VehicleDisplayMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VehicleDisplayMesh"));
+	VehicleDisplayMesh->SetupAttachment(GetMesh() ? Cast<USceneComponent>(GetMesh()) : GetRootComponent());
+	VehicleDisplayMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	VehicleDisplayMesh->SetVisibility(true);
+
 	// Create headlight components (attach to mesh if available, otherwise to root)
 	USceneComponent* AttachTarget = GetMesh() ? Cast<USceneComponent>(GetMesh()) : GetRootComponent();
 
@@ -91,6 +98,14 @@ void ANIOVehicleBase::BeginPlay()
 			Root->SetLinearDamping(0.5f);
 			Root->SetAngularDamping(2.0f);
 		}
+	}
+
+	// Manage vehicle display mesh visibility:
+	// - When Chaos Vehicle has a SkeletalMesh, hide our StaticMesh (redundant)
+	// - When no SkeletalMesh (GLB import), show the StaticMesh for visual feedback
+	if (VehicleDisplayMesh)
+	{
+		VehicleDisplayMesh->SetVisibility(!bChaosVehicleValid);
 	}
 
 	// Bind collision event for race statistics

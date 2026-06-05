@@ -1,6 +1,7 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
 #include "NomiPlayerController.h"
+#include "NomiRaceGameMode.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Vehicles/NIOVehicleBase.h"
@@ -31,9 +32,27 @@ void ANomiPlayerController::BeginPlay()
 	MenuManager = NewObject<UMenuManager>(this, TEXT("MenuManager"));
 	MenuManager->RegisterComponent();
 	MenuManager->Initialize(this);
-	MenuManager->ShowMainMenu();
 
-	UE_LOG(LogNomiRacing, Log, TEXT("Player controller initialized"));
+	// Only show the main menu when NOT on a race track.
+	// Race tracks (TestTrack, NIOCityCircuit, etc.) use NomiRaceGameMode which
+	// auto-starts the race and manages input.  The main menu's FInputModeUIOnly
+	// would block all game input and overlay the viewport.
+	bool bIsRaceTrack = false;
+	if (UWorld* World = GetWorld())
+	{
+		if (AGameModeBase* GM = World->GetAuthGameMode())
+		{
+			bIsRaceTrack = GM->IsA<ANomiRaceGameMode>();
+		}
+	}
+
+	if (!bIsRaceTrack)
+	{
+		MenuManager->ShowMainMenu();
+	}
+
+	UE_LOG(LogNomiRacing, Log, TEXT("Player controller initialized (race track: %s)"),
+		bIsRaceTrack ? TEXT("yes") : TEXT("no"));
 }
 
 void ANomiPlayerController::SetupInputComponent()
@@ -165,6 +184,11 @@ void ANomiPlayerController::SetCameraModeByIndex(int32 Mode)
 
 void ANomiPlayerController::CycleCameraMode()
 {
+	if (CameraModeNames.Num() == 0)
+	{
+		return;
+	}
+
 	CameraMode = (CameraMode + 1) % CameraModeNames.Num();
 
 	// Forward to camera system on vehicle

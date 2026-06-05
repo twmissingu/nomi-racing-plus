@@ -40,7 +40,6 @@ def _run_step(num, label, fn, *args):
         _log(f"  [FAIL] {label}: {e}")
         traceback.print_exc()
         _errors.append((num, label, str(e)))
-        raise
 
 def _exit_editor():
     """Save dirty packages and request clean editor exit."""
@@ -79,7 +78,12 @@ def _setup_audio():
         wave_path = f"/Game/Audio/Motor/{vehicle}_motor_loop"
         if not unreal.EditorAssetLibrary.does_asset_exist(f"{cue_path}.SoundCue") \
            and unreal.EditorAssetLibrary.does_asset_exist(f"{wave_path}.SoundWave"):
-            factory = unreal.SoundCueFactory()
+            try:
+                SoundCueFactory = unreal.SoundCueFactory
+            except AttributeError:
+                _log("  SoundCueFactory not available — skipping SoundCue creation")
+                break
+            factory = SoundCueFactory()
             unreal.AssetToolsHelpers.get_asset_tools().create_asset(
                 cue_name, "/Game/Audio/Motor", unreal.SoundCue, factory,
             )
@@ -112,8 +116,8 @@ def _compile_blueprints():
     try:
         ar = unreal.AssetRegistryHelpers.get_asset_registry()
         ar.scan_modified_files()
-    except:
-        pass
+    except Exception as e:
+        _log(f"  Asset registry scan failed: {e}")
 
     # Also try the known BP paths directly (handle list_assets not finding them)
     vehicle_types = ["EP9", "ET7", "ES7", "SU7Ultra"]
@@ -155,7 +159,9 @@ def _make_mapping(action, key_name, modifiers=None):
     return mapping
 
 def _create_input_assets():
-    """Create Enhanced Input assets: InputActions + InputMappingContext."""
+    """Create Enhanced Input assets: InputActions + InputMappingContext.
+    Returns (created_actions_dict, imc_asset).
+    """
     at = unreal.AssetToolsHelpers.get_asset_tools()
 
     if not unreal.EditorAssetLibrary.does_directory_exist("/Game/Input"):
@@ -245,17 +251,14 @@ def _create_input_assets():
         all_mappings.append(_make_mapping(ia["IA_Steer"],    "Gamepad_LeftX",            [deadzone]))
 
         # Assign all mappings to IMC
-        ms = imc.get_editor_property("mappings")
-        for m in all_mappings:
-            ms.append(m)
-        imc.set_editor_property("mappings", ms)
+        imc.set_editor_property("mappings", all_mappings)
 
         _log(f"  Added {len(all_mappings)} key mappings total")
     else:
         _log("  [WARN] IMC not available for mapping")
 
     _log("  Input assets setup complete")
-    return created_actions
+    return created_actions, imc
 
 
 def _reparent_vehicle_blueprints():
@@ -264,7 +267,7 @@ def _reparent_vehicle_blueprints():
         "EP9":       unreal.NIOVehicleType.EP9,
         "ET7":       unreal.NIOVehicleType.ET7,
         "ES7":       unreal.NIOVehicleType.ES7,
-        "SU7Ultra":  unreal.NIOVehicleType.SU7_ULTRA,
+        "SU7Ultra":  unreal.NIOVehicleType.SU7Ultra,
     }
 
     bel = unreal.BlueprintEditorLibrary
@@ -278,6 +281,20 @@ def _reparent_vehicle_blueprints():
             bp = unreal.EditorAssetLibrary.load_asset(bp_full)
             if not bp or not isinstance(bp, unreal.Blueprint):
                 continue
+
+            # Check current parent class — skip reparent if already correct
+            try:
+                gc = bp.generated_class()
+                current_parent = gc.get_super_class()
+                if current_parent and current_parent.get_name().startswith("NIOVehicleBase"):
+                    _log(f"  BP_NIO_{vt_name} already parented to NIOVehicleBase")
+                    cdo = unreal.get_default_object(gc)
+                    cdo.set_editor_property("vehicle_type", vt_enum)
+                    _log(f"  Set vehicle_type on BP_NIO_{vt_name} CDO = {vt_enum}")
+                    results["reparented"] += 1
+                    continue
+            except Exception:
+                pass
 
             # Reparent to NIOVehicleBase
             try:
@@ -322,28 +339,82 @@ def _reparent_vehicle_blueprints():
     _log(f"  Reparented {results['reparented']}, created {results['new']} new")
 
 
-def _create_player_controller():
-    """Create BP_NIO_PlayerController with InputMapping defaults."""
+def _create_player_controller(actions=None, imc=None):
+    """Create BP_NIO_PlayerController with InputMapping defaults.
+    
+    Sets InputMapping.MappingContext + InputMapping.Actions.* on the CDO
+    so Enhanced Input bindings work at PIE start.
+    """
     at = unreal.AssetToolsHelpers.get_asset_tools()
     pc_path = "/Game/Core/BP_NIO_PlayerController"
     pc_full = f"{pc_path}.BP_NIO_PlayerController"
 
     if unreal.EditorAssetLibrary.does_asset_exist(pc_full):
+        pc_bp = unreal.EditorAssetLibrary.load_asset(pc_full)
         _log(f"  BP_NIO_PlayerController already exists")
-        return unreal.EditorAssetLibrary.load_asset(pc_full)
-
-    if not unreal.EditorAssetLibrary.does_directory_exist("/Game/Core"):
-        unreal.EditorAssetLibrary.make_directory("/Game/Core")
-
-    factory = unreal.BlueprintFactory()
-    factory.set_editor_property("parent_class", unreal.NomiPlayerController)
-    pc_bp = at.create_asset(
-        "BP_NIO_PlayerController", "/Game/Core", unreal.Blueprint, factory,
-    )
-    if pc_bp:
-        _log(f"  Created BP_NIO_PlayerController")
     else:
-        _log(f"  [WARN] Failed to create BP_NIO_PlayerController")
+        if not unreal.EditorAssetLibrary.does_directory_exist("/Game/Core"):
+            unreal.EditorAssetLibrary.make_directory("/Game/Core")
+        factory = unreal.BlueprintFactory()
+        factory.set_editor_property("parent_class", unreal.NomiPlayerController)
+        pc_bp = at.create_asset(
+            "BP_NIO_PlayerController", "/Game/Core", unreal.Blueprint, factory,
+        )
+        _log(f"  Created BP_NIO_PlayerController" if pc_bp else "  [WARN] Failed to create BP_NIO_PlayerController")
+
+    # Wire InputMapping on CDO (matters even if BP already existed)
+    if pc_bp and actions and imc:
+        try:
+            pc_gc = pc_bp.generated_class()
+            cdo = unreal.get_default_object(pc_gc)
+
+            # Get the FVehicleInputMapping struct from CDO
+            mapping = cdo.get_editor_property("InputMapping")
+            if mapping is None:
+                _log("  [WARN] Could not read InputMapping from PC CDO")
+            else:
+                # 1. Set MappingContext
+                mapping.set_editor_property("MappingContext", imc)
+                _log("  Set InputMapping.MappingContext → IMC_VehicleControls")
+
+                # 2. Set each InputAction in the Actions sub-struct
+                ia = mapping.get_editor_property("Actions")
+                if ia is not None:
+                    action_map = {
+                        "ThrottleAction":   "IA_Throttle",
+                        "BrakeAction":      "IA_Brake",
+                        "SteerAction":      "IA_Steer",
+                        "HandbrakeAction":  "IA_Handbrake",
+                        "LookBackAction":   "IA_LookBack",
+                        "ChangeCameraAction":"IA_ChangeCamera",
+                        "HornAction":       "IA_Horn",
+                        "HeadlightsAction": "IA_Headlights",
+                        "PauseAction":      "IA_Pause",
+                        "ResetAction":      "IA_Reset",
+                    }
+                    for prop_name, action_name in action_map.items():
+                        action_asset = actions.get(action_name)
+                        if action_asset:
+                            ia.set_editor_property(prop_name, action_asset)
+                    _log(f"  Set {len(action_map)} InputActions on InputMapping.Actions")
+
+                    mapping.set_editor_property("Actions", ia)
+
+                # Write the struct back to the CDO
+                cdo.set_editor_property("InputMapping", mapping)
+                _log("  InputMapping wired on BP_NIO_PlayerController CDO")
+        except Exception as e:
+            _log(f"  [WARN] Failed to wire InputMapping on PC CDO: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        if not pc_bp:
+            _log("  [WARN] Cannot wire InputMapping: pc_bp is None")
+        elif not actions:
+            _log("  [WARN] Cannot wire InputMapping: no actions provided")
+        elif not imc:
+            _log("  [WARN] Cannot wire InputMapping: no IMC provided")
+
     return pc_bp
 
 
@@ -409,15 +480,15 @@ def _setup_gamemode_and_settings():
 
     # Step 1: Create input assets
     _log("  [sub] Creating input assets...")
-    actions = _create_input_assets()
+    actions, imc = _create_input_assets()
 
     # Step 2: Reparent vehicle Blueprints
     _log("  [sub] Reparenting vehicle Blueprints...")
     _reparent_vehicle_blueprints()
 
-    # Step 3: Create PlayerController
+    # Step 3: Create PlayerController (wire InputMapping on CDO)
     _log("  [sub] Creating PlayerController...")
-    pc_bp = _create_player_controller()
+    pc_bp = _create_player_controller(actions, imc)
 
     # Step 4: Configure GameMode
     _log("  [sub] Configuring GameMode...")
