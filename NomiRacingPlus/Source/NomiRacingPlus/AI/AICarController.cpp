@@ -307,8 +307,19 @@ void AAICarController::SetTargetSpeedMultiplier(float Multiplier)
 
 void AAICarController::UpdateAIDecision(float DeltaTime)
 {
-	if (!ControlledVehicle || Waypoints.Num() == 0)
+	if (!ControlledVehicle)
 	{
+		return;
+	}
+
+	// If no waypoints, still run BehaviorTree but skip waypoint following
+	if (Waypoints.Num() == 0)
+	{
+		if (BehaviorTree)
+		{
+			FAIDecisionFactors Factors;
+			BehaviorTree->UpdateDecisions(Factors, DeltaTime);
+		}
 		return;
 	}
 
