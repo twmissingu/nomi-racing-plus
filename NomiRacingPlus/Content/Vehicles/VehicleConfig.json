@@ -252,6 +252,78 @@
                 "lod2_distance": 5000
             }
         },
+        "ET5": {
+            "name": "NIO ET5",
+            "type": "sedan",
+            "performance": {
+                "mass_kg": 2070,
+                "power_kw": 360,
+                "power_hp": 489,
+                "torque_nm": 700,
+                "drive_type": "AWD_dual_motor",
+                "top_speed_kph": 200,
+                "acceleration_0_100": 4.0,
+                "wheelbase_mm": 2888,
+                "track_width_mm": 1660,
+                "height_mm": 1495
+            },
+            "electric": {
+                "battery_capacity_kwh": 75,
+                "motor_count": 2,
+                "motor_power_kw": 180,
+                "regen_strength": 0.30,
+                "range_km": 560
+            },
+            "aerodynamics": {
+                "drag_coefficient": 0.24,
+                "frontal_area_m2": 2.2,
+                "downforce_coefficient": 0.4,
+                "downforce_max_kg": 180
+            },
+            "chassis": {
+                "suspension_front": "double_wishbone",
+                "suspension_rear": "multi_link",
+                "brakes": "ventilated_disc",
+                "tires_front": "245/40 R20",
+                "tires_rear": "245/40 R20"
+            },
+            "chaos_vehicle": {
+                "engine": {
+                    "max_rpm": 14000,
+                    "idle_rpm": 0,
+                    "torque_curve": [
+                        {"rpm": 0, "torque": 1.0},
+                        {"rpm": 4000, "torque": 1.0},
+                        {"rpm": 9000, "torque": 0.65},
+                        {"rpm": 14000, "torque": 0.0}
+                    ]
+                },
+                "transmission": {
+                    "type": "single_speed",
+                    "gear_ratio": 1.0,
+                    "final_drive": 3.2
+                },
+                "suspension": {
+                    "spring_rate_front": 42000,
+                    "spring_rate_rear": 44000,
+                    "damping_ratio": 0.65,
+                    "max_compression": 110,
+                    "max_droop": 90
+                },
+                "tires": {
+                    "friction_force": 1.1,
+                    "lateral_stiffness": 23.0,
+                    "longitudinal_stiffness": 19.0
+                }
+            },
+            "lod": {
+                "lod0_faces": 480000,
+                "lod1_faces": 110000,
+                "lod2_faces": 22000,
+                "lod1_distance": 1000,
+                "lod2_distance": 5000
+            }
+        },
         "SU7Ultra": {
             "name": "Xiaomi SU7 Ultra",
             "type": "super_sedan",

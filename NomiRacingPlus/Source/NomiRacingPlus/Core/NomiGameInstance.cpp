@@ -75,6 +75,7 @@ bool UNomiGameInstance::SaveSettings()
 	DataObj->SetNumberField(TEXT("Difficulty"), Settings.Difficulty);
 	DataObj->SetNumberField(TEXT("NumLaps"), Settings.NumLaps);
 	DataObj->SetNumberField(TEXT("NumAIOpponents"), Settings.NumAIOpponents);
+	DataObj->SetStringField(TEXT("GameMode"), Settings.GameMode);
 
 	// Compute checksum using sorted-key serialization for determinism
 	FString DataString = SerializeSorted(DataObj);
@@ -183,6 +184,7 @@ bool UNomiGameInstance::LoadSettings()
 			(*DataObj)->TryGetNumberField(TEXT("Difficulty"), Settings.Difficulty);
 			(*DataObj)->TryGetNumberField(TEXT("NumLaps"), Settings.NumLaps);
 			(*DataObj)->TryGetNumberField(TEXT("NumAIOpponents"), Settings.NumAIOpponents);
+			(*DataObj)->TryGetStringField(TEXT("GameMode"), Settings.GameMode);
 		}
 		else
 		{
@@ -215,6 +217,7 @@ bool UNomiGameInstance::LoadSettings()
 			JsonObject->TryGetNumberField(TEXT("Difficulty"), Settings.Difficulty);
 			JsonObject->TryGetNumberField(TEXT("NumLaps"), Settings.NumLaps);
 			JsonObject->TryGetNumberField(TEXT("NumAIOpponents"), Settings.NumAIOpponents);
+			JsonObject->TryGetStringField(TEXT("GameMode"), Settings.GameMode);
 		}
 
 		UE_LOG(LogNomiRacing, Log, TEXT("Settings loaded successfully"));

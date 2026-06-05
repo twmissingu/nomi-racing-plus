@@ -14,6 +14,7 @@
 #include "NomiRaceGameMode.generated.h"
 
 class URaceHUD;
+class UResultsWidget;
 
 /**
  * Game mode for NIO Racing Plus
@@ -128,6 +129,10 @@ protected:
 
 	// Player's starting position (tracked for achievements like Underdog)
 	int32 PlayerStartingPosition = 0;
+
+	// Cached vehicle state manager for the player pawn
+	UPROPERTY()
+	TObjectPtr<UVehicleStateManager> CachedPlayerVSM;
 
 private:
 	// Initialize race manager

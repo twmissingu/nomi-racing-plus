@@ -7,12 +7,15 @@
 #include "Vehicles/NIO_EP9.h"
 #include "Vehicles/NIO_ET7.h"
 #include "Vehicles/NIO_ES7.h"
+#include "Vehicles/NIO_ET5.h"
 #include "Vehicles/Xiaomi_SU7Ultra.h"
 #include "AI/AICarController.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
 #include "UI/RaceHUD.h"
+#include "UI/ResultsWidget.h"
+#include "UI/MenuManager.h"
 
 ANomiRaceGameMode::ANomiRaceGameMode()
 {
@@ -30,6 +33,7 @@ ANomiRaceGameMode::ANomiRaceGameMode()
 	AIVehicleTypes.Add(ENIOVehicleType::ET7);
 	AIVehicleTypes.Add(ENIOVehicleType::ES7);
 	AIVehicleTypes.Add(ENIOVehicleType::EP9);
+	AIVehicleTypes.Add(ENIOVehicleType::ET5);
 }
 
 void ANomiRaceGameMode::BeginPlay()
@@ -41,8 +45,30 @@ void ANomiRaceGameMode::BeginPlay()
 		return;
 	}
 
+	// Read persisted settings from GameInstance (survives level transitions)
+	UNomiGameInstance* GameInstance = Cast<UNomiGameInstance>(GetGameInstance());
+	if (GameInstance)
+	{
+		const FNomiGameSettings& SavedSettings = GameInstance->GetSettings();
+		PlayerVehicleType = SavedSettings.SelectedVehicle;
+		DefaultRaceConfig.NumLaps = SavedSettings.NumLaps;
+		DefaultRaceConfig.MaxAIOpponents = SavedSettings.NumAIOpponents;
+		DefaultRaceConfig.RaceMode = SavedSettings.GameMode;
+		DefaultRaceConfig.bIsPointToPoint = (SavedSettings.GameMode == TEXT("Baja"));
+
+		UE_LOG(LogNomiRacing, Log, TEXT("Loaded settings from GameInstance: Vehicle=%d, Mode=%s, Laps=%d, AI=%d"),
+			static_cast<int32>(PlayerVehicleType), *SavedSettings.GameMode,
+			SavedSettings.NumLaps, SavedSettings.NumAIOpponents);
+	}
+
 	InitializeRaceManager();
 	SpawnPlayerVehicle();
+
+	// Cache player vehicle state manager for HUD data
+	if (APawn* PlayerPawn = GetPlayerVehicle())
+	{
+		CachedPlayerVSM = PlayerPawn->FindComponentByClass<UVehicleStateManager>();
+	}
 
 	// Create championship manager
 	if (UWorld* World = GetWorld())
@@ -58,10 +84,10 @@ void ANomiRaceGameMode::BeginPlay()
 	}
 
 	// Get progression component from game instance
-	UNomiGameInstance* GameInstance = Cast<UNomiGameInstance>(GetGameInstance());
-	if (GameInstance)
+	UNomiGameInstance* GI = Cast<UNomiGameInstance>(GetGameInstance());
+	if (GI)
 	{
-		RaceProgression = GameInstance->GetRaceProgression();
+		RaceProgression = GI->GetRaceProgression();
 
 		// Wire championship manager to progression component
 		if (ChampionshipManager && RaceProgression)
@@ -115,6 +141,93 @@ void ANomiRaceGameMode::Tick(float DeltaTime)
 			UE_LOG(LogNomiRacing, Log, TEXT("Race auto-started!"));
 		}
 	}
+
+	// Update HUD with live race data
+	if (RaceHUDWidget && RaceManager)
+	{
+		UWorld* World = GetWorld();
+		APawn* PlayerPawn = GetPlayerVehicle();
+		if (World && PlayerPawn)
+		{
+			// Re-cache VSM if needed (pawn may have been replaced on rematch)
+			if (!CachedPlayerVSM)
+			{
+				CachedPlayerVSM = PlayerPawn->FindComponentByClass<UVehicleStateManager>();
+			}
+
+			FHUDData Data;
+
+			// Vehicle telemetry
+			if (CachedPlayerVSM)
+			{
+				const FNIOVehicleState& VState = CachedPlayerVSM->GetVehicleState();
+				Data.Speed = VState.SpeedKmh;
+				Data.ThrottleInput = VState.ThrottleInput;
+				Data.BrakeInput = VState.BrakeInput;
+				Data.SteeringInput = VState.SteeringInput;
+				Data.bIsDrifting = VState.bIsDrifting;
+				Data.DriftAngle = VState.SlipAngle;
+				Data.BatteryLevel = VState.BatteryPercent;
+				Data.bIsNIOVehicle = CachedPlayerVSM->IsNIOVehicle();
+			}
+
+			// Race telemetry
+			ERaceState CurrentState = RaceManager->GetRaceState();
+			Data.RaceState = CurrentState;
+			Data.Position = RaceManager->GetPlayerPosition();
+			Data.TotalRacers = RaceManager->GetAllRacers().Num();
+			Data.CurrentLap = RaceManager->GetPlayerCurrentLap();
+			Data.TotalLaps = RaceManager->GetRaceConfig().NumLaps;
+			Data.RaceTimer = RaceManager->GetRaceTimer();
+
+			// Baja mode fields
+			Data.bIsBajaMode = RaceManager->GetRaceConfig().bIsPointToPoint;
+			if (Data.bIsBajaMode)
+			{
+				const TArray<FRacerData>& AllRacers = RaceManager->GetAllRacers();
+				for (int32 i = 0; i < AllRacers.Num(); i++)
+				{
+					if (AllRacers[i].bIsPlayer)
+					{
+						Data.DistanceToFinish = RaceManager->GetDistanceToFinish(i);
+						Data.ProgressPercent = RaceManager->GetProgressPercent(i);
+						break;
+					}
+				}
+			}
+
+			// Best lap time from racer data
+			FRacerData RacerData;
+			if (RaceManager->GetRacerData(PlayerPawn, RacerData))
+			{
+				Data.BestLapTime = RacerData.BestLapTime;
+
+				// Current lap time = race timer - sum of completed lap times
+				float CompletedLapsTime = 0.0f;
+				for (float T : RacerData.LapTimes) { CompletedLapsTime += T; }
+				Data.CurrentLapTime = RaceManager->GetRaceTimer() - CompletedLapsTime;
+			}
+
+			// NOMI comment data
+			if (CommentaryEngine)
+			{
+				Data.bNOMICommentVisible = CommentaryEngine->IsCommentPlaying();
+				if (Data.bNOMICommentVisible)
+				{
+					Data.NOMICommentText = CommentaryEngine->GetCurrentCommentText();
+					Data.NOMIEmotion = CommentaryEngine->GetCurrentEmotion();
+				}
+			}
+
+			// Countdown display
+			if (CurrentState == ERaceState::Countdown)
+			{
+				Data.CountdownValue = RaceManager->GetCountdownValue();
+			}
+
+			RaceHUDWidget->UpdateHUDData(Data);
+		}
+	}
 }
 
 void ANomiRaceGameMode::StartNewRace(const FRaceConfig& Config)
@@ -164,8 +277,22 @@ void ANomiRaceGameMode::StartNewRace(const FRaceConfig& Config)
 		RaceManager->RegisterRacer(PlayerPawn, TEXT("Player"), true);
 	}
 
-	// Start the race
+	// Start the race (enters countdown state)
 	RaceManager->StartRace(Config);
+
+	// Create HUD early so countdown can be displayed
+	if (ANomiPlayerController* PC = Cast<ANomiPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
+	{
+		if (!RaceHUDWidget)
+		{
+			RaceHUDWidget = CreateWidget<URaceHUD>(PC, URaceHUD::StaticClass());
+			if (RaceHUDWidget)
+			{
+				RaceHUDWidget->AddToViewport();
+				UE_LOG(LogNomiRacing, Log, TEXT("Race HUD created for countdown display"));
+			}
+		}
+	}
 
 	UE_LOG(LogNomiRacing, Log, TEXT("Race started: %s"), *Config.TrackName);
 }
@@ -309,6 +436,8 @@ TSubclassOf<APawn> ANomiRaceGameMode::GetVehicleSpawnClass(ENIOVehicleType Vehic
 		return ANIO_ET7::StaticClass();
 	case ENIOVehicleType::ES7:
 		return ANIO_ES7::StaticClass();
+	case ENIOVehicleType::ET5:
+		return ANIO_ET5::StaticClass();
 	case ENIOVehicleType::SU7Ultra:
 		return AXiaomi_SU7Ultra::StaticClass();
 	default:
@@ -374,21 +503,13 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 		if (ANomiPlayerController* PC = Cast<ANomiPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 		{
 			PC->SetInputEnabled(true);
+		}
 
-			// Create and display the race HUD
-			if (!RaceHUDWidget)
-			{
-				RaceHUDWidget = CreateWidget<URaceHUD>(PC, URaceHUD::StaticClass());
-				if (RaceHUDWidget)
-				{
-					RaceHUDWidget->AddToViewport();
-					UE_LOG(LogNomiRacing, Log, TEXT("Race HUD created and displayed"));
-				}
-			}
-			else
-			{
-				RaceHUDWidget->SetHUDVisible(true);
-			}
+		// Show the HUD (already created during countdown in StartNewRace)
+		if (RaceHUDWidget)
+		{
+			RaceHUDWidget->SetHUDVisible(true);
+			RaceHUDWidget->HideCountdown();
 		}
 		// Attach NOMI to the player vehicle
 		if (NOMIController)
@@ -409,14 +530,12 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 
 	case ERaceEvent::RaceFinish:
 		UE_LOG(LogNomiRacing, Log, TEXT("Race finished! Player position: %d"), RacerData.Position);
-
-		// Record session for progression if we have the data
-		if (RaceProgression && RaceManager)
 		{
+			// Build session result for progression and results display
 			FRaceSessionResult SessionResult;
 			SessionResult.FinalPosition = RacerData.Position;
 			SessionResult.StartingPosition = PlayerStartingPosition;
-			SessionResult.TotalRacers = RaceManager->GetAllRacers().Num();
+			SessionResult.TotalRacers = RaceManager ? RaceManager->GetAllRacers().Num() : 0;
 			SessionResult.NumLaps = RacerData.LapTimes.Num();
 			SessionResult.LapTimes = RacerData.LapTimes;
 			SessionResult.BestLapTime = RacerData.BestLapTime;
@@ -425,12 +544,12 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 			SessionResult.Timestamp = FDateTime::Now();
 
 			// Get track and vehicle info from settings
-			UNomiGameInstance* GameInstance = Cast<UNomiGameInstance>(GetGameInstance());
-			if (GameInstance)
+			UNomiGameInstance* FinishGI = Cast<UNomiGameInstance>(GetGameInstance());
+			if (FinishGI)
 			{
-				SessionResult.TrackName = GameInstance->GetSettings().SelectedTrack;
-				SessionResult.VehicleName = UEnum::GetValueAsString(GameInstance->GetSettings().SelectedVehicle);
-				SessionResult.Difficulty = GameInstance->GetSettings().Difficulty;
+				SessionResult.TrackName = FinishGI->GetSettings().SelectedTrack;
+				SessionResult.VehicleName = UEnum::GetValueAsString(FinishGI->GetSettings().SelectedVehicle);
+				SessionResult.Difficulty = FinishGI->GetSettings().Difficulty;
 			}
 
 			// Get race stats from player vehicle
@@ -445,24 +564,55 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 			// Determine if clean race
 			SessionResult.bCleanRace = (SessionResult.Collisions == 0);
 
-			RaceProgression->RecordRaceSession(SessionResult);
+			// Record session for progression
+			if (RaceProgression)
+			{
+				RaceProgression->RecordRaceSession(SessionResult);
+			}
 
 			// If in championship, record championship result
 			if (ChampionshipManager && ChampionshipManager->HasActiveChampionship())
 			{
 				SessionResult.bChampionshipRace = true;
 
-				// Build AI positions map
 				TMap<FString, int32> AIPositions;
-				for (const FRacerData& Racer : RaceManager->GetAllRacers())
+				if (RaceManager)
 				{
-					if (!Racer.bIsPlayer)
+					for (const FRacerData& Racer : RaceManager->GetAllRacers())
 					{
-						AIPositions.Add(Racer.DisplayName, Racer.Position);
+						if (!Racer.bIsPlayer)
+						{
+							AIPositions.Add(Racer.DisplayName, Racer.Position);
+						}
 					}
 				}
 
 				ChampionshipManager->RecordChampionshipRaceResult(RacerData.Position, AIPositions);
+			}
+
+			// Show ResultsWidget
+			ANomiPlayerController* PC = Cast<ANomiPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+			if (PC)
+			{
+				UMenuManager* MenuMgr = PC->FindComponentByClass<UMenuManager>();
+				if (MenuMgr)
+				{
+					MenuMgr->ShowResults(SessionResult);
+
+					UResultsWidget* Results = CreateWidget<UResultsWidget>(PC, UResultsWidget::StaticClass());
+					if (Results)
+					{
+						Results->SetMenuManager(MenuMgr);
+						Results->SetResults(SessionResult, DefaultRaceConfig.bIsPointToPoint);
+						Results->AddToViewport(10);
+					}
+				}
+			}
+
+			// Hide the race HUD
+			if (RaceHUDWidget)
+			{
+				RaceHUDWidget->SetHUDVisible(false);
 			}
 		}
 		break;

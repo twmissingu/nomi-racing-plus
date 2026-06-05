@@ -44,6 +44,9 @@ public:
 	TObjectPtr<UButton> DifficultyHardBtn;
 
 	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> DifficultyExpertBtn;
+
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> LapsPlusButton;
 
 	UPROPERTY(meta = (BindWidget))
@@ -102,6 +105,9 @@ private:
 
 	UFUNCTION()
 	void OnDifficultyClickedHard();
+
+	UFUNCTION()
+	void OnDifficultyClickedExpert();
 
 	void OnDifficultyClicked(int32 InDifficulty);
 

@@ -51,6 +51,7 @@ void UGarageWidget::SetModeFilter(const FString& Mode)
 		AvailableVehicles.Add(ENIOVehicleType::EP9);
 		AvailableVehicles.Add(ENIOVehicleType::ET7);
 		AvailableVehicles.Add(ENIOVehicleType::ES7);
+		AvailableVehicles.Add(ENIOVehicleType::ET5);
 		AvailableVehicles.Add(ENIOVehicleType::SU7Ultra);
 	}
 	else if (Mode == TEXT("Baja"))
@@ -63,6 +64,7 @@ void UGarageWidget::SetModeFilter(const FString& Mode)
 		AvailableVehicles.Add(ENIOVehicleType::EP9);
 		AvailableVehicles.Add(ENIOVehicleType::ET7);
 		AvailableVehicles.Add(ENIOVehicleType::ES7);
+		AvailableVehicles.Add(ENIOVehicleType::ET5);
 		AvailableVehicles.Add(ENIOVehicleType::SU7Ultra);
 	}
 

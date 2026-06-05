@@ -44,6 +44,11 @@ void URaceSettingsWidget::NativeConstruct()
 		DifficultyHardBtn->OnClicked.AddDynamic(this, &URaceSettingsWidget::OnDifficultyClickedHard);
 	}
 
+	if (DifficultyExpertBtn)
+	{
+		DifficultyExpertBtn->OnClicked.AddDynamic(this, &URaceSettingsWidget::OnDifficultyClickedExpert);
+	}
+
 	if (LapsPlusButton)
 	{
 		LapsPlusButton->OnClicked.AddDynamic(this, &URaceSettingsWidget::OnLapsPlus);
@@ -102,9 +107,14 @@ void URaceSettingsWidget::OnDifficultyClickedHard()
 	OnDifficultyClicked(2);
 }
 
+void URaceSettingsWidget::OnDifficultyClickedExpert()
+{
+	OnDifficultyClicked(3);
+}
+
 void URaceSettingsWidget::OnDifficultyClicked(int32 InDifficulty)
 {
-	DifficultyIndex = FMath::Clamp(InDifficulty, 0, 2);
+	DifficultyIndex = FMath::Clamp(InDifficulty, 0, 3);
 	UpdateDisplay();
 }
 
@@ -135,8 +145,9 @@ void URaceSettingsWidget::OnStartRace()
 		switch (DifficultyIndex)
 		{
 		case 0: DifficultyValue = 25;  break; // EASY
-		case 1: DifficultyValue = 50;  break; // MEDIUM
-		case 2: DifficultyValue = 100; break; // HARD
+		case 1: DifficultyValue = 50;  break; // NORMAL
+		case 2: DifficultyValue = 75;  break; // HARD
+		case 3: DifficultyValue = 100; break; // EXPERT
 		default: DifficultyValue = 50; break;
 		}
 
@@ -162,8 +173,8 @@ void URaceSettingsWidget::UpdateDisplay()
 
 	if (DifficultyText)
 	{
-		static const TCHAR* DifficultyNames[] = { TEXT("EASY"), TEXT("MEDIUM"), TEXT("HARD") };
-		DifficultyText->SetText(FText::FromString(DifficultyNames[FMath::Clamp(DifficultyIndex, 0, 2)]));
+		static const TCHAR* DifficultyNames[] = { TEXT("EASY"), TEXT("NORMAL"), TEXT("HARD"), TEXT("EXPERT") };
+		DifficultyText->SetText(FText::FromString(DifficultyNames[FMath::Clamp(DifficultyIndex, 0, 3)]));
 	}
 
 	// Hide laps in Baja mode (point-to-point races)

@@ -83,7 +83,7 @@ void UVehicleStateManager::BeginPlay()
 	case ENIOVehicleType::SU7Ultra:
 		PerformanceConfig.MassKg = 1900.0f;
 		PerformanceConfig.PowerKw = 1138.0f;
-		PerformanceConfig.TorqueNm = 1200.0f;
+		PerformanceConfig.TorqueNm = 1635.0f;
 		PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
 		PerformanceConfig.TopSpeedKph = 350.0f;
 		PerformanceConfig.Acceleration0100 = 1.98f;
@@ -292,7 +292,7 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 	case ENIOVehicleType::SU7Ultra:
 		Config.MassKg = 1900.0f;
 		Config.PowerKw = 1138.0f;
-		Config.TorqueNm = 1200.0f;
+		Config.TorqueNm = 1635.0f;
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 350.0f;
 		Config.Acceleration0100 = 1.98f;

@@ -84,6 +84,10 @@ struct NOMIRACINGPLUS_API FNomiGameSettings
 	UPROPERTY(BlueprintReadWrite, Category = "Settings|Gameplay")
 	int32 NumAIOpponents = 7;
 
+	// Game mode: "GT", "NIO", or "Baja"
+	UPROPERTY(BlueprintReadWrite, Category = "Settings|Gameplay")
+	FString GameMode = TEXT("GT");
+
 	// Best lap times (track name -> time)
 	UPROPERTY(BlueprintReadWrite, Category = "Settings|Progress")
 	TMap<FString, float> BestLapTimes;

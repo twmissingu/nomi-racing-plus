@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Race/RaceManager.h"
 #include "Core/NomiRaceGameMode.h"
+#include "Core/NomiGameInstance.h"
 
 #include "UI/MainMenuWidget.h"
 #include "UI/GarageWidget.h"
@@ -155,16 +156,35 @@ void UMenuManager::StartRace()
 
 	ShowLoadingScreen();
 
+	// Persist race settings to GameInstance so they survive level transitions
+	if (IsValid(OwningPlayer.Get()) && OwningPlayer->GetWorld())
+	{
+		UNomiGameInstance* GI = Cast<UNomiGameInstance>(OwningPlayer->GetWorld()->GetGameInstance());
+		if (GI)
+		{
+			FNomiGameSettings Settings = GI->GetSettings();
+			Settings.SelectedVehicle = MenuContext.VehicleType;
+			Settings.SelectedTrack = MenuContext.TrackName;
+			Settings.Difficulty = MenuContext.Difficulty;
+			Settings.NumLaps = MenuContext.Laps;
+			Settings.NumAIOpponents = MenuContext.AICount;
+			Settings.GameMode = MenuContext.GameMode;
+			GI->UpdateSettings(Settings);
+			GI->SaveSettings();
+			UE_LOG(LogNomiMenu, Log, TEXT("Race settings persisted to GameInstance"));
+		}
+	}
+
 	// Build race config from menu context
 	FRaceConfig Config;
 	Config.TrackName = MenuContext.TrackName;
 	Config.RaceMode = MenuContext.GameMode;
 	Config.MaxAIOpponents = MenuContext.AICount;
 	Config.NumLaps = MenuContext.Laps;
+	Config.bIsPointToPoint = (MenuContext.GameMode == TEXT("Baja"));
 
 	// Open the race track level. The level's World Settings should configure
 	// NomiRaceGameMode, which auto-starts the race after a delay.
-	// Store MenuContext in GameInstance so the GameMode can read vehicle/settings.
 	if (IsValid(OwningPlayer.Get()) && OwningPlayer->GetWorld())
 	{
 		// Check if we already have a GameMode (i.e., we're on a race track — rematch scenario)
@@ -241,20 +261,50 @@ UUserWidget* UMenuManager::CreateWidgetForState(EMenuState State)
 	switch (State)
 	{
 	case EMenuState::MainMenu:
+	{
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating MainMenu widget"));
-		return CreateWidget<UMainMenuWidget>(OwningPlayer);
+		UMainMenuWidget* MainMenu = CreateWidget<UMainMenuWidget>(OwningPlayer);
+		if (MainMenu)
+		{
+			MainMenu->SetMenuManager(this);
+		}
+		return MainMenu;
+	}
 
 	case EMenuState::Garage:
+	{
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating Garage widget (mode: %s)"), *MenuContext.GameMode);
-		return CreateWidget<UGarageWidget>(OwningPlayer);
+		UGarageWidget* Garage = CreateWidget<UGarageWidget>(OwningPlayer);
+		if (Garage)
+		{
+			Garage->SetMenuManager(this);
+			Garage->SetModeFilter(MenuContext.GameMode);
+		}
+		return Garage;
+	}
 
 	case EMenuState::TrackSelect:
+	{
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating TrackSelect widget (mode: %s)"), *MenuContext.GameMode);
-		return CreateWidget<UTrackSelectWidget>(OwningPlayer);
+		UTrackSelectWidget* TrackSelect = CreateWidget<UTrackSelectWidget>(OwningPlayer);
+		if (TrackSelect)
+		{
+			TrackSelect->SetMenuManager(this);
+			TrackSelect->SetModeFilter(MenuContext.GameMode);
+		}
+		return TrackSelect;
+	}
 
 	case EMenuState::RaceSettings:
+	{
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating RaceSettings widget"));
-		return CreateWidget<URaceSettingsWidget>(OwningPlayer);
+		URaceSettingsWidget* RaceSettings = CreateWidget<URaceSettingsWidget>(OwningPlayer);
+		if (RaceSettings)
+		{
+			RaceSettings->SetMenuManager(this);
+		}
+		return RaceSettings;
+	}
 
 	case EMenuState::Loading:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating LoadingScreen widget"));
@@ -300,7 +350,8 @@ void UMenuManager::SwitchToState(EMenuState NewState)
 	// Avoid pushing Paused↔Racing transitions to prevent unbounded stack growth
 	if (CurrentState != EMenuState::MainMenu && NewState != EMenuState::MainMenu
 		&& !(CurrentState == EMenuState::Paused && NewState == EMenuState::Racing)
-		&& !(CurrentState == EMenuState::Racing && NewState == EMenuState::Paused))
+		&& !(CurrentState == EMenuState::Racing && NewState == EMenuState::Paused)
+		&& !(CurrentState == EMenuState::Racing && NewState == EMenuState::Results))
 	{
 		StateStack.Push(CurrentState);
 	}
