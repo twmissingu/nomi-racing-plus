@@ -13,6 +13,8 @@
 #include "NOMI/NOMIController.h"
 #include "NomiRaceGameMode.generated.h"
 
+class URaceHUD;
+
 /**
  * Game mode for NIO Racing Plus
  * Manages race flow, player, and AI vehicles
@@ -112,6 +114,10 @@ protected:
 	// NOMI controller (visual representation)
 	UPROPERTY(BlueprintReadOnly, Category = "Game Mode|NOMI")
 	TObjectPtr<ANOMIController> NOMIController;
+
+	// Race HUD widget
+	UPROPERTY()
+	TObjectPtr<URaceHUD> RaceHUDWidget;
 
 	// Auto-start race delay
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game Mode")

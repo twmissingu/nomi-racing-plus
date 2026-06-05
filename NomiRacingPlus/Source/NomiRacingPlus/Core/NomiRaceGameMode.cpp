@@ -12,6 +12,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
+#include "UI/RaceHUD.h"
 
 ANomiRaceGameMode::ANomiRaceGameMode()
 {
@@ -118,6 +119,29 @@ void ANomiRaceGameMode::StartNewRace(const FRaceConfig& Config)
 	{
 		PC->SetInputEnabled(false);
 	}
+
+	// Destroy old AI vehicles before spawning new ones (rematch cleanup)
+	// Copy the array since ResetRace() will empty it
+	TArray<FRacerData> OldRacers = RaceManager->GetAllRacers();
+	for (const FRacerData& Racer : OldRacers)
+	{
+		if (!Racer.bIsPlayer && Racer.VehiclePawn)
+		{
+			// Unpossess before destroying
+			if (AController* Ctrl = Racer.VehiclePawn->GetController())
+			{
+				Ctrl->UnPossess();
+				Ctrl->Destroy();
+			}
+			Racer.VehiclePawn->Destroy();
+		}
+	}
+
+	// Reset RaceManager racers list
+	RaceManager->ResetRace();
+
+	// Reset auto-start flag for the new race
+	bRaceStarted = true; // Prevent Tick from auto-starting again
 
 	// Spawn AI opponents
 	SpawnAIOpponents(Config.MaxAIOpponents);
@@ -329,6 +353,21 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 		if (ANomiPlayerController* PC = Cast<ANomiPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 		{
 			PC->SetInputEnabled(true);
+
+			// Create and display the race HUD
+			if (!RaceHUDWidget)
+			{
+				RaceHUDWidget = CreateWidget<URaceHUD>(PC, URaceHUD::StaticClass());
+				if (RaceHUDWidget)
+				{
+					RaceHUDWidget->AddToViewport();
+					UE_LOG(LogNomiRacing, Log, TEXT("Race HUD created and displayed"));
+				}
+			}
+			else
+			{
+				RaceHUDWidget->SetHUDVisible(true);
+			}
 		}
 		// Attach NOMI to the player vehicle
 		if (NOMIController)

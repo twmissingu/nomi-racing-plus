@@ -5,6 +5,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Race/RaceManager.h"
+#include "Core/NomiRaceGameMode.h"
 
 #include "UI/MainMenuWidget.h"
 #include "UI/GarageWidget.h"
@@ -38,6 +39,19 @@ void UMenuManager::Initialize(APlayerController* PC)
 
 void UMenuManager::ShowMainMenu()
 {
+	// If we're on a race track, open the menu level instead of showing a widget
+	if (IsValid(OwningPlayer.Get()) && OwningPlayer->GetWorld())
+	{
+		ANomiRaceGameMode* GM = Cast<ANomiRaceGameMode>(OwningPlayer->GetWorld()->GetAuthGameMode());
+		if (GM)
+		{
+			// We're on a race track — open the MainMenu level
+			UGameplayStatics::OpenLevel(OwningPlayer->GetWorld(), FName(TEXT("MainMenu")));
+			UE_LOG(LogNomiMenu, Log, TEXT("Opening MainMenu level from race track"));
+			return;
+		}
+	}
+
 	SwitchToState(EMenuState::MainMenu);
 
 	if (IsValid(OwningPlayer.Get()))
@@ -153,23 +167,18 @@ void UMenuManager::StartRace()
 	// Store MenuContext in GameInstance so the GameMode can read vehicle/settings.
 	if (IsValid(OwningPlayer.Get()) && OwningPlayer->GetWorld())
 	{
-		// Check if we already have a RaceManager (i.e., we're on a race track)
-		TArray<AActor*> RaceManagers;
-		UGameplayStatics::GetAllActorsOfClass(OwningPlayer->GetWorld(), ARaceManager::StaticClass(), RaceManagers);
-
-		if (RaceManagers.Num() > 0)
+		// Check if we already have a GameMode (i.e., we're on a race track — rematch scenario)
+		ANomiRaceGameMode* GM = Cast<ANomiRaceGameMode>(OwningPlayer->GetWorld()->GetAuthGameMode());
+		if (GM)
 		{
-			ARaceManager* RaceManager = Cast<ARaceManager>(RaceManagers[0]);
-			if (RaceManager)
-			{
-				RaceManager->StartRace(Config);
-				CurrentState = EMenuState::Racing;
-				UE_LOG(LogNomiMenu, Log, TEXT("Race started via RaceManager"));
-			}
+			// We're on a race track — use GameMode to properly clean up and restart
+			GM->StartNewRace(Config);
+			CurrentState = EMenuState::Racing;
+			UE_LOG(LogNomiMenu, Log, TEXT("Race restarted via GameMode (rematch)"));
 		}
 		else
 		{
-			// No RaceManager — we're on the menu level. Open the race track.
+			// We're on the menu level — open the race track
 			FString LevelName = MenuContext.TrackName.IsEmpty() ? TEXT("TestTrack") : MenuContext.TrackName;
 			UGameplayStatics::OpenLevel(OwningPlayer->GetWorld(), FName(*LevelName));
 			UE_LOG(LogNomiMenu, Log, TEXT("Opening race level: %s"), *LevelName);
