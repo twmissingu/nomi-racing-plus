@@ -177,9 +177,11 @@ void ARaceManager::UnregisterRacer(APawn* VehiclePawn)
 	int32 Index = FindRacerIndex(VehiclePawn);
 	if (Index != INDEX_NONE)
 	{
-		FString Name = Racers[Index].DisplayName;
-		Racers.RemoveAt(Index);
-		UE_LOG(LogNomiRace, Log, TEXT("Racer unregistered: %s"), *Name);
+		// Mark as inactive instead of removing to preserve array indices
+		// and RacerID consistency for position tracking
+		Racers[Index].bFinished = true;
+		Racers[Index].VehiclePawn = nullptr;
+		UE_LOG(LogNomiRace, Log, TEXT("Racer unregistered: %s"), *Racers[Index].DisplayName);
 	}
 }
 

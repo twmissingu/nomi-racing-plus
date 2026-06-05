@@ -373,8 +373,9 @@ void ANIOVehicleBase::UpdateAudio(float DeltaTime)
 			// Map RPM to pitch: idle ~0.8, redline ~1.6 (electric motor whine)
 			const float MinPitch = 0.8f;
 			const float MaxPitch = 1.6f;
-			const float MaxRPM = FMath::Max(State.RPM, 1000.0f); // Avoid division issues
-			float RPMRatio = FMath::Clamp(CachedMotorRPM / MaxRPM, 0.0f, 1.0f);
+			// Use fixed max RPM for consistent pitch mapping (don't use live RPM as denominator)
+			const float MaxMotorRPM = 8000.0f;
+			float RPMRatio = FMath::Clamp(CachedMotorRPM / MaxMotorRPM, 0.0f, 1.0f);
 			// Use speed-based ratio instead when RPM data is unreliable
 			if (CachedMotorRPM < 1.0f)
 			{
