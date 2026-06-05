@@ -71,6 +71,9 @@ void UPauseMenuWidget::OnRestart()
 {
 	RemoveFromParent();
 
+	// Unpause before restarting
+	UGameplayStatics::SetGamePaused(this, false);
+
 	UWorld* World = GetWorld();
 	if (World)
 	{
@@ -91,6 +94,9 @@ void UPauseMenuWidget::OnSettings()
 void UPauseMenuWidget::OnMainMenu()
 {
 	RemoveFromParent();
+
+	// Unpause before returning to menu
+	UGameplayStatics::SetGamePaused(this, false);
 
 	if (MenuManager)
 	{

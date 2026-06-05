@@ -8,6 +8,7 @@
 #include "Serialization/JsonWriter.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "HAL/PlatformMisc.h"
 
 namespace ProgressionSerializer
 {
@@ -114,13 +115,32 @@ bool Save(const FString& SavePath,
 	}
 	RootObj->SetObjectField(TEXT("unlockables"), UnlockablesObj);
 
+	// ── Wrap with integrity envelope ───────────────────────────────────
+	TSharedPtr<FJsonObject> Envelope = MakeShared<FJsonObject>();
+	Envelope->SetNumberField(TEXT("version"), 1);
+	Envelope->SetObjectField(TEXT("data"), RootObj);
+
 	// ── Serialize ───────────────────────────────────────────────────────
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
-	FJsonSerializer::Serialize(RootObj.ToSharedRef(), Writer);
+	FJsonSerializer::Serialize(Envelope.ToSharedRef(), Writer);
 
-	return FFileHelper::SaveStringToFile(JsonString, *SavePath,
-		FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+	// Atomic write: write to .tmp then rename (crash-safe)
+	const FString TmpPath = SavePath + TEXT(".tmp");
+	if (!FFileHelper::SaveStringToFile(JsonString, *TmpPath,
+		FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+	{
+		return false;
+	}
+
+	// Backup existing file before overwriting
+	if (FPaths::FileExists(SavePath))
+	{
+		const FString BackupPath = SavePath + TEXT(".bak");
+		IFileManager::Get().Copy(*BackupPath, *SavePath, true, true);
+	}
+
+	return IFileManager::Get().Rename(*TmpPath, *SavePath, true);
 }
 
 bool Load(const FString& SavePath,
@@ -147,9 +167,46 @@ bool Load(const FString& SavePath,
 		return false;
 	}
 
+	// Handle envelope format (version+data) vs legacy flat format
+	TSharedPtr<FJsonObject> DataObj = JsonObject;
+	int32 Version = 0;
+	if (JsonObject->TryGetNumberField(TEXT("version"), Version) && Version >= 1)
+	{
+		const TSharedPtr<FJsonObject>* InnerObj;
+		if (JsonObject->TryGetObjectField(TEXT("data"), InnerObj))
+		{
+			DataObj = *InnerObj;
+		}
+	}
+
+	// Try to load from backup if data object is missing
+	if (!DataObj.IsValid())
+	{
+		const FString BackupPath = SavePath + TEXT(".bak");
+		if (FPaths::FileExists(BackupPath))
+		{
+			FString BackupJson;
+			if (FFileHelper::LoadFileToString(BackupJson, *BackupPath))
+			{
+				TSharedRef<TJsonReader<>> BackupReader = TJsonReaderFactory<>::Create(BackupJson);
+				TSharedPtr<FJsonObject> BackupObj;
+				if (FJsonSerializer::Deserialize(BackupReader, BackupObj) && BackupObj.IsValid())
+				{
+					DataObj = BackupObj;
+					UE_LOG(LogNomiRace, Warning, TEXT("Loaded progression from backup"));
+				}
+			}
+		}
+	}
+
+	if (!DataObj.IsValid())
+	{
+		return false;
+	}
+
 	// ── Load statistics ─────────────────────────────────────────────────
 	const TSharedPtr<FJsonObject>* StatsObj;
-	if (JsonObject->TryGetObjectField(TEXT("statistics"), StatsObj))
+	if (DataObj->TryGetObjectField(TEXT("statistics"), StatsObj))
 	{
 		(*StatsObj)->TryGetNumberField(TEXT("total_races"), Stats.TotalRaces);
 		(*StatsObj)->TryGetNumberField(TEXT("total_wins"), Stats.TotalWins);
@@ -249,7 +306,7 @@ bool Load(const FString& SavePath,
 
 	// ── Load achievements ───────────────────────────────────────────────
 	const TSharedPtr<FJsonObject>* AchievementsObj;
-	if (JsonObject->TryGetObjectField(TEXT("achievements"), AchievementsObj))
+	if (DataObj->TryGetObjectField(TEXT("achievements"), AchievementsObj))
 	{
 		for (const auto& Pair : (*AchievementsObj)->Values)
 		{
@@ -276,7 +333,7 @@ bool Load(const FString& SavePath,
 
 	// ── Load unlockables ────────────────────────────────────────────────
 	const TSharedPtr<FJsonObject>* UnlockablesObj;
-	if (JsonObject->TryGetObjectField(TEXT("unlockables"), UnlockablesObj))
+	if (DataObj->TryGetObjectField(TEXT("unlockables"), UnlockablesObj))
 	{
 		for (const auto& Pair : (*UnlockablesObj)->Values)
 		{

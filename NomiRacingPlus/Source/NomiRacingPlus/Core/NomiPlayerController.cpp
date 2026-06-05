@@ -184,23 +184,21 @@ void ANomiPlayerController::SetCameraModeByIndex(int32 Mode)
 
 void ANomiPlayerController::CycleCameraMode()
 {
-	if (CameraModeNames.Num() == 0)
-	{
-		return;
-	}
-
-	CameraMode = (CameraMode + 1) % CameraModeNames.Num();
-
-	// Forward to camera system on vehicle
+	// Delegate camera cycling entirely to CameraSystem to avoid desync
 	if (ANIOVehicleBase* Vehicle = Cast<ANIOVehicleBase>(GetPawn()))
 	{
 		if (UCameraSystem* CamSys = Vehicle->FindComponentByClass<UCameraSystem>())
 		{
 			CamSys->CycleCameraMode();
+			// Read back the current mode from CameraSystem for logging
+			CameraMode = static_cast<int32>(CamSys->GetCurrentMode());
 		}
 	}
 
-	UE_LOG(LogNomiRacing, Log, TEXT("Camera mode: %s"), *CameraModeNames[CameraMode]);
+	if (CameraModeNames.IsValidIndex(CameraMode))
+	{
+		UE_LOG(LogNomiRacing, Log, TEXT("Camera mode: %s"), *CameraModeNames[CameraMode]);
+	}
 }
 
 void ANomiPlayerController::OnThrottleTriggered(const FInputActionValue& Value)
@@ -400,6 +398,9 @@ void ANomiPlayerController::TogglePauseMenu()
 	{
 		MenuManager->ReturnToPrevious();
 		UGameplayStatics::SetGamePaused(this, false);
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+		SetShowMouseCursor(false);
 		UE_LOG(LogNomiRacing, Log, TEXT("Game resumed via menu"));
 	}
 }

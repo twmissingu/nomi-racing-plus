@@ -337,6 +337,11 @@ void UVehicleStateManager::CheckStuckAndFlip(float DeltaTime)
 	{
 		bIsStuck = true;
 	}
+	else if (bIsStuck && StuckTimer == 0.0f)
+	{
+		// Auto-clear stuck flag when vehicle starts moving again
+		bIsStuck = false;
+	}
 
 	// --- Flip detection ---
 	const FRotator Rotation = Owner->GetActorRotation();
@@ -357,6 +362,11 @@ void UVehicleStateManager::CheckStuckAndFlip(float DeltaTime)
 	if (FlipTimer > 1.0f)
 	{
 		bIsFlipped = true;
+	}
+	else if (bIsFlipped && FlipTimer == 0.0f)
+	{
+		// Auto-clear flipped flag when vehicle rights itself
+		bIsFlipped = false;
 	}
 
 	// --- Update last position ---
@@ -400,55 +410,78 @@ void UVehicleStateManager::ResetVehicle()
 		return;
 	}
 
-	// Find nearest checkpoint to teleport to
 	FVector ResetLocation = Owner->GetActorLocation();
 	FRotator ResetRotation = FRotator(0.0f, Owner->GetActorRotation().Yaw, 0.0f);
 
-	// Find all checkpoint actors in the world
-	TArray<AActor*> Checkpoints;
-	UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), Checkpoints);
-
-	if (Checkpoints.Num() > 0)
+	// Try to use RaceManager's last-passed checkpoint (preserves race progress)
+	bool bUsedRaceManager = false;
+	if (CachedRaceManager)
 	{
-		// Find the nearest checkpoint
-		float BestDistSqr = TNumericLimits<float>::Max();
-		ACheckpoint* NearestCheckpoint = nullptr;
-
-		for (AActor* Actor : Checkpoints)
+		APawn* OwnerPawn = Cast<APawn>(Owner);
+		if (OwnerPawn)
 		{
-			const float DistSqr = FVector::DistSquared(Owner->GetActorLocation(), Actor->GetActorLocation());
-			if (DistSqr < BestDistSqr)
+			int32 RacerIdx = CachedRaceManager->FindRacerIndex(OwnerPawn);
+			if (RacerIdx != INDEX_NONE)
 			{
-				BestDistSqr = DistSqr;
-				NearestCheckpoint = Cast<ACheckpoint>(Actor);
-			}
-		}
+				const FRacerData& Racer = CachedRaceManager->GetAllRacers()[RacerIdx];
+				int32 LastCP = FMath::Max(0, Racer.CurrentCheckpoint - 1);
 
-		if (NearestCheckpoint)
-		{
-			ResetLocation = NearestCheckpoint->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
-
-			// Orient along track: find the next checkpoint to compute forward direction
-			ACheckpoint* NextCheckpoint = nullptr;
-			for (AActor* Actor : Checkpoints)
-			{
-				if (ACheckpoint* CP = Cast<ACheckpoint>(Actor))
+				// Find the checkpoint actor with matching index
+				TArray<AActor*> Checkpoints;
+				UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), Checkpoints);
+				for (AActor* Actor : Checkpoints)
 				{
-					if (CP->CheckpointIndex == NearestCheckpoint->CheckpointIndex + 1)
+					ACheckpoint* CP = Cast<ACheckpoint>(Actor);
+					if (CP && CP->CheckpointIndex == LastCP)
 					{
-						NextCheckpoint = CP;
+						ResetLocation = CP->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
+
+						// Orient toward next checkpoint
+						int32 NextIdx = (LastCP + 1) % Checkpoints.Num();
+						for (AActor* Next : Checkpoints)
+						{
+							ACheckpoint* NextCP = Cast<ACheckpoint>(Next);
+							if (NextCP && NextCP->CheckpointIndex == NextIdx)
+							{
+								FVector Dir = NextCP->GetActorLocation() - CP->GetActorLocation();
+								ResetRotation = FRotator(0.0f, Dir.Rotation().Yaw, 0.0f);
+								break;
+							}
+						}
+						bUsedRaceManager = true;
 						break;
 					}
 				}
 			}
+		}
+	}
 
-			if (NextCheckpoint)
+	// Fallback: find nearest checkpoint (if RaceManager not available)
+	if (!bUsedRaceManager)
+	{
+		TArray<AActor*> Checkpoints;
+		UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), Checkpoints);
+
+		if (Checkpoints.Num() > 0)
+		{
+			float BestDistSqr = TNumericLimits<float>::Max();
+			ACheckpoint* NearestCheckpoint = nullptr;
+
+			for (AActor* Actor : Checkpoints)
 			{
-				const FVector Forward = (NextCheckpoint->GetActorLocation() - NearestCheckpoint->GetActorLocation()).GetSafeNormal();
-				ResetRotation = Forward.Rotation();
-				ResetRotation.Pitch = 0.0f;
-				ResetRotation.Roll = 0.0f;
+				const float DistSqr = FVector::DistSquared(Owner->GetActorLocation(), Actor->GetActorLocation());
+				if (DistSqr < BestDistSqr)
+				{
+					BestDistSqr = DistSqr;
+					NearestCheckpoint = Cast<ACheckpoint>(Actor);
+				}
 			}
+
+			if (NearestCheckpoint)
+			{
+				ResetLocation = NearestCheckpoint->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
+			}
+		}
 		}
 	}
 	else

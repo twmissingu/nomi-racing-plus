@@ -625,6 +625,7 @@ void URaceProgression::ProcessSessionToStatistics(const FRaceSessionResult& Sess
 	Statistics.TotalDriftTime += SessionResult.DriftTime;
 	Statistics.TotalOvertakes += SessionResult.Overtakes;
 	Statistics.TotalCollisions += SessionResult.Collisions;
+	Statistics.TotalPlayTime += SessionResult.TotalRaceTime;
 
 	// Win check (position 1)
 	if (SessionResult.FinalPosition == 1)

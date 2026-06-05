@@ -261,8 +261,15 @@ UUserWidget* UMenuManager::CreateWidgetForState(EMenuState State)
 		return CreateWidget<ULoadingScreenWidget>(OwningPlayer);
 
 	case EMenuState::Paused:
+	{
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating PauseMenu widget"));
-		return CreateWidget<UPauseMenuWidget>(OwningPlayer);
+		UPauseMenuWidget* PauseWidget = CreateWidget<UPauseMenuWidget>(OwningPlayer);
+		if (PauseWidget)
+		{
+			PauseWidget->SetMenuManager(this);
+		}
+		return PauseWidget;
+	}
 
 	case EMenuState::Results:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating Results widget"));
@@ -289,8 +296,11 @@ void UMenuManager::SwitchToState(EMenuState NewState)
 		CurrentWidget = nullptr;
 	}
 
-	// Push current state to stack for back navigation (unless going to MainMenu)
-	if (CurrentState != EMenuState::MainMenu && NewState != EMenuState::MainMenu)
+	// Push current state to stack for back navigation (unless going to MainMenu or Racing)
+	// Avoid pushing Paused↔Racing transitions to prevent unbounded stack growth
+	if (CurrentState != EMenuState::MainMenu && NewState != EMenuState::MainMenu
+		&& !(CurrentState == EMenuState::Paused && NewState == EMenuState::Racing)
+		&& !(CurrentState == EMenuState::Racing && NewState == EMenuState::Paused))
 	{
 		StateStack.Push(CurrentState);
 	}
