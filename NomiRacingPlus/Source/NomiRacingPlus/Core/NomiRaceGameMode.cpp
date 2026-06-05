@@ -40,14 +40,17 @@ void ANomiRaceGameMode::BeginPlay()
 	SpawnPlayerVehicle();
 
 	// Create championship manager
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ChampionshipManager = GetWorld()->SpawnActor<AChampionshipManager>(
-		AChampionshipManager::StaticClass(),
-		FVector::ZeroVector,
-		FRotator::ZeroRotator,
-		SpawnParams
-	);
+	if (UWorld* World = GetWorld())
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ChampionshipManager = World->SpawnActor<AChampionshipManager>(
+			AChampionshipManager::StaticClass(),
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			SpawnParams
+		);
+	}
 
 	// Get progression component from game instance
 	UNomiGameInstance* GameInstance = Cast<UNomiGameInstance>(GetGameInstance());

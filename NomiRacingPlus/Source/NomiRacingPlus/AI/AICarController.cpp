@@ -101,10 +101,15 @@ void AAICarController::OnPossess(APawn* InPawn)
 		BehaviorTree->RegisterComponent();
 
 		// Configure behavior tree based on difficulty
-		// Map difficulty enum to 0-1 scalar: Easy=0.25, Normal=0.5, Hard=0.75, Expert=1.0
-		const float DifficultyScalar[] = { 0.25f, 0.5f, 0.75f, 1.0f };
-		int32 DiffIdx = FMath::Clamp(static_cast<int32>(DifficultyLevel), 0, 3);
-		BehaviorTree->SetDifficulty(DifficultyScalar[DiffIdx]);
+		float DifficultyScalar = 0.5f;
+		switch (DifficultyLevel)
+		{
+		case EAIDifficulty::Easy:   DifficultyScalar = 0.25f; break;
+		case EAIDifficulty::Normal: DifficultyScalar = 0.5f;  break;
+		case EAIDifficulty::Hard:   DifficultyScalar = 0.75f; break;
+		case EAIDifficulty::Expert: DifficultyScalar = 1.0f;  break;
+		}
+		BehaviorTree->SetDifficulty(DifficultyScalar);
 
 		// Configure overtake evaluator personality based on difficulty
 		if (UAIOvertakeEvaluator* OvertakeEval = BehaviorTree->GetOvertakeEvaluator())

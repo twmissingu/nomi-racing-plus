@@ -523,6 +523,8 @@ def _save_and_report():
     _log("  All dirty packages saved")
 
 # ── Run pipeline ─────────────────────────────────────────────────────────────
+# NOTE: This code runs at module level because UE5's exec() imports and runs
+# the script in one pass. Wrapping in if __name__ would break exec() usage.
 _log("=" * 60)
 _log("  NIO Racing Plus — Full Automated Pipeline (v2)")
 _log("  Mode: headless (RenderOffscreen + nosplash)")

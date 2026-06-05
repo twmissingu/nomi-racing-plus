@@ -89,7 +89,6 @@ void UAIBehaviorTree::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	EvaluateBehavior(Factors, DeltaTime);
 
 	// AI Anomaly Detection - completely stationary AI recovery
-	AActor* Owner = GetOwner();
 	if (Owner)
 	{
 		float SpeedCmPerSec = Owner->GetVelocity().Size();

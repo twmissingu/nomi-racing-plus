@@ -9,7 +9,6 @@
 #include "NomiRacingPlus.h"
 #include "Race/RaceManager.h"
 #include "Race/CheckpointSystem.h"
-#include "Kismet/GameplayStatics.h"
 
 UVehicleStateManager::UVehicleStateManager()
 {
@@ -481,7 +480,6 @@ void UVehicleStateManager::ResetVehicle()
 			{
 				ResetLocation = NearestCheckpoint->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
 			}
-		}
 		}
 	}
 	else

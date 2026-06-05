@@ -9,6 +9,7 @@
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/GameModeBase.h"
+#include "NomiRacingPlus.h"
 
 void UPauseMenuWidget::SetMenuManager(UMenuManager* InMenuManager)
 {
@@ -88,7 +89,7 @@ void UPauseMenuWidget::OnRestart()
 void UPauseMenuWidget::OnSettings()
 {
 	// Placeholder: integrate settings menu here when available.
-	UE_LOG(LogTemp, Log, TEXT("PauseMenuWidget::OnSettings - Settings not yet implemented."));
+	UE_LOG(LogNomiRacing, Log, TEXT("PauseMenuWidget::OnSettings - Settings not yet implemented."));
 }
 
 void UPauseMenuWidget::OnMainMenu()
