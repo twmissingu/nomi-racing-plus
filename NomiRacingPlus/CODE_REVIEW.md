@@ -152,9 +152,9 @@
 
 ### UE5 Version
 
-- Target: UE 5.5
+- Target: UE 5.7
 - Features used: Chaos Vehicles, Enhanced Input, MetaSound
-- All features available in 5.5 ✅
+- All features available in 5.7 ✅
 
 ---
 
@@ -188,7 +188,7 @@ The codebase demonstrates good architecture and follows UE5 best practices. The 
 
 ### Next Steps
 
-1. Open project in UE5 5.5
+1. Open project in UE5 5.7
 2. Compile C++ code
 3. Create Blueprint classes
 4. Import assets (Sketchfab models, CARLA maps)

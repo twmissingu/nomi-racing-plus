@@ -23,7 +23,7 @@
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Unreal Engine | 5.5 | Game engine |
+| Unreal Engine | 5.7 | Game engine |
 | Visual Studio | 2022 (Windows) | C++ IDE and compiler |
 | Xcode | 14+ (macOS) | C++ IDE and compiler |
 | Git + Git LFS | Latest | Version control and large asset tracking |
@@ -43,18 +43,18 @@ git lfs pull
 
 **macOS:**
 
-Set `UE5_ROOT` if UE5 is not installed at the default location (`/Users/Shared/Epic Games/UE_5.5`):
+Set `UE5_ROOT` if UE5 is not installed at the default location (`/Users/Shared/Epic Games/UE_5.7`):
 
 ```bash
-export UE5_ROOT="/path/to/your/UE_5.5"
+export UE5_ROOT="/path/to/your/UE_5.7"
 ```
 
 **Windows:**
 
-Set `UE5_ROOT` if UE5 is not at `C:\Program Files\Epic Games\UE_5.5`:
+Set `UE5_ROOT` if UE5 is not at `C:\Program Files\Epic Games\UE_5.7`:
 
 ```powershell
-$env:UE5_ROOT = "C:\path\to\UE_5.5"
+$env:UE5_ROOT = "C:\path\to\UE_5.7"
 ```
 
 ### 1.4 Generate Project Files
@@ -79,7 +79,7 @@ $env:UE5_ROOT = "C:\path\to\UE_5.5"
 
 ### 1.6 Verify Setup
 
-1. Open `NomiRacingPlus.uproject` in UE5 5.5.
+1. Open `NomiRacingPlus.uproject` in UE5 5.7.
 2. The project should compile without errors.
 3. Play in Editor (PIE) to verify the default map loads.
 
@@ -775,7 +775,7 @@ Regenerate project files and rebuild:
 ```
 
 **"ChaosVehicles" module not found:**
-Ensure the `ChaosVehiclesPlugin` is enabled in `NomiRacingPlus.uproject` and UE5 5.5 is installed.
+Ensure the `ChaosVehiclesPlugin` is enabled in `NomiRacingPlus.uproject` and UE5 5.7 is installed.
 
 **macOS Metal shader compilation errors:**
 Check `Config/DefaultEngine.ini` for `r.Metal.ForceNonAirArgumentBuffers=1`. This setting is required for macOS compatibility.

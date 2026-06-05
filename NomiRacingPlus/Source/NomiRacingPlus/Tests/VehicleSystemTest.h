@@ -41,3 +41,21 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	"NomiRacingPlus.Vehicle.TireModelIntegration",
 	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FVehicleSU7UltraTest,
+	"NomiRacingPlus.Vehicle.SU7Ultra",
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
+)
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FVehicleResetSafetyTest,
+	"NomiRacingPlus.Vehicle.ResetSafety",
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
+)
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FVehicleGetSpecsTest,
+	"NomiRacingPlus.Vehicle.GetSpecs",
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
+)

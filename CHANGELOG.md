@@ -90,6 +90,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Cycle 1 — Code Quality Fixes
+- ResetVehicle logic bug in VehicleStateManager (brace nesting, variable shadowing)
+- AddToRecentComments bulk removal in CommentaryEngine with proper bIsReady guard
+- Variable shadowing in AIBehaviorTree difficulty evaluation
+- Brace nesting mismatch in AICarController behavior tree execution
+- Missing include and enum safety in NomiRaceGameMode switch statement
+- Pause menu wiring to GameMode in PauseMenuWidget
+- Duplicate GameplayStatics.h include in VehicleStateManager
+
+### Added
+
+#### Cycle 1 — Test Coverage
+- SU7 Ultra vehicle specs in TestUtilities (1900kg, 1138kW, 1200Nm, 350kph, 1.98s)
+- FVehicleSU7UltraTest — SU7Ultra type, config, display name, specs validation
+- FVehicleResetSafetyTest — ResetVehicle null safety, recovery state, state validity
+- FVehicleGetSpecsTest — GetVehicleSpecs for all 6 vehicle types, power conversion formula
+- FCommentNotReadyTest — RequestComment before BeginPlay, queue behavior
+- FCommentCategoryTest — AddCommentCategory, ClearQueue, frequency clamping
+- Expanded FVehicleStateManagerTest with ET5, SU7Ultra, and Custom display name assertions
+
+### Changed
+
+#### Cycle 1 — Test Fixes
+- Fixed FCommentMatchingTest always-passing assertion (TestTrue -> TestFalse for bIsReady guard)
+
 ### Planned
 - Additional NIO vehicle models
 - More track environments

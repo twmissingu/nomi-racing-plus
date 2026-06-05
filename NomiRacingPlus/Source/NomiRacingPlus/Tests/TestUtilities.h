@@ -32,6 +32,7 @@ UVehicleStateManager* CreateMockVehicleStateManager(ENIOVehicleType VehicleType 
  * ET7: luxury sedan, 480kW, 850Nm, 200 kph, 3.8s 0-100
  * ES7: SUV, 480kW, 850Nm, 200 kph, 3.9s 0-100
  * ET5: sport sedan, 360kW, 700Nm, 200 kph, 4.3s 0-100
+ * SU7Ultra: sports sedan, 1138kW, 1200Nm, 350 kph, 1.98s 0-100
  */
 FNIOPerformanceConfig CreatePerformanceConfig(ENIOVehicleType VehicleType);
 

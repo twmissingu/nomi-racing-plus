@@ -1,7 +1,7 @@
 [![English](https://img.shields.io/badge/English-blue.svg)](README.md)
 [![中文](https://img.shields.io/badge/中文-red.svg)](README_zh.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![UE5](https://img.shields.io/badge/Unreal%20Engine-5.5-black.svg)](https://www.unrealengine.com)
+[![UE5](https://img.shields.io/badge/Unreal%20Engine-5.7-black.svg)](https://www.unrealengine.com)
 
 ---
 
@@ -43,7 +43,7 @@ python3 Scripts/add_vehicle.py "https://sketchfab.com/3d-models/porsche-911-gt3-
 
 ## Features
 
-- ✨ **4 NIO Vehicles** — EP9 (1000kW hypercar), ET7 (sedan), ES7 (SUV), ET5 (sedan)
+- ✨ **5 Vehicles** — EP9 (hypercar), ET7 (sedan), ES7 (SUV), ET5 (sedan), SU7 Ultra (Xiaomi super sedan)
 - 🚀 **Chaos Vehicles Physics** — Pacejka tire model, drift detection, tire thermal/wear
 - 🎯 **Race System** — Checkpoints, championships, achievements, progression
 - 🎥 **Camera System** — Chase, Hood, Cockpit, Bumper, Free, Cinematic, Replay
@@ -56,7 +56,7 @@ python3 Scripts/add_vehicle.py "https://sketchfab.com/3d-models/porsche-911-gt3-
 
 ### Prerequisites
 
-- **Unreal Engine 5.5+** — [Download](https://www.unrealengine.com/download)
+- **Unreal Engine 5.7+** — [Download](https://www.unrealengine.com/download)
 - **Windows 10/11** or **macOS 12+**
 - **Visual Studio 2022** (Windows) or **Xcode 14+** (macOS)
 
@@ -82,7 +82,7 @@ cd nomi-racing-plus/NomiRacingPlus
 **macOS:**
 ```bash
 # 1. Generate Xcode project
-"/Users/Shared/Epic Games/UE_5.5/Engine/Build/BatchFiles/Mac/GenerateXcodeProject.sh"
+"/Users/Shared/Epic Games/UE_5.7/Engine/Build/BatchFiles/Mac/GenerateXcodeProject.sh"
 # 2. Open NomiRacingPlus.xcodeproj
 # 3. Set scheme to NomiRacingPlusEditor
 # 4. Build (Cmd+B)
@@ -122,6 +122,7 @@ Source/NomiRacingPlus/NOMI/CommentaryEngine.cpp                 # NOMI system
 | ET7 | 480 kW | 850 Nm | 3.8s | 250 km/h | Sedan |
 | ES7 | 480 kW | 850 Nm | 3.9s | 200 km/h | SUV |
 | ET5 | 360 kW | 700 Nm | 4.0s | 200 km/h | Sedan |
+| SU7 Ultra | 1138 kW | 1200 Nm | 1.98s | 350 km/h | Super Sedan |
 
 ## Controls
 
@@ -152,7 +153,7 @@ Source/NomiRacingPlus/NOMI/CommentaryEngine.cpp                 # NOMI system
 
 | Component | Technology |
 |-----------|------------|
-| Engine | Unreal Engine 5.5 |
+| Engine | Unreal Engine 5.7 |
 | Physics | Chaos Vehicles |
 | Rendering | Nanite (Windows) / Manual LOD (macOS) |
 | Lighting | Lumen (Software fallback) |
@@ -200,4 +201,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Version**: 1.0.0 | **Last Updated**: 2026-06-02 | **UE5 Version**: 5.5
+**Version**: 1.0.0 | **Last Updated**: 2026-06-05 | **UE5 Version**: 5.7

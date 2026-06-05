@@ -71,6 +71,18 @@ FNIOPerformanceConfig NomiTestUtils::CreatePerformanceConfig(ENIOVehicleType Veh
 		Config.BodyType = TEXT("sedan");
 		break;
 
+	case ENIOVehicleType::SU7Ultra:
+		Config.MassKg = 1900.0f;
+		Config.PowerKw = 1138.0f;
+		Config.TorqueNm = 1200.0f;
+		Config.DriveType = TEXT("AWD_dual_motor");
+		Config.TopSpeedKph = 350.0f;
+		Config.Acceleration0100 = 1.98f;
+		Config.DownforceMaxKg = 0.0f;
+		Config.WheelbaseMm = 3000.0f;
+		Config.BodyType = TEXT("sedan");
+		break;
+
 	default:
 		// Custom: generic sport config
 		Config.MassKg = 1800.0f;
@@ -481,6 +493,19 @@ bool NomiTestUtils::ValidatePerformanceConfig(
 		if (Config.DownforceMaxKg <= 0.0f)
 		{
 			Test->AddError(FString::Printf(TEXT("%sEP9 should have downforce, got %f"), *Prefix, Config.DownforceMaxKg));
+			bValid = false;
+		}
+		break;
+
+	case ENIOVehicleType::SU7Ultra:
+		if (Config.TopSpeedKph < 300.0f)
+		{
+			Test->AddError(FString::Printf(TEXT("%sSU7Ultra top speed should be >= 300 kph, got %f"), *Prefix, Config.TopSpeedKph));
+			bValid = false;
+		}
+		if (Config.Acceleration0100 > 2.5f)
+		{
+			Test->AddError(FString::Printf(TEXT("%sSU7Ultra 0-100 should be <= 2.5s, got %f"), *Prefix, Config.Acceleration0100));
 			bValid = false;
 		}
 		break;

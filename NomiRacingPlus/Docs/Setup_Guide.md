@@ -8,7 +8,7 @@
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| Unreal Engine | 5.5 | Download from Epic Games Launcher |
+| Unreal Engine | 5.7 | Download from Epic Games Launcher |
 | Visual Studio | 2022 | Windows only, for C++ compilation |
 | Xcode | 15+ | macOS only |
 | Python | 3.10+ | For asset processing scripts |
@@ -230,7 +230,7 @@ print_test_checklist()
 |-------|----------|
 | **Shader compilation slow** | Wait for completion, reduce shader quality |
 | **Assets not found** | Run `download_assets.sh` first |
-| **Build fails** | Check UE5 version (5.5 required) |
+| **Build fails** | Check UE5 version (5.7 required) |
 | **Physics jittery** | Increase physics substeps in DefaultEngine.ini |
 | **Low FPS** | Reduce graphics settings, enable LODs |
 | **Audio not playing** | Check AudioConfig.json paths |

@@ -1,7 +1,7 @@
 [![English](https://img.shields.io/badge/English-blue.svg)](README.md)
 [![中文](https://img.shields.io/badge/中文-red.svg)](README_zh.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![UE5](https://img.shields.io/badge/Unreal%20Engine-5.5-black.svg)](https://www.unrealengine.com)
+[![UE5](https://img.shields.io/badge/Unreal%20Engine-5.7-black.svg)](https://www.unrealengine.com)
 
 ---
 
@@ -23,7 +23,7 @@
 
 ## 功能特性
 
-- ✨ **4 款蔚来车型**——EP9（1000kW 超跑）、ET7（轿车）、ES7（SUV）、ET5（轿车）
+- ✨ **5 款车型**——EP9（超跑）、ET7（轿车）、ES7（SUV）、ET5（轿车）、SU7 Ultra（小米超级轿车）
 - 🚀 **Chaos Vehicles 物理**——Pacejka 轮胎模型、漂移检测、轮胎温度/磨损
 - 🎯 **比赛系统**——检查点、锦标赛、成就、进度系统
 - 🎥 **相机系统**——追踪、引擎盖、驾驶舱、保险杠、自由、电影、回放
@@ -36,7 +36,7 @@
 
 ### 环境要求
 
-- **Unreal Engine 5.5+**——[下载](https://www.unrealengine.com/download)
+- **Unreal Engine 5.7+**——[下载](https://www.unrealengine.com/download)
 - **Windows 10/11** 或 **macOS 12+**
 - **Visual Studio 2022**（Windows）或 **Xcode 14+**（macOS）
 
@@ -62,7 +62,7 @@ cd nomi-racing-plus/NomiRacingPlus
 **macOS:**
 ```bash
 # 1. 生成 Xcode 项目
-"/Users/Shared/Epic Games/UE_5.5/Engine/Build/BatchFiles/Mac/GenerateXcodeProject.sh"
+"/Users/Shared/Epic Games/UE_5.7/Engine/Build/BatchFiles/Mac/GenerateXcodeProject.sh"
 # 2. 打开 NomiRacingPlus.xcodeproj
 # 3. 设置 scheme 为 NomiRacingPlusEditor
 # 4. 编译 (Cmd+B)
@@ -102,6 +102,7 @@ Source/NomiRacingPlus/NOMI/CommentaryEngine.cpp                 # NOMI 系统
 | ET7 | 480 kW | 850 Nm | 3.8s | 250 km/h | 轿车 |
 | ES7 | 480 kW | 850 Nm | 3.9s | 200 km/h | SUV |
 | ET5 | 360 kW | 700 Nm | 4.0s | 200 km/h | 轿车 |
+| SU7 Ultra | 1138 kW | 1200 Nm | 1.98s | 350 km/h | 超级轿车 |
 
 ## 控制方式
 
@@ -132,7 +133,7 @@ Source/NomiRacingPlus/NOMI/CommentaryEngine.cpp                 # NOMI 系统
 
 | 组件 | 技术 |
 |------|------|
-| 引擎 | Unreal Engine 5.5 |
+| 引擎 | Unreal Engine 5.7 |
 | 物理 | Chaos Vehicles |
 | 渲染 | Nanite (Windows) / 手动 LOD (macOS) |
 | 光照 | Lumen (软件回退) |
@@ -180,4 +181,4 @@ Source/NomiRacingPlus/NOMI/CommentaryEngine.cpp                 # NOMI 系统
 
 ---
 
-**版本**: 1.0.0 | **最后更新**: 2026-06-02 | **UE5 版本**: 5.5
+**版本**: 1.0.0 | **最后更新**: 2026-06-05 | **UE5 版本**: 5.7

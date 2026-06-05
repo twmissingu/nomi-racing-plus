@@ -68,10 +68,9 @@ bool FCommentMatchingTest::RunTest(const FString& Parameters)
 	Context.Position = 1;
 	Context.bIsNIOVehicle = true;
 
-	// Test 5: Request comment
+	// Test 5: Request comment - engine is not ready (BeginPlay not called), should return false
 	bool bRequested = Engine->RequestComment(Context);
-	// Note: Request may fail due to cooldown, but function should not crash
-	TestTrue(TEXT("RequestComment should return a boolean"), true);
+	TestFalse(TEXT("RequestComment should return false when engine is not ready"), bRequested);
 
 	return true;
 }
@@ -166,6 +165,119 @@ bool FNOMIEmotionTest::RunTest(const FString& Parameters)
 	{
 		TestEqual(TEXT("Initial emotion should be Idle"), Engine->GetCurrentEmotion(), ENOMIEmotion::Idle);
 	}
+
+	return true;
+}
+
+/**
+ * Test that RequestComment returns false when engine is not ready
+ * Covers: bIsReady guard in RequestComment
+ */
+bool FCommentNotReadyTest::RunTest(const FString& Parameters)
+{
+	// Arrange: Create engine without calling BeginPlay (bIsReady = false)
+	UCommentaryEngine* Engine = NewObject<UCommentaryEngine>();
+	TestNotNull(TEXT("CommentaryEngine should be created"), Engine);
+
+	if (!Engine)
+	{
+		return false;
+	}
+
+	// Add a comment category so matching would succeed if engine were ready
+	FCommentCategory Category;
+	Category.CategoryName = TEXT("overtake");
+
+	FNOMIComment Comment;
+	Comment.Text = TEXT("Nice overtake!");
+	Comment.Priority = ECommentPriority::High;
+	Comment.Emotion = ENOMIEmotion::Excited;
+	Category.Comments.Add(Comment);
+
+	Engine->AddCommentCategory(Category);
+
+	// Act: Request comment without BeginPlay (bIsReady = false)
+	FCommentContext Context;
+	Context.Event = ERaceEvent::Overtake;
+	Context.PlayerName = TEXT("Player");
+	Context.Position = 1;
+	Context.bIsNIOVehicle = true;
+
+	bool bResult = Engine->RequestComment(Context);
+
+	// Assert: Should return false because engine is not ready
+	TestFalse(TEXT("RequestComment should return false when engine is not ready"), bResult);
+
+	// Assert: Queue should still be empty
+	FNOMIComment OutComment;
+	bool bHasComment = Engine->GetNextComment(OutComment);
+	TestFalse(TEXT("Queue should be empty when engine is not ready"), bHasComment);
+
+	// Assert: Other operations should still work without crash
+	Engine->ClearQueue();
+	TestFalse(TEXT("Should not be playing after clear"), Engine->IsCommentPlaying());
+
+	Engine->SetCommentFrequency(0.5f);
+
+	return true;
+}
+
+/**
+ * Test comment category management and NIO-specific filtering
+ * Covers: AddCommentCategory, comment organization, NIO-specific flag
+ */
+bool FCommentCategoryTest::RunTest(const FString& Parameters)
+{
+	// Arrange: Create engine
+	UCommentaryEngine* Engine = NewObject<UCommentaryEngine>();
+	TestNotNull(TEXT("CommentaryEngine should be created"), Engine);
+
+	if (!Engine)
+	{
+		return false;
+	}
+
+	// Test 1: Add NIO-specific category
+	FCommentCategory NIOCategory;
+	NIOCategory.CategoryName = TEXT("nio_specific");
+
+	FNOMIComment NIOComment;
+	NIOComment.Text = TEXT("NIO power!");
+	NIOComment.Priority = ECommentPriority::Medium;
+	NIOComment.Emotion = ENOMIEmotion::Happy;
+	NIOComment.bIsNIOSpecific = true;
+	NIOCategory.Comments.Add(NIOComment);
+
+	Engine->AddCommentCategory(NIOCategory);
+
+	// Test 2: Add comfort category
+	FCommentCategory ComfortCategory;
+	ComfortCategory.CategoryName = TEXT("comfort");
+
+	FNOMIComment ComfortComment;
+	ComfortComment.Text = TEXT("Don't worry, you'll get them next time!");
+	ComfortComment.Priority = ECommentPriority::Low;
+	ComfortComment.Emotion = ENOMIEmotion::Concerned;
+	ComfortCategory.Comments.Add(ComfortComment);
+
+	Engine->AddCommentCategory(ComfortCategory);
+
+	// Test 3: Verify engine state after adding categories
+	TestEqual(TEXT("Initial emotion should be Idle"), Engine->GetCurrentEmotion(), ENOMIEmotion::Idle);
+	TestFalse(TEXT("Should not be playing initially"), Engine->IsCommentPlaying());
+
+	// Test 4: Verify clear works after adding categories
+	Engine->ClearQueue();
+	TestFalse(TEXT("Should not be playing after clear"), Engine->IsCommentPlaying());
+
+	// Test 5: Set frequency with boundary values
+	Engine->SetCommentFrequency(0.0f);
+	Engine->SetCommentFrequency(1.0f);
+	Engine->SetCommentFrequency(0.5f);
+
+	// Test 6: Set frequency beyond bounds (should be clamped)
+	Engine->SetCommentFrequency(-0.5f);
+	Engine->SetCommentFrequency(1.5f);
 
 	return true;
 }

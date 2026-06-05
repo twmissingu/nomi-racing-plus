@@ -481,20 +481,20 @@ void UVehicleStateManager::ResetVehicle()
 				ResetLocation = NearestCheckpoint->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
 			}
 		}
-	}
-	else
-	{
-		// Fallback: ground trace at current location
-		FHitResult HitResult;
-		FVector TraceStart = ResetLocation + FVector(0.0f, 0.0f, 500.0f);
-		FVector TraceEnd = ResetLocation - FVector(0.0f, 0.0f, 2000.0f);
-
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(Owner);
-
-		if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+		else
 		{
-			ResetLocation = HitResult.ImpactPoint + FVector(0.0f, 0.0f, 100.0f);
+			// Fallback: ground trace at current location when no checkpoints exist
+			FHitResult HitResult;
+			FVector TraceStart = ResetLocation + FVector(0.0f, 0.0f, 500.0f);
+			FVector TraceEnd = ResetLocation - FVector(0.0f, 0.0f, 2000.0f);
+
+			FCollisionQueryParams QueryParams;
+			QueryParams.AddIgnoredActor(Owner);
+
+			if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+			{
+				ResetLocation = HitResult.ImpactPoint + FVector(0.0f, 0.0f, 100.0f);
+			}
 		}
 	}
 

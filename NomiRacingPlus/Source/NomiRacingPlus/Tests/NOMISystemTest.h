@@ -39,3 +39,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	"NomiRacingPlus.NOMI.Emotion",
 	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
 )
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FCommentNotReadyTest,
+	"NomiRacingPlus.NOMI.CommentNotReady",
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
+)
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FCommentCategoryTest,
+	"NomiRacingPlus.NOMI.CommentCategory",
+	EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter
+)

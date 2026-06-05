@@ -5,7 +5,7 @@
 
 ## 项目概述
 
-NIO Racing Plus 是一款以蔚来品牌为主题的写实 3D 赛车游戏，使用 Unreal Engine 5.5 开发。
+NIO Racing Plus 是一款以蔚来品牌为主题的写实 3D 赛车游戏，使用 Unreal Engine 5.7 开发。
 
 ### 核心特性
 
@@ -19,7 +19,7 @@ NIO Racing Plus 是一款以蔚来品牌为主题的写实 3D 赛车游戏，使
 
 ### 环境要求
 
-- Unreal Engine 5.5+
+- Unreal Engine 5.7+
 - Windows 10/11 或 macOS 12+
 - Visual Studio 2022 (Windows) 或 Xcode 14+ (macOS)
 
@@ -37,7 +37,7 @@ NIO Racing Plus 是一款以蔚来品牌为主题的写实 3D 赛车游戏，使
 **macOS:**
 ```bash
 # 1. 生成 Xcode 项目
-/Users/Shared/Epic\ Games/UE_5.5/Engine/Build/BatchFiles/Mac/GenerateXcodeProject.sh
+/Users/Shared/Epic\ Games/UE_5.7/Engine/Build/BatchFiles/Mac/GenerateXcodeProject.sh
 # 2. 打开 NomiRacingPlus.xcodeproj
 # 3. 设置 scheme 为 NomiRacingPlusEditor
 # 4. 编译 (Cmd+B)
@@ -48,7 +48,7 @@ NIO Racing Plus 是一款以蔚来品牌为主题的写实 3D 赛车游戏，使
 
 | 组件 | 技术 |
 |------|------|
-| 引擎 | Unreal Engine 5.5 |
+| 引擎 | Unreal Engine 5.7 |
 | 物理 | Chaos Vehicles |
 | 渲染 | Nanite (Windows) / 手动 LOD (macOS) |
 | 光照 | Lumen (软件回退) |
@@ -73,9 +73,7 @@ NomiRacingPlus/
 │   │   ├── AIBehaviorTree  # 行为树
 │   │   ├── AICarController # AI 控制器
 │   │   └── AISensorSystem  # 传感器系统
-│   ├── Camera/             # 相机系统
-│   │   └── CameraSystem    # 7 种相机模式
-│   ├── Core/               # 核心系统
+│   ├── Core/               # 核心系统（相机、音频、游戏模式）
 │   │   ├── AudioManager    # 音频管理
 │   │   ├── NomiGameInstance# 游戏实例
 │   │   └── NomiRaceGameMode# 游戏模式
@@ -154,6 +152,7 @@ NomiRacingPlus/
 | ET7 | 480 kW | 850 Nm | 3.8s | 250 km/h | 轿车 |
 | ES7 | 480 kW | 850 Nm | 3.9s | 200 km/h | SUV |
 | ET5 | 360 kW | 700 Nm | 4.0s | 200 km/h | 轿车 |
+| SU7 Ultra | 1138 kW | 1200 Nm | 1.98s | 350 km/h | 超级轿车 |
 
 ## 控制方式
 
@@ -231,4 +230,4 @@ NomiRacingPlus/
 
 **版本**: 1.0.0
 **最后更新**: 2026-06-01
-**UE5 版本**: 5.5
+**UE5 版本**: 5.7

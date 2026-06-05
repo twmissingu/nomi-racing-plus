@@ -13,14 +13,13 @@ NIO Racing Plus is a UE5 racing game featuring NIO electric vehicles with realis
 NomiRacingPlus/
 ├── Source/NomiRacingPlus/    # C++ source code
 │   ├── AI/                   # AI opponent system
-│   ├── Camera/               # Camera system (7 modes)
-│   ├── Core/                 # Core game systems
+│   ├── Core/                 # Core game systems (camera, audio, game mode)
 │   ├── Effects/              # Particle effects
 │   ├── NOMI/                 # NOMI companion system
 │   ├── Race/                 # Race management
 │   ├── Tests/                # Test suite
 │   ├── UI/                   # User interface
-│   └── Vehicles/             # Vehicle physics
+│   └── Vehicles/             # Vehicle physics (EP9, ET7, ES7, ET5, SU7 Ultra)
 ├── Config/                   # Engine configuration
 ├── Content/                  # Game assets (JSON)
 └── Scripts/                  # Build scripts
@@ -33,10 +32,12 @@ NomiRacingPlus/
 | `NomiRacingPlus.uproject` | UE5 project file |
 | `Vehicles/NIOVehicleMovementComponent.cpp` | Electric vehicle physics |
 | `Vehicles/TirePhysicsModel.cpp` | Pacejka tire model |
+| `Vehicles/Xiaomi_SU7Ultra.cpp` | Xiaomi SU7 Ultra vehicle |
 | `AI/AIBehaviorTree.cpp` | AI decision making |
 | `NOMI/CommentaryEngine.cpp` | NOMI comment system |
 | `Race/RaceManager.cpp` | Race state machine |
 | `Core/CameraSystem.cpp` | Camera management |
+| `Core/NomiRaceGameMode.cpp` | Game mode and race orchestration |
 
 ### Common Tasks
 
@@ -135,11 +136,13 @@ type: description
 2. **Calling FindComponentByClass every frame** - Cache in `BeginPlay()`
 3. **Not handling edge cases** - Division by zero, empty arrays, invalid indices
 4. **Memory leaks** - Destroy old `UAudioComponent` before creating new ones
+5. **Inconsistent GetWorld() guarding** - If one code path guards `GetWorld()`, all paths must (see Cycle 1 review finding in NomiRaceGameMode)
+6. **Always-passing test assertions** - Use `TestFalse`/`TestTrue` with actual return values, not hardcoded `true`
 5. **Event spam** - Use change detection to avoid broadcasting every tick
 
 ### Dependencies
 
-- Unreal Engine 5.5
+- Unreal Engine 5.7
 - Chaos Vehicles Plugin
 - Enhanced Input Plugin
 - Niagara Plugin (for particles)

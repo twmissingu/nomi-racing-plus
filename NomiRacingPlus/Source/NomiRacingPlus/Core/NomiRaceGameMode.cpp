@@ -36,6 +36,11 @@ void ANomiRaceGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!GetWorld())
+	{
+		return;
+	}
+
 	InitializeRaceManager();
 	SpawnPlayerVehicle();
 
@@ -75,14 +80,17 @@ void ANomiRaceGameMode::BeginPlay()
 	}
 
 	// Spawn NOMI controller
-	FActorSpawnParameters NOMISpawnParams;
-	NOMISpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	NOMIController = GetWorld()->SpawnActor<ANOMIController>(
-		ANOMIController::StaticClass(),
-		FVector::ZeroVector,
-		FRotator::ZeroRotator,
-		NOMISpawnParams
-	);
+	if (UWorld* World = GetWorld())
+	{
+		FActorSpawnParameters NOMISpawnParams;
+		NOMISpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		NOMIController = World->SpawnActor<ANOMIController>(
+			ANOMIController::StaticClass(),
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			NOMISpawnParams
+		);
+	}
 
 	if (NOMIController)
 	{
@@ -180,7 +188,8 @@ void ANomiRaceGameMode::SetPlayerVehicleType(ENIOVehicleType VehicleType)
 
 void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 {
-	if (!RaceManager)
+	UWorld* World = GetWorld();
+	if (!RaceManager || !World)
 	{
 		return;
 	}
@@ -213,7 +222,7 @@ void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-		APawn* AIVehicle = GetWorld()->SpawnActor<APawn>(
+		APawn* AIVehicle = World->SpawnActor<APawn>(
 			SpawnClass,
 			SpawnPoints[i]->GetActorLocation(),
 			SpawnPoints[i]->GetActorRotation(),
@@ -223,7 +232,7 @@ void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 		if (AIVehicle)
 		{
 			// Create AI controller
-			AAICarController* AIController = GetWorld()->SpawnActor<AAICarController>();
+			AAICarController* AIController = World->SpawnActor<AAICarController>();
 			if (AIController)
 			{
 				AIController->Possess(AIVehicle);
@@ -268,16 +277,19 @@ void ANomiRaceGameMode::InitializeRaceManager()
 
 	if (!RaceManager)
 	{
-		// Create race manager
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (UWorld* World = GetWorld())
+		{
+			// Create race manager
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		RaceManager = GetWorld()->SpawnActor<ARaceManager>(
-			ARaceManager::StaticClass(),
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			SpawnParams
-		);
+			RaceManager = World->SpawnActor<ARaceManager>(
+				ARaceManager::StaticClass(),
+				FVector::ZeroVector,
+				FRotator::ZeroRotator,
+				SpawnParams
+			);
+		}
 	}
 
 	if (RaceManager)
@@ -306,6 +318,12 @@ TSubclassOf<APawn> ANomiRaceGameMode::GetVehicleSpawnClass(ENIOVehicleType Vehic
 
 void ANomiRaceGameMode::SpawnPlayerVehicle()
 {
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
 	// Find player spawn point
 	AActor* SpawnPoint = UGameplayStatics::GetActorOfClass(this, APlayerStart::StaticClass());
 
@@ -325,7 +343,7 @@ void ANomiRaceGameMode::SpawnPlayerVehicle()
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	APawn* PlayerVehicle = GetWorld()->SpawnActor<APawn>(
+	APawn* PlayerVehicle = World->SpawnActor<APawn>(
 		SpawnClass,
 		SpawnLocation,
 		SpawnRotation,

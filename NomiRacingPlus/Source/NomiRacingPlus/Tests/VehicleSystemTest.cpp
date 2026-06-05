@@ -1,6 +1,7 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
 #include "Tests/VehicleSystemTest.h"
+#include "Tests/TestUtilities.h"
 #include "Vehicles/VehicleStateManager.h"
 #include "Vehicles/NIOVehicleMovementComponent.h"
 #include "Vehicles/TirePhysicsModel.h"
@@ -48,6 +49,15 @@ bool FVehicleStateManagerTest::RunTest(const FString& Parameters)
 
 	StateManager->SetVehicleType(ENIOVehicleType::ES7);
 	TestEqual(TEXT("ES7 display name"), StateManager->GetVehicleDisplayName(), FString(TEXT("NIO ES7")));
+
+	StateManager->SetVehicleType(ENIOVehicleType::ET5);
+	TestEqual(TEXT("ET5 display name"), StateManager->GetVehicleDisplayName(), FString(TEXT("NIO ET5")));
+
+	StateManager->SetVehicleType(ENIOVehicleType::SU7Ultra);
+	TestEqual(TEXT("SU7Ultra display name"), StateManager->GetVehicleDisplayName(), FString(TEXT("Xiaomi SU7 Ultra")));
+
+	StateManager->SetVehicleType(ENIOVehicleType::Custom);
+	TestEqual(TEXT("Custom display name"), StateManager->GetVehicleDisplayName(), FString(TEXT("Custom Vehicle")));
 
 	return true;
 }
@@ -212,6 +222,142 @@ bool FTireModelIntegrationTest::RunTest(const FString& Parameters)
 	// Test 8: Verify slip detection
 	bool bIsSlipping = TireModel->IsAnyTireSlipping(0.15f);
 	TestFalse(TEXT("Should not be slipping initially"), bIsSlipping);
+
+	return true;
+}
+
+/**
+ * Test SU7Ultra vehicle type configuration, display name, and specs
+ * Covers: SU7Ultra enum value, GetVehicleDisplayName, GetVehicleSpecs, IsNIOVehicle
+ */
+bool FVehicleSU7UltraTest::RunTest(const FString& Parameters)
+{
+	// Arrange: Create state manager
+	UVehicleStateManager* StateManager = NomiTestUtils::CreateMockVehicleStateManager(ENIOVehicleType::SU7Ultra);
+	TestNotNull(TEXT("StateManager should be created"), StateManager);
+
+	if (!StateManager)
+	{
+		return false;
+	}
+
+	// Act & Assert: Verify vehicle type
+	TestEqual(TEXT("Vehicle type should be SU7Ultra"), StateManager->GetVehicleType(), ENIOVehicleType::SU7Ultra);
+
+	// Assert: SU7Ultra is a non-custom vehicle (IsNIOVehicle checks VehicleType != Custom)
+	TestTrue(TEXT("SU7Ultra should be recognized as non-custom vehicle"), StateManager->IsNIOVehicle());
+
+	// Assert: Display name
+	TestEqual(TEXT("SU7Ultra display name"), StateManager->GetVehicleDisplayName(), FString(TEXT("Xiaomi SU7 Ultra")));
+
+	// Assert: Performance config from mock utility
+	const FNIOPerformanceConfig& Config = StateManager->GetPerformanceConfig();
+	TestTrue(TEXT("SU7Ultra mass should be positive"), Config.MassKg > 0.0f);
+	TestTrue(TEXT("SU7Ultra power should be positive"), Config.PowerKw > 0.0f);
+	TestTrue(TEXT("SU7Ultra torque should be positive"), Config.TorqueNm > 0.0f);
+	TestTrue(TEXT("SU7Ultra top speed should be positive"), Config.TopSpeedKph > 0.0f);
+	TestTrue(TEXT("SU7Ultra acceleration should be positive"), Config.Acceleration0100 > 0.0f);
+	TestTrue(TEXT("SU7Ultra should be electric"), Config.bIsElectric);
+
+	// Assert: Static specs via GetVehicleSpecs
+	FVehicleSpecs Specs = UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType::SU7Ultra);
+	TestEqual(TEXT("SU7Ultra name in specs"), Specs.VehicleName, FString(TEXT("Xiaomi SU7 Ultra")));
+	TestTrue(TEXT("SU7Ultra power should be > 1000 HP"), Specs.MaxPower > 1000.0f);
+	TestEqual(TEXT("SU7Ultra torque in specs"), Specs.MaxTorque, 1200.0f);
+	TestEqual(TEXT("SU7Ultra 0-100 time in specs"), Specs.ZeroToHundredTime, 1.98f);
+	TestEqual(TEXT("SU7Ultra top speed in specs"), Specs.TopSpeed, 350.0f);
+
+	// Assert: Validate config through utility
+	bool bConfigValid = NomiTestUtils::ValidatePerformanceConfig(this, Config, ENIOVehicleType::SU7Ultra, TEXT("SU7Ultra"));
+	TestTrue(TEXT("SU7Ultra config should pass validation"), bConfigValid);
+
+	return true;
+}
+
+/**
+ * Test ResetVehicle null safety and recovery state defaults
+ * Covers: ResetVehicle early return when owner/world is null, initial recovery state
+ */
+bool FVehicleResetSafetyTest::RunTest(const FString& Parameters)
+{
+	// Arrange: Create state manager without owner or world (NewObject has no owner)
+	UVehicleStateManager* StateManager = NomiTestUtils::CreateMockVehicleStateManager(ENIOVehicleType::EP9);
+	TestNotNull(TEXT("StateManager should be created"), StateManager);
+
+	if (!StateManager)
+	{
+		return false;
+	}
+
+	// Assert: Initial recovery state
+	TestFalse(TEXT("Should not be stuck initially"), StateManager->IsStuck());
+	TestFalse(TEXT("Should not be flipped initially"), StateManager->IsFlipped());
+
+	// Act: ResetVehicle with no owner (should return safely, no crash)
+	StateManager->ResetVehicle();
+
+	// Assert: Still not stuck/flipped after reset (recovery state unchanged since reset returned early)
+	TestFalse(TEXT("Should not be stuck after reset without owner"), StateManager->IsStuck());
+	TestFalse(TEXT("Should not be flipped after reset without owner"), StateManager->IsFlipped());
+
+	// Assert: Verify vehicle state is still valid after reset attempt
+	const FNIOVehicleState& State = StateManager->GetVehicleState();
+	TestEqual(TEXT("Speed should still be 0 after reset"), State.SpeedKmh, 0.0f);
+	TestEqual(TEXT("Throttle should still be 0 after reset"), State.ThrottleInput, 0.0f);
+
+	return true;
+}
+
+/**
+ * Test GetVehicleSpecs static method for all vehicle types
+ * Covers: static spec generation for EP9, ET7, ES7, ET5, SU7Ultra, Custom
+ */
+bool FVehicleGetSpecsTest::RunTest(const FString& Parameters)
+{
+	// Test each vehicle type produces valid specs
+	TArray<ENIOVehicleType> AllTypes = {
+		ENIOVehicleType::EP9,
+		ENIOVehicleType::ET7,
+		ENIOVehicleType::ES7,
+		ENIOVehicleType::ET5,
+		ENIOVehicleType::SU7Ultra,
+		ENIOVehicleType::Custom
+	};
+
+	for (ENIOVehicleType Type : AllTypes)
+	{
+		FVehicleSpecs Specs = UVehicleStateManager::GetVehicleSpecs(Type);
+
+		// All types should produce non-empty name
+		TestFalse(TEXT("Vehicle name should not be empty"), Specs.VehicleName.IsEmpty());
+
+		// All types should have positive power, torque, top speed
+		TestTrue(TEXT("Power should be positive"), Specs.MaxPower > 0.0f);
+		TestTrue(TEXT("Torque should be positive"), Specs.MaxTorque > 0.0f);
+		TestTrue(TEXT("Top speed should be positive"), Specs.TopSpeed > 0.0f);
+		TestTrue(TEXT("0-100 time should be positive"), Specs.ZeroToHundredTime > 0.0f);
+	}
+
+	// Verify specific known values for EP9 (hypercar)
+	FVehicleSpecs EP9Specs = UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType::EP9);
+	TestEqual(TEXT("EP9 name"), EP9Specs.VehicleName, FString(TEXT("NIO EP9")));
+	TestEqual(TEXT("EP9 top speed"), EP9Specs.TopSpeed, 313.0f);
+	TestEqual(TEXT("EP9 0-100"), EP9Specs.ZeroToHundredTime, 2.7f);
+
+	// Verify specific known values for SU7Ultra
+	FVehicleSpecs SU7Specs = UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType::SU7Ultra);
+	TestEqual(TEXT("SU7Ultra name"), SU7Specs.VehicleName, FString(TEXT("Xiaomi SU7 Ultra")));
+	TestEqual(TEXT("SU7Ultra top speed"), SU7Specs.TopSpeed, 350.0f);
+	TestEqual(TEXT("SU7Ultra 0-100"), SU7Specs.ZeroToHundredTime, 1.98f);
+	TestEqual(TEXT("SU7Ultra torque"), SU7Specs.MaxTorque, 1200.0f);
+
+	// Verify power conversion: kW * 1.34102 = HP
+	// EP9: 1000 kW -> 1341.02 HP
+	TestTrue(TEXT("EP9 power should be ~1341 HP"), FMath::IsNearlyEqual(EP9Specs.MaxPower, 1000.0f * 1.34102f, 1.0f));
+
+	// Custom should have generic values
+	FVehicleSpecs CustomSpecs = UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType::Custom);
+	TestEqual(TEXT("Custom name"), CustomSpecs.VehicleName, FString(TEXT("Custom Vehicle")));
 
 	return true;
 }

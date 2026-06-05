@@ -353,10 +353,11 @@ void UCommentaryEngine::AddToRecentComments(const FNOMIComment& Comment)
 {
 	RecentComments.Add(Comment.Text);
 
-	// Remove oldest if exceeding max
-	while (RecentComments.Num() > RecentCommentsMax)
+	// Remove oldest if exceeding max (remove from front in bulk to avoid repeated O(N) shifts)
+	if (RecentComments.Num() > RecentCommentsMax)
 	{
-		RecentComments.RemoveAt(0);
+		int32 Excess = RecentComments.Num() - RecentCommentsMax;
+		RecentComments.RemoveAt(0, Excess);
 	}
 }
 
