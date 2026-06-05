@@ -1,6 +1,7 @@
 // Copyright NomiRacingPlus Project. All Rights Reserved.
 
 #include "Race/RaceManager.h"
+#include "Race/CheckpointSystem.h"
 #include "Vehicles/VehicleStateManager.h"
 #include "AI/AICarController.h"
 #include "Kismet/GameplayStatics.h"
@@ -58,6 +59,18 @@ void ARaceManager::StartRace(const FRaceConfig& Config)
 	else
 	{
 		bIsBajaMode = false;
+	}
+
+	// Auto-detect checkpoint count from the level if available
+	{
+		TArray<AActor*> CheckpointActors;
+		UGameplayStatics::GetAllActorsOfClass(this, ACheckpoint::StaticClass(), CheckpointActors);
+		if (CheckpointActors.Num() > 0 && CheckpointActors.Num() != CheckpointsPerLap)
+		{
+			UE_LOG(LogNomiRace, Log, TEXT("Auto-detected %d checkpoints (was %d)"),
+				CheckpointActors.Num(), CheckpointsPerLap);
+			CheckpointsPerLap = CheckpointActors.Num();
+		}
 	}
 
 	// Reset all racers
