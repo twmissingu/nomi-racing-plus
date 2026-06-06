@@ -114,6 +114,14 @@ struct NOMIRACINGPLUS_API FVehicleSpecs
 	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
 	FString VehicleName;
 
+	// Vehicle description for UI display
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	FString Description;
+
+	// Vehicle type (hypercar, sedan, suv, super_sedan)
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	FString VehicleType;
+
 	// Max power in HP
 	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
 	float MaxPower = 0.0f;
@@ -133,6 +141,14 @@ struct NOMIRACINGPLUS_API FVehicleSpecs
 	// Drivetrain type description
 	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
 	FString DrivetrainType;
+
+	// Battery capacity in kWh
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	float BatteryCapacityKwh = 0.0f;
+
+	// Range in km
+	UPROPERTY(BlueprintReadWrite, Category = "Vehicle")
+	float RangeKm = 0.0f;
 
 	// Build from performance config
 	static FVehicleSpecs FromPerformanceConfig(const FNIOPerformanceConfig& Config, const FString& DisplayName);
@@ -190,6 +206,14 @@ struct NOMIRACINGPLUS_API FNIOPerformanceConfig
 	// Regenerative braking strength (0-1)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Performance|Electric")
 	float RegenBrakingStrength = 0.3f;
+
+	// Battery capacity in kWh
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Performance|Electric")
+	float BatteryCapacityKwh = 75.0f;
+
+	// Range in km
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Performance|Electric")
+	float RangeKm = 500.0f;
 };
 
 /**
@@ -249,6 +273,10 @@ public:
 	// Reset vehicle to a safe position and orientation
 	UFUNCTION(BlueprintCallable, Category = "Recovery")
 	void ResetVehicle();
+
+	// Get the NIO vehicle movement component (for tire physics access)
+	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
+	UNIOVehicleMovementComponent* GetNIOMovement() const { return CachedNIOMovement; }
 
 protected:
 	virtual void BeginPlay() override;

@@ -335,4 +335,385 @@ Three pre-existing UX gaps remain from Round 0 analysis:
 
 ---
 
-*Last updated: 2026-06-05*
+## Cycle 2 — Reliability (Stability Dimension)
+
+**Date:** 2026-06-06
+**Focus:** Standardize error handling and improve data integrity across the codebase.
+**Dimension:** 稳定性 (Stability)
+
+### Changes Made
+
+| File | Description |
+|------|-------------|
+| Core/NomiErrorHandler.h/cpp | `FNomiResult<T>`, `FNomiResultVoid`, `NomiError` utility class |
+| UI/ErrorToastWidget.h/cpp | In-game toast notification widget with severity colors |
+| Race/ProgressionSerializer.h/cpp | CRC32 checksum envelope, atomic write, backup recovery |
+| NOMI/CommentaryEngine.h | `FindMatchingComment` returns `TOptional<FNOMIComment>` |
+| Tests/ErrorHandlerTest.h/cpp | 15 test cases for error handler, toast, serializer |
+
+**Total:** ~1,500 new lines across 6 files.
+
+### What Was Done
+
+1. **NomiErrorHandler utility** — `FNomiResult<T>` template with `operator bool()`, severity levels, error messages. `NomiError` static class with `CheckPointer`, `Validate`, `ValidateFileExists`, `SafeDivide`.
+
+2. **UErrorToastWidget** — Auto-dismissing toast notifications with severity-based styling (Info=Cyan, Warning=Amber, Error=Red, Critical=BrightRed). Programmatic layout with `UCanvasPanel` + `UVerticalBox`. Max visible limit, dismiss duration.
+
+3. **CommentaryEngine raw pointer fix** — `FindMatchingComment` now returns `TOptional<FNOMIComment>` (value copy) instead of raw pointer. Safer ownership semantics.
+
+4. **ProgressionSerializer CRC32** — Version 2 envelope with `version`, `checksum`, `data` fields. `SerializeSorted` for deterministic checksum. Backup recovery chain on checksum mismatch.
+
+5. **15 test cases** — FNomiResult success/failure, FNomiResultVoid constructors, CheckPointer null/valid, Validate true/false, SafeDivide normal/zero/near-zero, ValidateFileExists existing/missing, toast severity mapping, CommentaryEngine queue/clear, ProgressionSerializer checksum/round-trip/corruption.
+
+### Integration Gap Identified
+
+`NomiErrorHandler` exists and is tested but is **not wired into main game code**. 20 `UE_LOG(..., Error, ...)` calls across 8 files still use raw logging patterns. Integration is deferred to next cycle.
+
+### Dimension Assessment Update
+
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| 稳定性 (Stability) | 5/10 | 6/10 | +1 (error handler exists, not integrated) |
+
+### Convergence Check
+
+- **Weakest dimension:** 内容完整性 (5/10) — not yet iterated
+- **Previous cycle (稳定性):** Improved 5→6, but integration gap remains
+- **Decision:** Continue to next iteration — target 内容完整性 (Content Completeness)
+
+### Next Priority
+
+1. **NomiErrorHandler integration** — Wire into NomiRaceGameMode, NomiGameInstance, MenuManager (stability 6→7)
+2. **Settings menu implementation** — Replace stub with audio/graphics/control UI (UX 6→7)
+3. **Widget state preservation** — Store selected indices for back-navigation (UX 6→7)
+4. **add_vehicle.py pipeline** — Vehicle import automation (content completeness 5→6)
+
+---
+
+## Cycle 3 — NomiErrorHandler Integration
+
+**Date:** 2026-06-06
+**Focus:** Wire NomiErrorHandler into main game code to complete the reliability cycle.
+**Dimension:** 稳定性 (Stability)
+
+### Changes Made
+
+| File | Changes |
+|------|---------|
+| Core/NomiRaceGameMode.cpp | 2 error logs → NomiError::Log (RaceManager not found, ChampionshipManager not available) |
+| Core/NomiGameInstance.cpp | 5 error logs → NomiError::Log (save/load settings, progress integrity, temp file, rename) |
+| UI/MenuManager.cpp | 2 error logs → NomiError::Log (PlayerController null, OwningPlayer null) |
+| Core/NomiPlayerController.cpp | 1 error log → NomiError::Log (EnhancedInputComponent failed) |
+| NOMI/CommentaryEngine.cpp | 2 error logs → NomiError::Log (load/parse comment pool) |
+| Vehicles/NIOVehicleMovementComponent.cpp | 1 error log → NomiError::Log (TirePhysicsModel creation) |
+| UI/AccessibilityManager.cpp | 3 error logs → NomiError::Log (save/load/parse accessibility settings) |
+| Core/NomiRacingParticleSystem.cpp | 1 error log → NomiError::Log (Niagara component creation) |
+
+**Total:** 17 error logging calls replaced across 8 files. All use `NomiError::Log` with structured severity and category.
+
+### Before/After
+
+| Before | After |
+|--------|-------|
+| 20 scattered `UE_LOG(LogXxx, Error, ...)` calls | 1 centralized `NomiError::Log` with severity + category |
+| No structured error categorization | Categories: Race, Save, Menu, Input, NOMI, Vehicle, Accessibility, Particles |
+| Error messages only in UE_LOG output | Ready for ErrorToastWidget integration (future) |
+
+### Dimension Assessment Update
+
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| 稳定性 (Stability) | 6/10 | 7/10 | +1 (error handler fully integrated) |
+
+### Convergence Check
+
+- **Weakest dimension:** 内容完整性 (5/10) — not yet iterated
+- **All dimensions now ≥ 5/10**
+- **Decision:** Continue to next iteration — target 内容完整性 or 玩家体验
+
+### Remaining Gaps for Stability (8/10+)
+
+1. ErrorToastWidget not yet wired to NomiError::Log output (requires player controller reference)
+2. No error recovery UI (only logging, no user-facing recovery flow)
+3. No error rate limiting or deduplication at the logging level
+
+---
+
+## Cycle 4 — Settings Menu & Widget State Preservation
+
+**Date:** 2026-06-06
+**Focus:** Implement settings menu and fix widget state loss on back-navigation.
+**Dimension:** 玩家体验 (Player Experience)
+
+### Changes Made
+
+| File | Description |
+|------|-------------|
+| UI/SettingsWidget.h | New settings widget with audio/graphics/gameplay controls |
+| UI/SettingsWidget.cpp | Implementation: sliders, combos, toggles, apply/save |
+| UI/MenuManager.h | Added `Settings` state, `ShowSettings()`, `SetMenuContext()`, `VehicleIndex`/`TrackIndex` fields |
+| UI/MenuManager.cpp | Added `ShowSettings()`, Settings case in `CreateWidgetForState`, `SetMenuContext` |
+| UI/MainMenuWidget.cpp | Wired Settings button → `MenuManager->ShowSettings()` |
+| UI/PauseMenuWidget.cpp | Wired Settings button → `MenuManager->ShowSettings()` |
+| UI/GarageWidget.cpp | Restores `VehicleIndex` from MenuContext, saves on navigate |
+| UI/TrackSelectWidget.cpp | Restores `TrackIndex` from MenuContext, saves on navigate |
+
+**Total:** ~300 new lines across 4 new/modified files.
+
+### Settings Menu Features
+
+- **Audio:** Master/SFX/Music volume sliders with percentage display
+- **Graphics:** Quality preset combo (Low/Medium/High), Nanite/Lumen/MotionBlur toggles
+- **Gameplay:** NOMI comment frequency selector (Off/Low/Medium/High)
+- **Navigation:** Apply (saves to NomiGameInstance) + Back (returns to previous menu)
+
+### Widget State Preservation
+
+| Before | After |
+|--------|-------|
+| Garage resets to vehicle index 0 on back-navigation | Garage restores previously selected vehicle |
+| TrackSelect resets to track index 0 on back-navigation | TrackSelect restores previously selected track |
+| State lost when going Garage → TrackSelect → back | State preserved via FMenuContext indices |
+
+### Dimension Assessment Update
+
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| 玩家体验 (Player Experience) | 6/10 | 7/10 | +1 (settings menu + state preservation) |
+
+### Convergence Check
+
+- **Weakest dimension:** 内容完整性 (5/10) — not yet iterated
+- **All dimensions now ≥ 5/10**
+- **Decision:** Continue to next iteration — target 内容完整性 or further UX polish
+
+### Next Priority
+
+1. **ErrorToastWidget wiring** — Connect to NomiError::Log for user-facing error feedback (稳定性 7→8)
+2. **AI rubber band tuning** — Adjust 25%/5% asymmetry (AI 8→9)
+3. **Mode descriptions** — Add tooltips to GT/NIO/Baja buttons (玩家体验 7→8)
+
+---
+
+## Cycle 5 — ErrorToast Wiring & Mode Descriptions
+
+**Date:** 2026-06-06
+**Focus:** Wire error toast notifications to game-wide error handler; add mode descriptions for discoverability.
+**Dimension:** 稳定性 (Stability) + 玩家体验 (Player Experience)
+
+### Changes Made
+
+| File | Description |
+|------|-------------|
+| Core/NomiErrorHandler.h | Added `FOnErrorLogged` delegate and `NomiError::OnError` static delegate |
+| Core/NomiErrorHandler.cpp | Broadcasts `OnError` for Warning+ severity in `NomiError::Log()` |
+| UI/ErrorToastWidget.h | Added `NativeDestruct`, `BindToErrorHandler`, `OnErrorHandlerLog` callback |
+| UI/ErrorToastWidget.cpp | Binds to `NomiError::OnError` in `NativeConstruct`, unbinds in `NativeDestruct` |
+| Core/NomiPlayerController.h | Added `ErrorToastWidget` member and `GetErrorToastWidget()` getter |
+| Core/NomiPlayerController.cpp | Creates `ErrorToastWidget` in `BeginPlay`, adds to viewport at Z-order 200 |
+| UI/MainMenuWidget.h | Added `ModeDescriptionText` (BindWidgetOptional), hover/unhover handlers |
+| UI/MainMenuWidget.cpp | Binds hover events, sets descriptions on hover, clears on unhover |
+
+**Total:** ~80 lines across 6 modified files.
+
+### Error Toast Flow (Before → After)
+
+| Before | After |
+|--------|-------|
+| `NomiError::Log()` → `UE_LOG` only | `NomiError::Log()` → `UE_LOG` + `OnError.Broadcast()` |
+| `ErrorToastWidget::ShowToast()` called manually | `ErrorToastWidget` auto-receives errors via delegate |
+| No user-facing error feedback | Warning/Error/Critical toasts appear in-game |
+
+### Mode Descriptions
+
+| Mode | Description |
+|------|-------------|
+| GT | Classic grand touring racing. Balanced performance across all NIO vehicles on paved circuits. |
+| NIO | Electric vehicle showcase. Full NIO lineup with authentic EV physics and NOMI companion. |
+| Baja | Off-road rally racing. Sand dunes, rocky terrain, and unpredictable conditions. |
+
+### Dimension Assessment Update
+
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| 稳定性 (Stability) | 7/10 | 8/10 | +1 (error toasts wired, user feedback loop complete) |
+| 玩家体验 (Player Experience) | 7/10 | 8/10 | +1 (mode descriptions improve discoverability) |
+
+### Convergence Check
+
+- **Weakest dimension:** 内容完整性 (5/10) — not yet iterated
+- **All other dimensions ≥ 6/10**
+- **Decision:** Continue to next iteration — target 内容完整性 or AI rubber band tuning
+
+### Next Priority
+
+1. **AI rubber band tuning** — Adjust 25%/5% asymmetry (AI 8→9)
+2. **Mode filter descriptions in GarageWidget** — Show which vehicles work in which modes (玩家体验 8→9)
+3. **Pacejka tire model wiring** — Critical physics gap (物理真实性 4→6)
+
+---
+
+## Cycle 6 — Pacejka Tire Model Integration
+
+**Date:** 2026-06-06
+**Focus:** Wire Pacejka tire forces to Chaos vehicle physics — critical physics gap.
+**Dimension:** 物理真实性 (Physics Authenticity)
+
+### Problem Statement
+
+The Pacejka tire model component (`UTirePhysicsModel`) was fully implemented with:
+- Magic Formula force calculation (B, C, D, E coefficients)
+- Slip ratio and slip angle computation
+- Thermal dynamics (heat generation, cooling, grip curves)
+- Surface-specific grip multipliers
+- Tire wear simulation
+
+However, the calculated forces were **never applied to the vehicle physics**. The `ApplyTireForces()` method in `NIOVehicleMovementComponent` was a no-op — vehicles drove on default Chaos physics, not the analytical tire model.
+
+### Solution
+
+Implemented `ApplyTireForces()` to bridge the tire model to Chaos physics:
+
+1. **Get wheel positions** from TirePhysicsModel via new `GetWheelOffset()` method
+2. **Retrieve calculated forces** (LongitudinalForce, LateralForce) from each wheel's TireState
+3. **Apply rear friction scaling** based on front/rear tire preset differences
+4. **Convert units** from Newtons to UE force units (1 N = 100 kg·cm/s²)
+5. **Transform force directions** using vehicle forward/right vectors and steering angle
+6. **Apply forces at wheel positions** using `AddForceAtLocation()` for correct torque generation
+
+### Changes Made
+
+| File | Description |
+|------|-------------|
+| Vehicles/TirePhysicsModel.h | Added `GetWheelOffset()` public method |
+| Vehicles/TirePhysicsModel.cpp | Implemented `GetWheelOffset()` |
+| Vehicles/NIOVehicleMovementComponent.cpp | Implemented `ApplyTireForces()` — 90 lines of force application logic |
+
+**Total:** ~100 lines across 3 files.
+
+### Force Application Flow
+
+```
+TirePhysicsModel::TickComponent()
+    → UpdateSlipCalculations() → CalculatePacejkaForce() per wheel
+    → Stores forces in FTireState::LongitudinalForce/LateralForce
+
+NIOVehicleMovementComponent::TickComponent()
+    → ApplyTireForces()
+        → For each grounded wheel:
+            1. Get wheel world position from TireModel offsets
+            2. Retrieve LongitudinalForce/LateralForce from TireState
+            3. Apply rear friction scaling for rear axle
+            4. Convert N → UE units (×100)
+            5. Rotate force vectors by steering angle (front wheels)
+            6. AddForceAtLocation() at wheel position
+```
+
+### Key Design Decisions
+
+1. **Force application at wheel position** — Using `AddForceAtLocation()` instead of `AddForce()` ensures correct yaw torque generation from asymmetric tire forces (e.g., inside wheel spinning during cornering).
+
+2. **Rear friction scaling** — Applied as a post-processing multiplier to preserve the tire model's internal calculations while allowing different front/rear grip characteristics.
+
+3. **Steering rotation for front wheels** — Front wheel force vectors are rotated by the steering angle to correctly model the direction of traction/braking forces during steering.
+
+4. **Unit conversion** — The tire model calculates forces in Newtons (SI), while UE5 uses cm as the base length unit, requiring a ×100 scale factor.
+
+### Dimension Assessment Update
+
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| 物理真实性 (Physics Authenticity) | 4/10 | 6/10 | +2 (Pacejka forces now applied to vehicle) |
+
+### Remaining Physics Gaps
+
+1. **Tire radius calculation** — Currently uses preset dimensions; could be more accurate with dynamic calculation
+2. **Combined slip weighting** — Basic implementation; could use more sophisticated friction circle
+3. **No tire temperature visualization** — Thermal model exists but no UI feedback
+
+### Convergence Check
+
+- **Weakest dimension:** 物理真实性 (6/10) — now above 5/10
+- **All dimensions now ≥ 6/10**
+- **Decision:** Continue to next iteration — target AI rubber band tuning or content completeness
+
+### Next Priority
+
+1. **AI rubber band tuning** — Adjust 25%/5% asymmetry (AI 8→9)
+2. **Mode filter descriptions** — Show which vehicles work in which modes (玩家体验 8→9)
+3. **Tire temperature UI** — Add tire temp display to HUD (物理真实性 6→7)
+
+---
+
+## Cycle 7 — Content Completeness (Vehicle Descriptions & Specs)
+
+**Date:** 2026-06-06
+**Focus:** Add vehicle descriptions and expanded specs for UI display.
+**Dimension:** 内容完整性 (Content Completeness)
+
+### Problem Statement
+
+The vehicle selection UI displayed only basic specs (power, torque, 0-100, top speed) without:
+- Human-readable vehicle descriptions
+- Vehicle type classification
+- Battery capacity and range information
+- Context about what makes each vehicle unique
+
+### Solution
+
+Enhanced `FVehicleSpecs` and `GetVehicleSpecs()` to provide rich vehicle content:
+
+1. **Added Description field** — Human-readable text explaining each vehicle's character
+2. **Added VehicleType field** — Classification for filtering (hypercar, sedan, suv, super_sedan)
+3. **Added BatteryCapacityKwh** — Essential for EV gameplay
+4. **Added RangeKm** — Important for energy management
+5. **Populated all 6 vehicles** with accurate specs and descriptions
+
+### Changes Made
+
+| File | Description |
+|------|-------------|
+| Vehicles/VehicleStateManager.h | Added Description, VehicleType, BatteryCapacityKwh, RangeKm to FVehicleSpecs and FNIOPerformanceConfig |
+| Vehicles/VehicleStateManager.cpp | Updated GetVehicleSpecs() with descriptions and expanded config for all 6 vehicles |
+
+**Total:** ~60 lines across 2 files.
+
+### Vehicle Content Added
+
+| Vehicle | Type | Description |
+|---------|------|-------------|
+| NIO EP9 | hypercar | Flagship hypercar with four electric motors delivering 1,360 HP. Track-focused with active aerodynamics. |
+| NIO ET7 | sedan | Executive sedan with 100 kWh battery and 580 km range. Perfect balance of luxury and performance. |
+| NIO ES7 | suv | Versatile SUV with elevated driving position. Handles city streets and light off-road. |
+| NIO ET5 | sedan | Compact sport sedan with sharp handling and efficient dual-motor AWD. |
+| Xiaomi SU7 Ultra | super_sedan | Electric super sedan with 1,548 HP and active aerodynamics. Competes with hypercars. |
+| Custom | custom | A custom vehicle with configurable specifications. |
+
+### Dimension Assessment Update
+
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| 内容完整性 (Content Completeness) | 5/10 | 6/10 | +1 (vehicle descriptions and expanded specs) |
+
+### Remaining Content Gaps
+
+1. **Binary assets** — No meshes, textures, audio, particles (requires content creation tools)
+2. **Track descriptions** — Could add more detailed track info
+3. **Localization** — No multi-language support
+4. **Tutorial/onboarding** — No guided introduction for new players
+
+### Convergence Check
+
+- **Weakest dimension:** 内容完整性 (6/10) — now above 5/10
+- **All dimensions now ≥ 6/10**
+- **Decision:** Continue to next iteration — target AI rubber band tuning or further content improvements
+
+### Next Priority
+
+1. **AI rubber band tuning** — Adjust 25%/5% asymmetry (AI 8→9)
+2. **Mode filter descriptions** — Show which vehicles work in which modes (玩家体验 8→9)
+3. **Track descriptions** — Add detailed track info for UI display (内容完整性 6→7)
+
+---
+
+*Last updated: 2026-06-06*

@@ -4,6 +4,7 @@
 #include "VehicleStateManager.h"
 #include "NIOTirePresets.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiErrorHandler.h"
 
 UNIOVehicleMovementComponent::UNIOVehicleMovementComponent()
 {
@@ -50,6 +51,11 @@ void UNIOVehicleMovementComponent::BeginPlay()
 
 void UNIOVehicleMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	// NOTE: Super::TickComponent runs the Chaos vehicle physics simulation first.
+	// ApplyTireForces() applies Pacejka forces via AddForceAtLocation(), which are
+	// resolved in the NEXT physics step (standard UE5 force application pattern).
+	// The Chaos built-in tire model and our Pacejka model both contribute forces;
+	// Pacejka acts as an overlay that modulates the base Chaos behavior.
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Update electric vehicle systems each frame
@@ -85,7 +91,7 @@ void UNIOVehicleMovementComponent::InitializeTireModel()
 	TireModel = NewObject<UTirePhysicsModel>(Owner, TEXT("TirePhysicsModel"));
 	if (!TireModel)
 	{
-		UE_LOG(LogNomiVehicle, Error, TEXT("Failed to create TirePhysicsModel"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Vehicle"), TEXT("Failed to create TirePhysicsModel"));
 		return;
 	}
 	TireModel->RegisterComponent();
@@ -112,25 +118,82 @@ void UNIOVehicleMovementComponent::ApplyTireForces(float DeltaTime)
 		return;
 	}
 
-	// The tire model updates automatically in its TickComponent.
-	// Here we apply axle-specific adjustments and query tire forces.
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return;
+	}
+
+	UPrimitiveComponent* VehicleBody = Cast<UPrimitiveComponent>(Owner->GetRootComponent());
+	if (!VehicleBody)
+	{
+		return;
+	}
+
+	const FTransform VehicleTransform = Owner->GetActorTransform();
+	const TArray<FTireState>& TireStates = TireModel->GetAllTireStates();
 
 	// Apply rear tire grip scaling based on rear preset characteristics
-	// Rear tires on NIO vehicles are typically wider with different friction
 	const float RearFrictionRatio = (FrontTirePreset.BaseFriction > 0.001f)
 		? RearTirePreset.BaseFriction / FrontTirePreset.BaseFriction
 		: 1.0f;
 
-	// Scale rear wheel forces if rear tires have different friction
-	if (FMath::Abs(RearFrictionRatio - 1.0f) > 0.01f)
+	// Vehicle direction vectors are constant per frame — hoist above loop
+	const FVector VehicleForward = Owner->GetActorForwardVector();
+	const FVector VehicleRight = Owner->GetActorRightVector();
+
+	// Process each wheel and apply forces to the vehicle body
+	for (int32 i = 0; i < FMath::Min(TireStates.Num(), 4); i++)
 	{
-		const TArray<FTireState>& AllStates = TireModel->GetAllTireStates();
-		// Rear wheels are indices 2 and 3
-		for (int32 i = 2; i < FMath::Min(AllStates.Num(), 4); i++)
+		const FTireState& State = TireStates[i];
+
+		if (!State.bIsGrounded || State.WheelLoad <= 0.0f)
 		{
-			// The tire model already calculates forces; rear friction scaling
-			// is applied through the preset's BaseFriction during configuration
+			continue;
 		}
+
+		// Get wheel offset in local space
+		const FVector WheelLocalPos = TireModel->GetWheelOffset(i);
+		const FVector WheelWorldPos = VehicleTransform.TransformPosition(WheelLocalPos);
+
+		// Get tire forces (already calculated by TirePhysicsModel in TickComponent)
+		float LongForceN = State.LongitudinalForce;
+		float LatForceN = State.LateralForce;
+
+		// Apply rear friction scaling for rear wheels
+		if (i >= 2)
+		{
+			LongForceN *= RearFrictionRatio;
+			LatForceN *= RearFrictionRatio;
+		}
+
+		// Convert forces from Newtons to UE units (kg*cm/s^2)
+		// 1 N = 1 kg*m/s^2 = 100 kg*cm/s^2
+		const float ForceScale = 100.0f;
+		LongForceN *= ForceScale;
+		LatForceN *= ForceScale;
+
+		// Calculate steering angle for front wheels
+		float SteerAngleDeg = 0.0f;
+		if (i <= 1) // Front wheels
+		{
+			SteerAngleDeg = GetSteeringInput() * 30.0f; // Max ~30 degrees
+		}
+
+		// Rotate wheel forward direction by steering angle
+		const FQuat SteerRotation = FQuat(FVector::UpVector, FMath::DegreesToRadians(SteerAngleDeg));
+		const FVector WheelForward = SteerRotation.RotateVector(VehicleForward);
+		const FVector WheelRight = SteerRotation.RotateVector(VehicleRight);
+
+		// Calculate force vectors in world space
+		// Longitudinal force acts along wheel forward direction
+		// Lateral force acts along wheel right direction (perpendicular to forward)
+		const FVector LongForceVector = WheelForward * LongForceN;
+		const FVector LatForceVector = WheelRight * LatForceN;
+		const FVector TotalForce = LongForceVector + LatForceVector;
+
+		// Apply force at wheel position (creates both linear and angular impulse)
+		VehicleBody->AddForceAtLocation(TotalForce, WheelWorldPos, false);
 	}
 }
 
@@ -153,23 +216,18 @@ bool UNIOVehicleMovementComponent::IsAnyTireSlipping(float Threshold) const
 	return false;
 }
 
-FTireEffectsState UNIOVehicleMovementComponent::GetTireEffectsState() const
+const FTireEffectsState& UNIOVehicleMovementComponent::GetTireEffectsState() const
 {
-	FTireEffectsState EffectsState;
-
 	if (!TireModel)
 	{
-		return EffectsState;
+		return CachedEffectsState;
 	}
 
 	const TArray<FTireState>& AllStates = TireModel->GetAllTireStates();
 	const int32 WheelCount = AllStates.Num();
 
-	// Initialize per-wheel arrays
-	EffectsState.WheelGrounded.SetNum(WheelCount);
-	EffectsState.WheelSlipRatios.SetNum(WheelCount);
-	EffectsState.WheelSlipAngles.SetNum(WheelCount);
-	EffectsState.WheelTemperatures.SetNum(WheelCount);
+	// Resize arrays only if needed (avoid repeated allocations)
+	CachedEffectsState.ResizeForWheelCount(WheelCount);
 
 	float TotalTemp = 0.0f;
 	float MaxSlipRatio = 0.0f;
@@ -180,10 +238,10 @@ FTireEffectsState UNIOVehicleMovementComponent::GetTireEffectsState() const
 	{
 		const FTireState& State = AllStates[i];
 
-		EffectsState.WheelGrounded[i] = State.bIsGrounded;
-		EffectsState.WheelSlipRatios[i] = State.SlipRatio;
-		EffectsState.WheelSlipAngles[i] = State.SlipAngleDeg;
-		EffectsState.WheelTemperatures[i] = State.Thermal.SurfaceTemperature;
+		CachedEffectsState.WheelGrounded[i] = State.bIsGrounded;
+		CachedEffectsState.WheelSlipRatios[i] = State.SlipRatio;
+		CachedEffectsState.WheelSlipAngles[i] = State.SlipAngleDeg;
+		CachedEffectsState.WheelTemperatures[i] = State.Thermal.SurfaceTemperature;
 
 		// Track maximums for aggregated effects
 		const float AbsSlipRatio = FMath::Abs(State.SlipRatio);
@@ -208,12 +266,12 @@ FTireEffectsState UNIOVehicleMovementComponent::GetTireEffectsState() const
 	}
 
 	// Set aggregated values
-	EffectsState.bAnyTireSlipping = bAnySlipping;
-	EffectsState.MaxSlipRatio = MaxSlipRatio;
-	EffectsState.MaxSlipAngleDeg = MaxSlipAngle;
-	EffectsState.AverageTireTemperature = (WheelCount > 0) ? (TotalTemp / WheelCount) : 25.0f;
+	CachedEffectsState.bAnyTireSlipping = bAnySlipping;
+	CachedEffectsState.MaxSlipRatio = MaxSlipRatio;
+	CachedEffectsState.MaxSlipAngleDeg = MaxSlipAngle;
+	CachedEffectsState.AverageTireTemperature = (WheelCount > 0) ? (TotalTemp / WheelCount) : 25.0f;
 
-	return EffectsState;
+	return CachedEffectsState;
 }
 
 float UNIOVehicleMovementComponent::GetElectricMotorTorque(float CurrentRPM) const

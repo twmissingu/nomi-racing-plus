@@ -134,10 +134,10 @@ void AAICarController::OnPossess(APawn* InPawn)
 		if (UAIRubberBandScaler* RBScaler = BehaviorTree->GetRubberBandScaler())
 		{
 			FAIRubberBandConfig RBConfig;
-			RBConfig.CatchUpSpeedBoost = GetCurrentSettings().RubberBandStrength * 0.5f;
-			RBConfig.SlowDownWhenAhead = GetCurrentSettings().RubberBandStrength * 0.2f;
-			RBConfig.MaxBoost = GetCurrentSettings().RubberBandStrength * 0.8f;
-			RBConfig.MaxReduction = GetCurrentSettings().RubberBandStrength * 0.4f;
+			RBConfig.CatchUpSpeedBoost = GetCurrentSettings().RubberBandStrength * 0.4f;
+			RBConfig.SlowDownWhenAhead = GetCurrentSettings().RubberBandStrength * 0.3f;
+			RBConfig.MaxBoost = GetCurrentSettings().RubberBandStrength * 0.6f;
+			RBConfig.MaxReduction = GetCurrentSettings().RubberBandStrength * 0.45f;
 			RBScaler->SetConfig(RBConfig);
 		}
 

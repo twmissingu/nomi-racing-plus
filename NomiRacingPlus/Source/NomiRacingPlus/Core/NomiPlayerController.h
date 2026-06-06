@@ -10,6 +10,7 @@
 #include "NomiPlayerController.generated.h"
 
 class UVehicleStateManager;
+class UErrorToastWidget;
 
 /**
  * Input actions for vehicle control
@@ -146,6 +147,14 @@ protected:
 	// Menu manager component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu")
 	TObjectPtr<UMenuManager> MenuManager;
+
+	// Error toast widget (created at runtime, added to viewport)
+	UPROPERTY()
+	TObjectPtr<UErrorToastWidget> ErrorToastWidget;
+
+	// Get error toast widget
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	UErrorToastWidget* GetErrorToastWidget() const { return ErrorToastWidget; }
 
 	// Cached vehicle state manager from controlled pawn
 	UPROPERTY()

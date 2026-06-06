@@ -2,6 +2,7 @@
 
 #include "UI/RaceHUD.h"
 #include "UI/AccessibilityManager.h"
+#include "UI/TireTempWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Widget.h"
@@ -151,6 +152,56 @@ void URaceHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		ESlateVisibility Visibility = HUDData.bIsDrifting ?
 			ESlateVisibility::Visible : ESlateVisibility::Hidden;
 		DriftIndicator->SetVisibility(Visibility);
+	}
+
+	// Tire temperature widgets (only update if TireTemperatures has data)
+	if (HUDData.TireTemperatures.Num() >= 4)
+	{
+		// Format individual wheel temperatures: FL, FR, RL, RR
+		auto UpdateTireText = [](UTextBlock* Widget, int32 Index, const TArray<float>& Temps)
+		{
+			if (Widget)
+			{
+				Widget->SetText(FText::FromString(
+					FString::Printf(TEXT("%.0f°C"), Temps[Index])));
+			}
+		};
+
+		UpdateTireText(TireTempFLText, 0, HUDData.TireTemperatures);
+		UpdateTireText(TireTempFRText, 1, HUDData.TireTemperatures);
+		UpdateTireText(TireTempRLText, 2, HUDData.TireTemperatures);
+		UpdateTireText(TireTempRRText, 3, HUDData.TireTemperatures);
+	}
+
+	if (AvgTireTempText)
+	{
+		AvgTireTempText->SetText(FText::FromString(
+			FString::Printf(TEXT("Avg: %.0f°C"), HUDData.AvgTireTemperature)));
+	}
+
+	// Tire temperature display widget (sourced from TirePhysicsModel via FHUDData)
+	if (TireTempWidget)
+	{
+		// Show only during Racing state
+		const bool bShouldShow = (HUDData.RaceState == ERaceState::Racing);
+		if (bShouldShow)
+		{
+			TireTempWidget->ShowWidget();
+
+			// Update temperatures when we have 4 wheel readings
+			if (HUDData.TireTemperatures.Num() >= 4)
+			{
+				TireTempWidget->UpdateTemperatures(
+					HUDData.TireTemperatures[0],
+					HUDData.TireTemperatures[1],
+					HUDData.TireTemperatures[2],
+					HUDData.TireTemperatures[3]);
+			}
+		}
+		else
+		{
+			TireTempWidget->HideWidget();
+		}
 	}
 
 	// Countdown

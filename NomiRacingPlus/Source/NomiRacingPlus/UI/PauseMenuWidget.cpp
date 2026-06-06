@@ -88,8 +88,10 @@ void UPauseMenuWidget::OnRestart()
 
 void UPauseMenuWidget::OnSettings()
 {
-	// Placeholder: integrate settings menu here when available.
-	UE_LOG(LogNomiRacing, Log, TEXT("PauseMenuWidget::OnSettings - Settings not yet implemented."));
+	if (MenuManager)
+	{
+		MenuManager->ShowSettings();
+	}
 }
 
 void UPauseMenuWidget::OnMainMenu()

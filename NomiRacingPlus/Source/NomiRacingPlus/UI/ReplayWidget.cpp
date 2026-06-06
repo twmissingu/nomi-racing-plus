@@ -40,6 +40,9 @@ void UReplayWidget::NativeConstruct()
 	if (CameraTopBtn)       { CameraTopBtn->OnClicked.AddDynamic(this, &UReplayWidget::OnCameraTop); }
 	if (CameraBumperBtn)    { CameraBumperBtn->OnClicked.AddDynamic(this, &UReplayWidget::OnCameraBumper); }
 
+	// Telemetry toggle
+	if (TelemetryToggleBtn) { TelemetryToggleBtn->OnClicked.AddDynamic(this, &UReplayWidget::OnTelemetryToggle); }
+
 	UpdateButtonStates();
 }
 
@@ -77,6 +80,50 @@ void UReplayWidget::UpdateTimeline(float CurrentTime, float TotalTime)
 			static_cast<int32>(Total.GetMinutes()),
 			Total.GetSeconds());
 		TimeText->SetText(FText::FromString(TimeStr));
+	}
+}
+
+void UReplayWidget::UpdateTelemetry(float Speed, float RPM, float Throttle, float Brake, float Steering, float GForceLong, float GForceLat, float TireTempFL, float TireTempFR, float TireTempRL, float TireTempRR)
+{
+	if (!bShowTelemetry)
+	{
+		return;
+	}
+
+	if (TelemetrySpeedText)
+	{
+		TelemetrySpeedText->SetText(FText::FromString(FString::Printf(TEXT("Speed: %.0f km/h"), Speed)));
+	}
+
+	if (TelemetryRPMText)
+	{
+		TelemetryRPMText->SetText(FText::FromString(FString::Printf(TEXT("RPM: %.0f"), RPM)));
+	}
+
+	if (TelemetryThrottleText)
+	{
+		TelemetryThrottleText->SetText(FText::FromString(FString::Printf(TEXT("Throttle: %.0f%%"), Throttle * 100.0f)));
+	}
+
+	if (TelemetryBrakeText)
+	{
+		TelemetryBrakeText->SetText(FText::FromString(FString::Printf(TEXT("Brake: %.0f%%"), Brake * 100.0f)));
+	}
+
+	if (TelemetrySteeringText)
+	{
+		TelemetrySteeringText->SetText(FText::FromString(FString::Printf(TEXT("Steering: %.1f"), Steering)));
+	}
+
+	if (TelemetryGForceText)
+	{
+		TelemetryGForceText->SetText(FText::FromString(FString::Printf(TEXT("G-Force: %.2fG / %.2fG"), GForceLong, GForceLat)));
+	}
+
+	if (TelemetryTireTempText)
+	{
+		TelemetryTireTempText->SetText(FText::FromString(FString::Printf(
+			TEXT("Tires: %.0f/%.0f/%.0f/%.0f°C"), TireTempFL, TireTempFR, TireTempRL, TireTempRR)));
 	}
 }
 
@@ -170,6 +217,22 @@ void UReplayWidget::OnCameraAngleChanged(int32 CameraIndex)
 	}
 
 	UpdateButtonStates();
+}
+
+// ---------------------------------------------------------------------------
+// Telemetry toggle
+// ---------------------------------------------------------------------------
+
+void UReplayWidget::OnTelemetryToggle()
+{
+	bShowTelemetry = !bShowTelemetry;
+
+	if (TelemetryToggleBtn)
+	{
+		const FString ToggleText = bShowTelemetry ? TEXT("Hide Telemetry") : TEXT("Show Telemetry");
+		// Note: Button text would need a TextBlock child widget to update
+		// For now, we just toggle the visibility state
+	}
 }
 
 // ---------------------------------------------------------------------------

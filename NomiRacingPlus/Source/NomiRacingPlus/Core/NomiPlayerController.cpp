@@ -10,6 +10,8 @@
 #include "Race/RaceManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiErrorHandler.h"
+#include "UI/ErrorToastWidget.h"
 
 ANomiPlayerController::ANomiPlayerController()
 {
@@ -32,6 +34,13 @@ void ANomiPlayerController::BeginPlay()
 	MenuManager = NewObject<UMenuManager>(this, TEXT("MenuManager"));
 	MenuManager->RegisterComponent();
 	MenuManager->Initialize(this);
+
+	// Create error toast widget (auto-binds to NomiError::OnError)
+	ErrorToastWidget = CreateWidget<UErrorToastWidget>(this, UErrorToastWidget::StaticClass());
+	if (ErrorToastWidget)
+	{
+		ErrorToastWidget->AddToViewport(200); // High Z-order so toasts appear above everything
+	}
 
 	// Only show the main menu when NOT on a race track.
 	// Race tracks (TestTrack, NIOCityCircuit, etc.) use NomiRaceGameMode which
@@ -63,7 +72,7 @@ void ANomiPlayerController::SetupInputComponent()
 	UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent);
 	if (!EnhancedInput)
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to get EnhancedInputComponent"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Input"), TEXT("Failed to get EnhancedInputComponent"));
 		return;
 	}
 

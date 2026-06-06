@@ -7,6 +7,7 @@
 #include "Race/RaceManager.h"
 #include "Core/NomiRaceGameMode.h"
 #include "Core/NomiGameInstance.h"
+#include "Core/NomiErrorHandler.h"
 
 #include "UI/MainMenuWidget.h"
 #include "UI/GarageWidget.h"
@@ -15,6 +16,7 @@
 #include "UI/LoadingScreenWidget.h"
 #include "UI/PauseMenuWidget.h"
 #include "UI/ResultsWidget.h"
+#include "UI/SettingsWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNomiMenu, Log, All);
 
@@ -27,7 +29,7 @@ void UMenuManager::Initialize(APlayerController* PC)
 {
 	if (!PC)
 	{
-		UE_LOG(LogNomiMenu, Error, TEXT("Initialize: PlayerController is null"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Menu"), TEXT("Initialize: PlayerController is null"));
 		return;
 	}
 
@@ -128,6 +130,12 @@ void UMenuManager::ShowResults(const FRaceSessionResult& Result)
 	UE_LOG(LogNomiMenu, Log, TEXT("Results displayed, position: %d"), Result.FinalPosition);
 }
 
+void UMenuManager::ShowSettings()
+{
+	SwitchToState(EMenuState::Settings);
+	UE_LOG(LogNomiMenu, Log, TEXT("Settings displayed"));
+}
+
 void UMenuManager::ReturnToPrevious()
 {
 	if (StateStack.Num() == 0)
@@ -216,6 +224,11 @@ const FMenuContext& UMenuManager::GetMenuContext() const
 	return MenuContext;
 }
 
+void UMenuManager::SetMenuContext(const FMenuContext& NewContext)
+{
+	MenuContext = NewContext;
+}
+
 void UMenuManager::SetGameMode(const FString& Mode)
 {
 	MenuContext.GameMode = Mode;
@@ -249,7 +262,7 @@ UUserWidget* UMenuManager::CreateWidgetForState(EMenuState State)
 {
 	if (!IsValid(OwningPlayer.Get()))
 	{
-		UE_LOG(LogNomiMenu, Error, TEXT("CreateWidgetForState: OwningPlayer is null"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Menu"), TEXT("CreateWidgetForState: OwningPlayer is null"));
 		return nullptr;
 	}
 
@@ -324,6 +337,17 @@ UUserWidget* UMenuManager::CreateWidgetForState(EMenuState State)
 	case EMenuState::Results:
 		UE_LOG(LogNomiMenu, Log, TEXT("Creating Results widget"));
 		return CreateWidget<UResultsWidget>(OwningPlayer);
+
+	case EMenuState::Settings:
+	{
+		UE_LOG(LogNomiMenu, Log, TEXT("Creating Settings widget"));
+		USettingsWidget* SettingsWidget = CreateWidget<USettingsWidget>(OwningPlayer);
+		if (SettingsWidget)
+		{
+			SettingsWidget->SetMenuManager(this);
+		}
+		return SettingsWidget;
+	}
 
 	case EMenuState::Racing:
 		// Racing state does not have a widget

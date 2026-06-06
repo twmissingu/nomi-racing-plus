@@ -24,7 +24,8 @@ enum class EMenuState : uint8
 	Loading      UMETA(DisplayName = "Loading"),
 	Racing       UMETA(DisplayName = "Racing"),
 	Paused       UMETA(DisplayName = "Paused"),
-	Results      UMETA(DisplayName = "Results")
+	Results      UMETA(DisplayName = "Results"),
+	Settings     UMETA(DisplayName = "Settings")
 };
 
 /**
@@ -62,6 +63,14 @@ struct NOMIRACINGPLUS_API FMenuContext
 	// Weather preset index (0=Clear, 1=Rain, 2=Storm, etc.)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu|RaceSettings")
 	int32 Weather = 0;
+
+	// Vehicle selection index in garage (for state preservation on back-navigation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
+	int32 VehicleIndex = 0;
+
+	// Track selection index (for state preservation on back-navigation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
+	int32 TrackIndex = 0;
 };
 
 /**
@@ -109,6 +118,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu|Navigation")
 	void ShowResults(const FRaceSessionResult& Result);
 
+	// Show settings screen
+	UFUNCTION(BlueprintCallable, Category = "Menu|Navigation")
+	void ShowSettings();
+
 	// Return to the previous menu state
 	UFUNCTION(BlueprintCallable, Category = "Menu|Navigation")
 	void ReturnToPrevious();
@@ -124,6 +137,10 @@ public:
 	// Get current menu context (read-only)
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	const FMenuContext& GetMenuContext() const;
+
+	// Update menu context (for state preservation)
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	void SetMenuContext(const FMenuContext& NewContext);
 
 	// Set game mode (GT, NIO, Baja)
 	UFUNCTION(BlueprintCallable, Category = "Menu|Settings")

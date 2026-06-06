@@ -13,6 +13,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiErrorHandler.h"
 #include "UI/RaceHUD.h"
 #include "UI/ResultsWidget.h"
 #include "UI/MenuManager.h"
@@ -169,6 +170,18 @@ void ANomiRaceGameMode::Tick(float DeltaTime)
 				Data.DriftAngle = VState.SlipAngle;
 				Data.BatteryLevel = VState.BatteryPercent;
 				Data.bIsNIOVehicle = CachedPlayerVSM->IsNIOVehicle();
+
+				// Populate tire temperatures from tire physics model (avoid per-frame TArray allocation)
+				if (UNIOVehicleMovementComponent* VehicleMovement = CachedPlayerVSM->GetNIOMovement())
+				{
+					const FTireEffectsState& Effects = VehicleMovement->GetTireEffectsState();
+					Data.ResizeTireTemps();
+					for (int32 i = 0; i < FMath::Min(Effects.WheelTemperatures.Num(), FHUDData::TireTempCount); i++)
+					{
+						Data.TireTemperatures[i] = Effects.WheelTemperatures[i];
+					}
+					Data.AvgTireTemperature = Effects.AverageTireTemperature;
+				}
 			}
 
 			// Race telemetry
@@ -234,7 +247,7 @@ void ANomiRaceGameMode::StartNewRace(const FRaceConfig& Config)
 {
 	if (!RaceManager)
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Cannot start race: RaceManager not found"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Race"), TEXT("Cannot start race: RaceManager not found"));
 		return;
 	}
 
@@ -686,7 +699,7 @@ bool ANomiRaceGameMode::StartChampionship(const FString& ChampionshipID)
 {
 	if (!ChampionshipManager)
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Cannot start championship: ChampionshipManager not available"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Race"), TEXT("Cannot start championship: ChampionshipManager not available"));
 		return false;
 	}
 

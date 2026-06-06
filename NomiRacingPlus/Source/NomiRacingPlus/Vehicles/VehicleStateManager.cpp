@@ -243,6 +243,8 @@ FVehicleSpecs FVehicleSpecs::FromPerformanceConfig(const FNIOPerformanceConfig& 
 	Specs.ZeroToHundredTime = Config.Acceleration0100;
 	Specs.TopSpeed = Config.TopSpeedKph;
 	Specs.DrivetrainType = Config.DriveType;
+	Specs.BatteryCapacityKwh = Config.BatteryCapacityKwh;
+	Specs.RangeKm = Config.RangeKm;
 	return Specs;
 }
 
@@ -250,6 +252,8 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 {
 	FNIOPerformanceConfig Config;
 	FString DisplayName;
+	FString Description;
+	FString VehicleTypeStr;
 
 	switch (VehicleType)
 	{
@@ -260,7 +264,11 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.DriveType = TEXT("AWD_quad_motor");
 		Config.TopSpeedKph = 313.0f;
 		Config.Acceleration0100 = 2.7f;
+		Config.BatteryCapacityKwh = 70.0f;
+		Config.RangeKm = 427.0f;
 		DisplayName = TEXT("NIO EP9");
+		Description = TEXT("NIO's flagship hypercar with four electric motors delivering 1,360 HP. Track-focused with active aerodynamics and carbon ceramic brakes. 0-100 km/h in 2.7 seconds.");
+		VehicleTypeStr = TEXT("hypercar");
 		break;
 	case ENIOVehicleType::ET7:
 		Config.MassKg = 2379.0f;
@@ -269,7 +277,11 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 250.0f;
 		Config.Acceleration0100 = 3.8f;
+		Config.BatteryCapacityKwh = 100.0f;
+		Config.RangeKm = 580.0f;
 		DisplayName = TEXT("NIO ET7");
+		Description = TEXT("Executive sedan with 100 kWh battery and 580 km range. Perfect balance of luxury, performance, and long-distance capability. Features NOMI companion.");
+		VehicleTypeStr = TEXT("sedan");
 		break;
 	case ENIOVehicleType::ES7:
 		Config.MassKg = 2400.0f;
@@ -278,7 +290,11 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 200.0f;
 		Config.Acceleration0100 = 3.9f;
+		Config.BatteryCapacityKwh = 100.0f;
+		Config.RangeKm = 530.0f;
 		DisplayName = TEXT("NIO ES7");
+		Description = TEXT("Versatile SUV with elevated driving position and spacious interior. Handles both city streets and light off-road with confidence.");
+		VehicleTypeStr = TEXT("suv");
 		break;
 	case ENIOVehicleType::ET5:
 		Config.MassKg = 2070.0f;
@@ -287,7 +303,11 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 200.0f;
 		Config.Acceleration0100 = 4.0f;
+		Config.BatteryCapacityKwh = 75.0f;
+		Config.RangeKm = 560.0f;
 		DisplayName = TEXT("NIO ET5");
+		Description = TEXT("Compact sport sedan with sharp handling and efficient dual-motor AWD. Ideal for daily driving and spirited corner carving.");
+		VehicleTypeStr = TEXT("sedan");
 		break;
 	case ENIOVehicleType::SU7Ultra:
 		Config.MassKg = 1900.0f;
@@ -296,7 +316,11 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 350.0f;
 		Config.Acceleration0100 = 1.98f;
+		Config.BatteryCapacityKwh = 101.0f;
+		Config.RangeKm = 630.0f;
 		DisplayName = TEXT("Xiaomi SU7 Ultra");
+		Description = TEXT("Xiaomi's electric super sedan with 1,548 HP and active aerodynamics. Competes with hypercars while maintaining daily usability.");
+		VehicleTypeStr = TEXT("super_sedan");
 		break;
 	default:
 		Config.PowerKw = 200.0f;
@@ -304,11 +328,18 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.DriveType = TEXT("RWD");
 		Config.TopSpeedKph = 180.0f;
 		Config.Acceleration0100 = 5.0f;
+		Config.BatteryCapacityKwh = 60.0f;
+		Config.RangeKm = 400.0f;
 		DisplayName = TEXT("Custom Vehicle");
+		Description = TEXT("A custom vehicle with configurable specifications.");
+		VehicleTypeStr = TEXT("custom");
 		break;
 	}
 
-	return FVehicleSpecs::FromPerformanceConfig(Config, DisplayName);
+	FVehicleSpecs Specs = FVehicleSpecs::FromPerformanceConfig(Config, DisplayName);
+	Specs.Description = Description;
+	Specs.VehicleType = VehicleTypeStr;
+	return Specs;
 }
 
 void UVehicleStateManager::CheckStuckAndFlip(float DeltaTime)

@@ -46,8 +46,14 @@ void UGarageWidget::SetModeFilter(const FString& Mode)
 {
 	AvailableVehicles.Empty();
 
+	// Mode descriptions for player guidance
+	FString ModeName;
+	FString ModeDescription;
+
 	if (Mode == TEXT("NIO"))
 	{
+		ModeName = TEXT("NIO Championship");
+		ModeDescription = TEXT("NIO-only championship featuring EP9, ET7, ES7, ET5, and SU7 Ultra. Compete on urban circuits with battery swap availability and NIO branding.");
 		AvailableVehicles.Add(ENIOVehicleType::EP9);
 		AvailableVehicles.Add(ENIOVehicleType::ET7);
 		AvailableVehicles.Add(ENIOVehicleType::ES7);
@@ -56,11 +62,14 @@ void UGarageWidget::SetModeFilter(const FString& Mode)
 	}
 	else if (Mode == TEXT("Baja"))
 	{
+		ModeName = TEXT("Baja Rally");
+		ModeDescription = TEXT("Off-road desert rally — ES7 only. Single point-to-point stage through sand dunes and canyons. Extreme difficulty with dust visibility and unpredictable terrain.");
 		AvailableVehicles.Add(ENIOVehicleType::ES7);
 	}
 	else
 	{
-		// GT mode: all vehicles
+		ModeName = TEXT("Street GT");
+		ModeDescription = TEXT("All vehicles welcome. Race on urban circuits, ovals, and mountain passes. Full collision enabled. The classic racing experience.");
 		AvailableVehicles.Add(ENIOVehicleType::EP9);
 		AvailableVehicles.Add(ENIOVehicleType::ET7);
 		AvailableVehicles.Add(ENIOVehicleType::ES7);
@@ -68,7 +77,24 @@ void UGarageWidget::SetModeFilter(const FString& Mode)
 		AvailableVehicles.Add(ENIOVehicleType::SU7Ultra);
 	}
 
-	CurrentVehicleIndex = 0;
+	// Display mode information
+	if (ModeNameText)
+	{
+		ModeNameText->SetText(FText::FromString(ModeName));
+	}
+
+	if (ModeDescriptionText)
+	{
+		ModeDescriptionText->SetText(FText::FromString(ModeDescription));
+	}
+
+	// Restore saved selection index from MenuContext
+	int32 SavedIndex = 0;
+	if (MenuManager)
+	{
+		SavedIndex = MenuManager->GetMenuContext().VehicleIndex;
+	}
+	CurrentVehicleIndex = FMath::Clamp(SavedIndex, 0, FMath::Max(0, AvailableVehicles.Num() - 1));
 	UpdateVehicleDisplay();
 }
 
@@ -101,6 +127,10 @@ void UGarageWidget::OnSelectClicked()
 		return;
 	}
 
+	// Save current selection to MenuContext for state preservation
+	FMenuContext Ctx = MenuManager->GetMenuContext();
+	Ctx.VehicleIndex = CurrentVehicleIndex;
+	MenuManager->SetMenuContext(Ctx);
 	MenuManager->SetVehicleType(AvailableVehicles[CurrentVehicleIndex]);
 	MenuManager->ShowTrackSelect();
 }
@@ -112,6 +142,10 @@ void UGarageWidget::OnBackClicked()
 		return;
 	}
 
+	// Save current selection to MenuContext before navigating back
+	FMenuContext Ctx = MenuManager->GetMenuContext();
+	Ctx.VehicleIndex = CurrentVehicleIndex;
+	MenuManager->SetMenuContext(Ctx);
 	MenuManager->ReturnToPrevious();
 }
 

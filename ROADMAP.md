@@ -119,7 +119,7 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| MenuManager component | DONE | State machine: MainMenu/Garage/TrackSelect/RaceSettings/Loading/Racing/Paused/Results |
+| MenuManager component | DONE | State machine: MainMenu/Garage/TrackSelect/RaceSettings/Loading/Racing/Paused/Results/Settings |
 | MainMenuWidget | DONE | Mode selection (GT/NIO/Baja) |
 | GarageWidget | DONE | Vehicle selection with specs display |
 | TrackSelectWidget | DONE | Track selection |
@@ -245,7 +245,7 @@ These features are referenced in PLAN.md or README.md but have no implementation
 
 | 模块 | 完成状态 | 说明 |
 |------|----------|------|
-| 车辆系统 | 90% | 5辆车完成，轮胎模型待接入 |
+| 车辆系统 | 90% | 6辆车完成，轮胎模型待接入 |
 | AI系统 | 100% | 全部功能已完成 |
 | 比赛系统 | 100% | HUD、结果界面、赛后流程已全部接入 |
 | 摄像头系统 | 100% | 7种模式全部实现 |
@@ -253,9 +253,10 @@ These features are referenced in PLAN.md or README.md but have no implementation
 | UI系统 | 100% | 所有界面已接入数据管线 |
 | 音频系统 | 80% | 框架完成，MetaSound待实现 |
 | 特效系统 | 60% | 代码框架完成，Niagara资源待添加 |
-| 存档系统 | 100% | 原子写入、备份轮换、完整性校验 |
-| 测试系统 | 100% | 单元测试、集成测试、性能基准 |
+| 存档系统 | 100% | 原子写入、CRC32校验、备份轮换、自动恢复 |
+| 测试系统 | 100% | 单元测试、集成测试、性能基准 (34 test cases) |
 | 编辑器工具 | 100% | 性能分析器、资源验证器 |
+| 错误处理 | 80% | NomiErrorHandler + ErrorToastWidget 已实现，待集成 |
 
 ### 关键成就
 
@@ -263,15 +264,16 @@ These features are referenced in PLAN.md or README.md but have no implementation
 - ✅ HUD数据管线已接入：实时显示速度、位置、圈数、电池、漂移状态
 - ✅ 结果界面已接入：赛后显示成绩、连接重赛/车库/主菜单按钮
 - ✅ 赛后流程已实现：支持重赛、返回车库、返回主菜单
+- ✅ 错误处理标准化：FNomiResult<T> + NomiError + ErrorToastWidget
+- ✅ 存档完整性：ProgressionSerializer CRC32校验 + 原子写入 + 备份恢复
 
 ### 后续迭代重点
 
-1. **轮胎物理模型接入** — Pacejka模型计算已就绪，需接入Chaos Vehicles力的应用
-2. **MetaSound集成** — 替换当前音频方案，实现更真实的引擎声效
-3. **Niagara粒子特效** — 烟雾、火花、尘土等视觉效果
-4. **车辆颜色自定义** — 喷漆系统实现
-5. **设置菜单完善** — 音频、画质、控制设置界面
+1. **NomiErrorHandler集成** — 接入NomiRaceGameMode、NomiGameInstance、MenuManager等主游戏代码
+2. **设置菜单实现** — 替换stub，实现音频/画质/控制设置界面
+3. **Widget状态保持** — 返回导航时保持选中状态
+4. **轮胎物理模型接入** — Pacejka模型计算已就绪，需接入Chaos Vehicles力的应用
 
 ---
 
-*Last updated: 2026-06-05*
+*Last updated: 2026-06-06*

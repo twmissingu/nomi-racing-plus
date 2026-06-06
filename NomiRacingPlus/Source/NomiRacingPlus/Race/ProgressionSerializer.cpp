@@ -2,6 +2,7 @@
 
 #include "Race/ProgressionSerializer.h"
 #include "NomiRacingPlus.h"
+#include "Core/JsonSerializationHelpers.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -115,9 +116,13 @@ bool Save(const FString& SavePath,
 	}
 	RootObj->SetObjectField(TEXT("unlockables"), UnlockablesObj);
 
-	// ── Wrap with integrity envelope ───────────────────────────────────
+	// ── Wrap with integrity envelope (version + checksum + data) ───────
+	FString DataString = JsonSerializationHelpers::SerializeSorted(RootObj);
+	uint32 Checksum = JsonSerializationHelpers::CalculateCRC32(DataString);
+
 	TSharedPtr<FJsonObject> Envelope = MakeShared<FJsonObject>();
-	Envelope->SetNumberField(TEXT("version"), 1);
+	Envelope->SetNumberField(TEXT("version"), 2);
+	Envelope->SetNumberField(TEXT("checksum"), static_cast<int64>(Checksum));
 	Envelope->SetObjectField(TEXT("data"), RootObj);
 
 	// ── Serialize ───────────────────────────────────────────────────────
@@ -176,6 +181,63 @@ bool Load(const FString& SavePath,
 		if (JsonObject->TryGetObjectField(TEXT("data"), InnerObj))
 		{
 			DataObj = *InnerObj;
+
+			// Verify CRC32 checksum (version >= 2)
+			if (Version >= 2)
+			{
+				int64 StoredChecksum = 0;
+				if (JsonObject->TryGetNumberField(TEXT("checksum"), StoredChecksum))
+				{
+					FString ComputedData = JsonSerializationHelpers::SerializeSorted(*InnerObj);
+					uint32 Computed = JsonSerializationHelpers::CalculateCRC32(ComputedData);
+					if (Computed != static_cast<uint32>(StoredChecksum))
+					{
+						UE_LOG(LogNomiRace, Warning, TEXT("Progression checksum mismatch: stored=%llu computed=%u, attempting backup"),
+							StoredChecksum, Computed);
+
+						// Try backup before giving up
+						const FString BackupPath = SavePath + TEXT(".bak");
+						if (FPaths::FileExists(BackupPath))
+						{
+							FString BackupJson;
+							if (FFileHelper::LoadFileToString(BackupJson, *BackupPath))
+							{
+								TSharedRef<TJsonReader<>> BackupReader = TJsonReaderFactory<>::Create(BackupJson);
+								TSharedPtr<FJsonObject> BackupObj;
+								if (FJsonSerializer::Deserialize(BackupReader, BackupObj) && BackupObj.IsValid())
+								{
+									const TSharedPtr<FJsonObject>* BackupInner;
+									int32 BackupVersion = 0;
+									if (BackupObj->TryGetNumberField(TEXT("version"), BackupVersion)
+										&& BackupVersion >= 2
+										&& BackupObj->TryGetObjectField(TEXT("data"), BackupInner))
+									{
+										int64 BackupChecksum = 0;
+										if (BackupObj->TryGetNumberField(TEXT("checksum"), BackupChecksum))
+										{
+											FString BackupData = JsonSerializationHelpers::SerializeSorted(*BackupInner);
+											if (JsonSerializationHelpers::CalculateCRC32(BackupData) == static_cast<uint32>(BackupChecksum))
+											{
+												DataObj = *BackupInner;
+												UE_LOG(LogNomiRace, Log, TEXT("Progression recovered from backup"));
+											}
+											else
+											{
+												UE_LOG(LogNomiRace, Warning, TEXT("Backup also has checksum mismatch"));
+												return false;
+											}
+										}
+									}
+								}
+							}
+						}
+						else
+						{
+							return false;
+						}
+					}
+				}
+			}
 		}
 	}
 

@@ -28,6 +28,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Replay")
 	void UpdateTimeline(float CurrentTime, float TotalTime);
 
+	/** Update telemetry overlay with current vehicle data. */
+	UFUNCTION(BlueprintCallable, Category = "Replay")
+	void UpdateTelemetry(float Speed, float RPM, float Throttle, float Brake, float Steering, float GForceLong, float GForceLat, float TireTempFL, float TireTempFR, float TireTempRL, float TireTempRR);
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -87,6 +91,35 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UProgressBar> TimelineBar;
 
+	// ---- Telemetry overlay ----
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> TelemetryToggleBtn;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TelemetrySpeedText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TelemetryRPMText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TelemetryThrottleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TelemetryBrakeText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TelemetrySteeringText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TelemetryGForceText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TelemetryTireTempText;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Replay")
+	bool bShowTelemetry = false;
+
 	// ---- State ----
 
 	UPROPERTY(BlueprintReadWrite, Category = "Replay")
@@ -123,6 +156,10 @@ private:
 	UFUNCTION() void OnCameraTrack();
 	UFUNCTION() void OnCameraTop();
 	UFUNCTION() void OnCameraBumper();
+
+	// ---- Telemetry toggle ----
+
+	UFUNCTION() void OnTelemetryToggle();
 
 	// ---- Internal helpers ----
 

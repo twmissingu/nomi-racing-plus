@@ -6,6 +6,7 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiErrorHandler.h"
 
 UCommentaryEngine::UCommentaryEngine()
 {
@@ -49,7 +50,7 @@ bool UCommentaryEngine::LoadCommentPool(const FString& JsonPath)
 	FString JsonString;
 	if (!FFileHelper::LoadFileToString(JsonString, *JsonPath))
 	{
-		UE_LOG(LogNomiNOMI, Error, TEXT("Failed to load comment pool: %s"), *JsonPath);
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("NOMI"), FString::Printf(TEXT("Failed to load comment pool: %s"), *JsonPath));
 		return false;
 	}
 
@@ -59,7 +60,7 @@ bool UCommentaryEngine::LoadCommentPool(const FString& JsonPath)
 
 	if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
 	{
-		UE_LOG(LogNomiNOMI, Error, TEXT("Failed to parse comment pool JSON"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("NOMI"), TEXT("Failed to parse comment pool JSON"));
 		return false;
 	}
 
@@ -200,17 +201,17 @@ bool UCommentaryEngine::RequestComment(const FCommentContext& Context)
 		return false;
 	}
 
-	// Find matching comment
-	FNOMIComment* Comment = FindMatchingComment(Context);
-	if (!Comment)
+	// Find matching comment (value copy for safety)
+	TOptional<FNOMIComment> Comment = FindMatchingComment(Context);
+	if (!Comment.IsSet())
 	{
 		return false;
 	}
 
 	// Create queued comment
 	FQueuedComment QueuedComment;
-	QueuedComment.Comment = *Comment;
-	QueuedComment.DisplayDuration = FMath::RandRange(Comment->MinDisplayDuration, Comment->MaxDisplayDuration);
+	QueuedComment.Comment = Comment.GetValue();
+	QueuedComment.DisplayDuration = FMath::RandRange(Comment.GetValue().MinDisplayDuration, Comment.GetValue().MaxDisplayDuration);
 
 	// Replace variables
 	QueuedComment.Comment.Text = ReplaceVariables(QueuedComment.Comment.Text, Context);
@@ -219,10 +220,10 @@ bool UCommentaryEngine::RequestComment(const FCommentContext& Context)
 	CommentQueue.Add(QueuedComment);
 
 	// Update emotion
-	CurrentEmotion = Comment->Emotion;
+	CurrentEmotion = Comment.GetValue().Emotion;
 
 	// Add to recent comments
-	AddToRecentComments(*Comment);
+	AddToRecentComments(Comment.GetValue());
 
 	// Reset cooldown
 	CooldownTimer = CommentCooldown;
@@ -271,16 +272,17 @@ void UCommentaryEngine::ClearQueue()
 	CurrentEmotion = ENOMIEmotion::Idle;
 }
 
-FNOMIComment* UCommentaryEngine::FindMatchingComment(const FCommentContext& Context)
+TOptional<FNOMIComment> UCommentaryEngine::FindMatchingComment(const FCommentContext& Context)
 {
 	// First check event-specific comments
 	FCommentCategory* Category = CommentPool.Find(Context.Event);
 	if (Category && Category->Comments.Num() > 0)
 	{
 		// Filter by NIO vehicle if applicable
-		TArray<FNOMIComment*> ValidComments;
-		for (FNOMIComment& Comment : Category->Comments)
+		TArray<int32> ValidIndices;
+		for (int32 i = 0; i < Category->Comments.Num(); i++)
 		{
+			const FNOMIComment& Comment = Category->Comments[i];
 			if (Comment.bIsNIOSpecific && !Context.bIsNIOVehicle)
 			{
 				continue;
@@ -289,15 +291,15 @@ FNOMIComment* UCommentaryEngine::FindMatchingComment(const FCommentContext& Cont
 			{
 				continue;
 			}
-			ValidComments.Add(&Comment);
+			ValidIndices.Add(i);
 		}
 
-		if (ValidComments.Num() > 0)
+		if (ValidIndices.Num() > 0)
 		{
 			// Random selection with frequency check
 			if (FMath::FRand() <= CommentFrequency)
 			{
-				return ValidComments[FMath::RandRange(0, ValidComments.Num() - 1)];
+				return Category->Comments[ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)]];
 			}
 		}
 	}
@@ -308,7 +310,7 @@ FNOMIComment* UCommentaryEngine::FindMatchingComment(const FCommentContext& Cont
 		if (FMath::FRand() <= CommentFrequency * 0.5f)
 		{
 			int32 Index = FMath::RandRange(0, NIOComments.Comments.Num() - 1);
-			return &NIOComments.Comments[Index];
+			return NIOComments.Comments[Index];
 		}
 	}
 
@@ -320,12 +322,12 @@ FNOMIComment* UCommentaryEngine::FindMatchingComment(const FCommentContext& Cont
 			if (FMath::FRand() <= 0.7f) // Higher chance for comfort
 			{
 				int32 Index = FMath::RandRange(0, ComfortComments.Comments.Num() - 1);
-				return &ComfortComments.Comments[Index];
+				return ComfortComments.Comments[Index];
 			}
 		}
 	}
 
-	return nullptr;
+	return TOptional<FNOMIComment>();
 }
 
 FString UCommentaryEngine::ReplaceVariables(const FString& Text, const FCommentContext& Context) const

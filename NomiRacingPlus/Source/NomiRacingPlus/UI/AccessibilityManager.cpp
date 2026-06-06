@@ -8,6 +8,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiErrorHandler.h"
 
 UAccessibilityManager::UAccessibilityManager()
 {
@@ -202,7 +203,7 @@ bool UAccessibilityManager::SaveSettings()
 	FString FilePath = GetSaveFilePath();
 	if (!FFileHelper::SaveStringToFile(JsonString, *FilePath))
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to save accessibility settings to: %s"), *FilePath);
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Accessibility"), FString::Printf(TEXT("Failed to save accessibility settings to: %s"), *FilePath));
 		return false;
 	}
 
@@ -223,7 +224,7 @@ bool UAccessibilityManager::LoadSettings()
 	FString JsonString;
 	if (!FFileHelper::LoadFileToString(JsonString, *FilePath))
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to load accessibility settings from: %s"), *FilePath);
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Accessibility"), FString::Printf(TEXT("Failed to load accessibility settings from: %s"), *FilePath));
 		return false;
 	}
 
@@ -232,7 +233,7 @@ bool UAccessibilityManager::LoadSettings()
 
 	if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to parse accessibility settings JSON"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Accessibility"), TEXT("Failed to parse accessibility settings JSON"));
 		return false;
 	}
 

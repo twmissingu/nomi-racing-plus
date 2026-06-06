@@ -244,8 +244,8 @@ protected:
 	int32 RecentCommentsMax = 10;
 
 private:
-	// Find matching comment for context
-	FNOMIComment* FindMatchingComment(const FCommentContext& Context);
+	// Find matching comment for context (returns value copy for safety)
+	TOptional<FNOMIComment> FindMatchingComment(const FCommentContext& Context);
 
 	// Replace variables in comment text
 	FString ReplaceVariables(const FString& Text, const FCommentContext& Context) const;

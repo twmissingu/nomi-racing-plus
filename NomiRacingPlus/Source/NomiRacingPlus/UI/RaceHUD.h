@@ -12,6 +12,7 @@
 class UAccessibilityManager;
 class UTextBlock;
 class UProgressBar;
+class UTireTempWidget;
 
 /**
  * HUD data structure for binding
@@ -112,6 +113,27 @@ struct NOMIRACINGPLUS_API FHUDData
 	// Progress percentage 0-100 (Baja mode)
 	UPROPERTY(BlueprintReadOnly, Category = "HUD|Baja")
 	float ProgressPercent = 0.0f;
+
+	// Per-wheel tire temperatures in Celsius (FL, FR, RL, RR) - fixed size for performance
+	// Use TireTempCount to access valid entries
+	UPROPERTY(BlueprintReadOnly, Category = "HUD|Tires")
+	TArray<float> TireTemperatures;
+
+	// Number of valid tire temperature entries
+	static constexpr int32 TireTempCount = 4;
+
+	// Average tire temperature across all wheels (Celsius)
+	UPROPERTY(BlueprintReadOnly, Category = "HUD|Tires")
+	float AvgTireTemperature = 0.0f;
+
+	// Resize tire temperatures array to fixed size (call once, avoid per-frame allocation)
+	void ResizeTireTemps()
+	{
+		if (TireTemperatures.Num() != TireTempCount)
+		{
+			TireTemperatures.SetNum(TireTempCount);
+		}
+	}
 };
 
 /**
@@ -217,6 +239,27 @@ protected:
 	// Drift indicator widget binding
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> DriftIndicator;
+
+	// Tire temperature text widget bindings (optional — not all HUDs need them)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TireTempFLText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TireTempFRText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TireTempRLText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TireTempRRText;
+
+	// Average tire temperature text widget (optional)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> AvgTireTempText;
+
+	// Tire temperature display widget (optional — not all HUDs need it)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTireTempWidget> TireTempWidget;
 
 private:
 	// Accessibility manager reference

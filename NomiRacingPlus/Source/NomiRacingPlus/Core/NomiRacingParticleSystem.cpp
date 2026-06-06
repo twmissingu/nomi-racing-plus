@@ -4,6 +4,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiErrorHandler.h"
 
 // Default spawn counts (before quality scaling)
 static constexpr float DefaultTireSmokeSpawnCount = 20.0f;
@@ -213,7 +214,7 @@ UNiagaraComponent* UNomiRacingParticleSystem::CreateNiagaraComponent(UNiagaraSys
 	UNiagaraComponent* NiagaraComp = NewObject<UNiagaraComponent>(Owner, ComponentName);
 	if (!NiagaraComp)
 	{
-		UE_LOG(LogNomiPerf, Error, TEXT("NomiRacingParticleSystem: Failed to create Niagara component %s"), *ComponentName.ToString());
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Particles"), FString::Printf(TEXT("NomiRacingParticleSystem: Failed to create Niagara component %s"), *ComponentName.ToString()));
 		return nullptr;
 	}
 

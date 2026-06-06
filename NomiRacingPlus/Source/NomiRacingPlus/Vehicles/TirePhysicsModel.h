@@ -358,6 +358,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tire|State")
 	const TArray<FTireState>& GetAllTireStates() const { return TireStates; }
 
+	// Get wheel offset for a specific wheel (local space, cm)
+	UFUNCTION(BlueprintCallable, Category = "Tire|Config")
+	FVector GetWheelOffset(int32 WheelIndex) const;
+
 	// Is any tire currently slipping significantly?
 	UFUNCTION(BlueprintCallable, Category = "Tire|State")
 	bool IsAnyTireSlipping(float Threshold = 0.15f) const;
@@ -411,6 +415,12 @@ protected:
 	// Frontal area (m^2) for downforce calculation
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tire|Config")
 	float FrontalArea = 2.2f;
+
+	// Cached tire radius in meters (calculated once in BeginPlay)
+	float CachedTireRadiusM = 0.3f;
+
+	// Cached tire radius in cm/s for angular velocity calculation
+	float CachedTireRadiusCmS = 30.0f;
 
 private:
 	// Initialize default surface parameters

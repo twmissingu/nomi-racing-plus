@@ -32,6 +32,12 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> VehicleNameText;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> ModeNameText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> ModeDescriptionText;
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> PowerText;
 

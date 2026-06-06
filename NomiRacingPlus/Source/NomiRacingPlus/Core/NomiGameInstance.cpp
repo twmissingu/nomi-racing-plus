@@ -9,13 +9,12 @@
 #include "Misc/FileHelper.h"
 #include "RHI.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiErrorHandler.h"
+#include "Core/JsonSerializationHelpers.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
-
-// Forward declaration for helper function used in SaveSettings
-static FString SerializeSorted(const TSharedPtr<FJsonObject>& Obj);
 
 UNomiGameInstance::UNomiGameInstance()
 {
@@ -35,9 +34,16 @@ void UNomiGameInstance::Init()
 		UE_LOG(LogNomiRace, Log, TEXT("RaceProgression component created and loaded"));
 	}
 
-	// Load saved settings
-	LoadSettings();
+	// Load saved settings — detect first launch for tutorial auto-start
+	bool bLoadedSettings = LoadSettings();
 	LoadProgress();
+
+	// On first launch (no save file), flag tutorial for auto-start
+	if (!bLoadedSettings)
+	{
+		bShouldAutoStartTutorial = true;
+		UE_LOG(LogNomiRacing, Log, TEXT("First launch detected — tutorial will auto-start"));
+	}
 
 	// Apply settings
 	ApplyGraphicsSettings();
@@ -76,10 +82,11 @@ bool UNomiGameInstance::SaveSettings()
 	DataObj->SetNumberField(TEXT("NumLaps"), Settings.NumLaps);
 	DataObj->SetNumberField(TEXT("NumAIOpponents"), Settings.NumAIOpponents);
 	DataObj->SetStringField(TEXT("GameMode"), Settings.GameMode);
+	DataObj->SetBoolField(TEXT("TutorialCompleted"), Settings.bTutorialCompleted);
 
 	// Compute checksum using sorted-key serialization for determinism
-	FString DataString = SerializeSorted(DataObj);
-	uint32 Checksum = CalculateChecksum(DataString);
+	FString DataString = JsonSerializationHelpers::SerializeSorted(DataObj);
+	uint32 Checksum = JsonSerializationHelpers::CalculateCRC32(DataString);
 
 	// Build wrapped JSON with version, checksum, and data object
 	TSharedPtr<FJsonObject> RootObj = MakeShareable(new FJsonObject());
@@ -104,7 +111,7 @@ bool UNomiGameInstance::SaveSettings()
 	}
 	else
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to save settings"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Save"), TEXT("Failed to save settings"));
 	}
 
 	return bSuccess;
@@ -124,7 +131,7 @@ bool UNomiGameInstance::LoadSettings()
 	FString Error;
 	if (!ValidateSaveIntegrity(SettingsFileName, Error))
 	{
-		UE_LOG(LogNomiRacing, Warning, TEXT("Settings integrity check failed: %s"), *Error);
+		NomiError::Log(ENomiErrorSeverity::Warning, TEXT("Save"), FString::Printf(TEXT("Settings integrity check failed: %s"), *Error));
 
 		// Attempt recovery from backups
 		if (RecoverFromBackup(SettingsFileName))
@@ -142,7 +149,7 @@ bool UNomiGameInstance::LoadSettings()
 	FString JsonString;
 	if (!FFileHelper::LoadFileToString(JsonString, *FilePath))
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to load settings file"));
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Save"), TEXT("Failed to load settings file"));
 		return false;
 	}
 
@@ -185,6 +192,7 @@ bool UNomiGameInstance::LoadSettings()
 			(*DataObj)->TryGetNumberField(TEXT("NumLaps"), Settings.NumLaps);
 			(*DataObj)->TryGetNumberField(TEXT("NumAIOpponents"), Settings.NumAIOpponents);
 			(*DataObj)->TryGetStringField(TEXT("GameMode"), Settings.GameMode);
+			(*DataObj)->TryGetBoolField(TEXT("TutorialCompleted"), Settings.bTutorialCompleted);
 		}
 		else
 		{
@@ -218,6 +226,7 @@ bool UNomiGameInstance::LoadSettings()
 			JsonObject->TryGetNumberField(TEXT("NumLaps"), Settings.NumLaps);
 			JsonObject->TryGetNumberField(TEXT("NumAIOpponents"), Settings.NumAIOpponents);
 			JsonObject->TryGetStringField(TEXT("GameMode"), Settings.GameMode);
+			JsonObject->TryGetBoolField(TEXT("TutorialCompleted"), Settings.bTutorialCompleted);
 		}
 
 		UE_LOG(LogNomiRacing, Log, TEXT("Settings loaded successfully"));
@@ -276,8 +285,8 @@ bool UNomiGameInstance::SaveProgress()
 	DataObj->SetObjectField(TEXT("BestLapTimes"), LapTimesObj);
 
 	// Compute checksum using sorted-key serialization for determinism
-	FString DataString = SerializeSorted(DataObj);
-	uint32 Checksum = CalculateChecksum(DataString);
+	FString DataString = JsonSerializationHelpers::SerializeSorted(DataObj);
+	uint32 Checksum = JsonSerializationHelpers::CalculateCRC32(DataString);
 
 	// Build wrapped JSON
 	TSharedPtr<FJsonObject> RootObj = MakeShareable(new FJsonObject());
@@ -311,7 +320,7 @@ bool UNomiGameInstance::LoadProgress()
 	FString Error;
 	if (!ValidateSaveIntegrity(ProgressFileName, Error))
 	{
-		UE_LOG(LogNomiRacing, Warning, TEXT("Progress integrity check failed: %s"), *Error);
+		NomiError::Log(ENomiErrorSeverity::Warning, TEXT("Save"), FString::Printf(TEXT("Progress integrity check failed: %s"), *Error));
 
 		if (RecoverFromBackup(ProgressFileName))
 		{
@@ -407,78 +416,7 @@ FString UNomiGameInstance::GetSaveFilePath(const FString& FileName) const
 
 uint32 UNomiGameInstance::CalculateChecksum(const FString& Content)
 {
-	FTCHARToUTF8 Converter(*Content);
-	return FCrc::MemCrc32(Converter.Get(), Converter.Length());
-}
-
-// Helper: serialize any JSON value to string
-static FString SerializeJsonValue(const TSharedPtr<FJsonValue>& Val)
-{
-	switch (Val->Type)
-	{
-	case EJson::String: return FString::Printf(TEXT("\"%s\""), *Val->AsString());
-	case EJson::Number: return FString::Printf(TEXT("%g"), Val->AsNumber());
-	case EJson::Boolean: return Val->AsBool() ? TEXT("true") : TEXT("false");
-	case EJson::Null: return TEXT("null");
-	case EJson::Object: return SerializeSorted(Val->AsObject());
-	case EJson::Array:
-	{
-		FString Result = TEXT("[");
-		const TArray<TSharedPtr<FJsonValue>>& Arr = Val->AsArray();
-		for (int32 j = 0; j < Arr.Num(); ++j)
-		{
-			if (j > 0) Result += TEXT(",");
-			Result += SerializeJsonValue(Arr[j]);
-		}
-		Result += TEXT("]");
-		return Result;
-	}
-	default: return TEXT("null");
-	}
-}
-
-// Helper: serialize a JSON object with sorted keys for deterministic checksum
-static FString SerializeSorted(const TSharedPtr<FJsonObject>& Obj)
-{
-	FString Result;
-	Result += TEXT("{");
-
-	// Collect and sort keys
-	TArray<FString> Keys;
-	Obj->Values.GetKeys(Keys);
-	Keys.Sort();
-
-	for (int32 i = 0; i < Keys.Num(); ++i)
-	{
-		if (i > 0) Result += TEXT(",");
-		Result += FString::Printf(TEXT("\"%s\":"), *Keys[i]);
-
-		const TSharedPtr<FJsonValue>& Val = Obj->Values[Keys[i]];
-		switch (Val->Type)
-		{
-		case EJson::String:
-			Result += FString::Printf(TEXT("\"%s\""), *Val->AsString());
-			break;
-		case EJson::Number:
-			Result += FString::Printf(TEXT("%g"), Val->AsNumber());
-			break;
-		case EJson::Boolean:
-			Result += Val->AsBool() ? TEXT("true") : TEXT("false");
-			break;
-		case EJson::Object:
-			Result += SerializeSorted(Val->AsObject());
-			break;
-		case EJson::Array:
-			Result += SerializeJsonValue(Val);
-			break;
-		default:
-			Result += TEXT("null");
-			break;
-		}
-	}
-
-	Result += TEXT("}");
-	return Result;
+	return JsonSerializationHelpers::CalculateCRC32(Content);
 }
 
 bool UNomiGameInstance::AtomicWriteSave(const FString& FileName, const FString& JsonString)
@@ -493,7 +431,7 @@ bool UNomiGameInstance::AtomicWriteSave(const FString& FileName, const FString& 
 	// Write to temporary file first
 	if (!FFileHelper::SaveStringToFile(JsonString, *TmpPath))
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to write temp file: %s"), *TmpPath);
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Save"), FString::Printf(TEXT("Failed to write temp file: %s"), *TmpPath));
 		return false;
 	}
 
@@ -501,7 +439,7 @@ bool UNomiGameInstance::AtomicWriteSave(const FString& FileName, const FString& 
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	if (!PlatformFile.MoveFile(*FilePath, *TmpPath))
 	{
-		UE_LOG(LogNomiRacing, Error, TEXT("Failed to rename temp file to: %s"), *FilePath);
+		NomiError::Log(ENomiErrorSeverity::Error, TEXT("Save"), FString::Printf(TEXT("Failed to rename temp file to: %s"), *FilePath));
 		// Clean up temp file on failure
 		PlatformFile.DeleteFile(*TmpPath);
 		return false;
@@ -593,8 +531,8 @@ bool UNomiGameInstance::ValidateSaveIntegrity(const FString& FileName, FString& 
 		return false;
 	}
 
-	FString DataString = SerializeSorted(*DataObj);
-	uint32 ComputedChecksum = CalculateChecksum(DataString);
+	FString DataString = JsonSerializationHelpers::SerializeSorted(*DataObj);
+	uint32 ComputedChecksum = JsonSerializationHelpers::CalculateCRC32(DataString);
 	if (ComputedChecksum != static_cast<uint32>(StoredChecksum))
 	{
 		OutError = FString::Printf(TEXT("Checksum mismatch: stored=%llu computed=%u"), StoredChecksum, ComputedChecksum);
@@ -643,8 +581,8 @@ bool UNomiGameInstance::RecoverFromBackup(const FString& FileName)
 
 		if (bValid && DataObj)
 		{
-			FString DataString = SerializeSorted(*DataObj);
-			uint32 Computed = CalculateChecksum(DataString);
+			FString DataString = JsonSerializationHelpers::SerializeSorted(*DataObj);
+			uint32 Computed = JsonSerializationHelpers::CalculateCRC32(DataString);
 			if (Computed == static_cast<uint32>(StoredChecksum))
 			{
 				// Valid backup — copy it over the corrupted file

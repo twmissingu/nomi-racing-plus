@@ -97,13 +97,18 @@ void UTirePhysicsModel::BeginPlay()
 	// Initialize default surface parameters
 	InitializeDefaultSurfaceParams();
 
+	// Cache tire radius for performance (avoid recalculation every frame)
+	CachedTireRadiusM = ((CurrentPreset.TireWidthMm * CurrentPreset.AspectRatio / 100.0f) * 2.0f +
+		CurrentPreset.RimDiameterInches * 25.4f) / 2000.0f;
+	CachedTireRadiusCmS = CachedTireRadiusM * 100.0f;
+
 	// Cache vehicle movement component
 	if (AActor* Owner = GetOwner())
 	{
 		VehicleMovement = Owner->FindComponentByClass<UChaosWheeledVehicleMovementComponent>();
 	}
 
-	UE_LOG(LogNomiVehicle, Log, TEXT("TirePhysicsModel initialized with %d wheels"), NumWheels);
+	UE_LOG(LogNomiVehicle, Log, TEXT("TirePhysicsModel initialized with %d wheels, tire radius: %.3fm"), NumWheels, CachedTireRadiusM);
 }
 
 void UTirePhysicsModel::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -155,13 +160,8 @@ float UTirePhysicsModel::CalculateSlipRatio(int32 WheelIndex, float WheelAngular
 	// For driven wheels: positive = wheelspin, negative = locked
 	// For free-rolling wheels: close to 0
 
-	// Need tire radius to convert angular to linear velocity
-	// Using preset dimensions
-	const float TireRadiusM = ((CurrentPreset.TireWidthMm * CurrentPreset.AspectRatio / 100.0f) * 2.0f +
-		CurrentPreset.RimDiameterInches * 25.4f) / 2000.0f;
-
-	// Convert wheel angular velocity (rad/s) to linear velocity (cm/s)
-	const float WheelLinearVelocity = WheelAngularVelocity * TireRadiusM * 100.0f;
+	// Use cached tire radius for performance
+	const float WheelLinearVelocity = WheelAngularVelocity * CachedTireRadiusCmS;
 
 	// Avoid division by zero at very low speeds
 	if (FMath::Abs(VehicleForwardSpeed) < PacejkaConstants::MinSpeedForSlipCmS)
@@ -378,6 +378,11 @@ void UTirePhysicsModel::ApplyPreset(const FTireModelPreset& Preset)
 	CurrentPreset = Preset;
 	PacejkaCoefficients = Preset.Pacejka;
 
+	// Recalculate cached tire radius when preset changes
+	CachedTireRadiusM = ((Preset.TireWidthMm * Preset.AspectRatio / 100.0f) * 2.0f +
+		Preset.RimDiameterInches * 25.4f) / 2000.0f;
+	CachedTireRadiusCmS = CachedTireRadiusM * 100.0f;
+
 	// Update thermal parameters for all tires
 	for (FTireState& State : TireStates)
 	{
@@ -386,7 +391,7 @@ void UTirePhysicsModel::ApplyPreset(const FTireModelPreset& Preset)
 		State.Thermal.OverheatThreshold = Preset.OverheatThreshold;
 	}
 
-	UE_LOG(LogNomiVehicle, Log, TEXT("Applied tire preset: %s"), *Preset.PresetName);
+	UE_LOG(LogNomiVehicle, Log, TEXT("Applied tire preset: %s, radius: %.3fm"), *Preset.PresetName, CachedTireRadiusM);
 }
 
 void UTirePhysicsModel::SetPacejkaCoefficients(const FTirePacejkaSet& NewCoeffs)
@@ -407,6 +412,16 @@ const FTireState& UTirePhysicsModel::GetTireState(int32 WheelIndex) const
 	// Return a default static state if invalid index
 	static const FTireState DefaultState;
 	return DefaultState;
+}
+
+FVector UTirePhysicsModel::GetWheelOffset(int32 WheelIndex) const
+{
+	if (WheelOffsets.IsValidIndex(WheelIndex))
+	{
+		return WheelOffsets[WheelIndex];
+	}
+
+	return FVector::ZeroVector;
 }
 
 bool UTirePhysicsModel::IsAnyTireSlipping(float Threshold) const
@@ -544,13 +559,26 @@ void UTirePhysicsModel::UpdateSlipCalculations(float DeltaTime)
 		const FVector WheelWorldPos = GetWheelWorldPosition(i, VehicleTransform);
 
 		// Perform ground contact detection via raycast
-		const FTireGroundContact GroundContact = CheckGroundContact(i, WheelWorldPos, SuspensionRestLength * 2.0f);
+		// Optimization: Skip raycast if wheel was grounded and vehicle is moving slowly
+		const bool bPreviousGrounded = State.bIsGrounded;
+		const bool bVehicleMovingSlowly = FMath::Abs(VehicleForwardSpeed) < 100.0f; // < 1 m/s
+		const bool bSkipRaycast = bPreviousGrounded && bVehicleMovingSlowly && State.WheelLoad > 0.0f;
+
+		FTireGroundContact GroundContact;
+		if (bSkipRaycast)
+		{
+			// Reuse previous ground contact state
+			GroundContact.bHitGround = true;
+			GroundContact.SurfaceType = State.SurfaceType;
+		}
+		else
+		{
+			GroundContact = CheckGroundContact(i, WheelWorldPos, SuspensionRestLength * 2.0f);
+		}
 		const bool bOnGround = GroundContact.bHitGround;
 
-		// Calculate wheel angular velocity from vehicle speed and tire radius
-		const float TireRadiusM = ((CurrentPreset.TireWidthMm * CurrentPreset.AspectRatio / 100.0f) * 2.0f +
-			CurrentPreset.RimDiameterInches * 25.4f) / 2000.0f;
-		const float WheelAngularVel = (TireRadiusM > 0.001f) ? (VehicleForwardSpeed / (TireRadiusM * 100.0f)) : 0.0f;
+		// Calculate wheel angular velocity from vehicle speed and tire radius (using cached value)
+		const float WheelAngularVel = (CachedTireRadiusCmS > 0.001f) ? (VehicleForwardSpeed / CachedTireRadiusCmS) : 0.0f;
 
 		// Calculate suspension force (wheel load)
 		const float WheelLoad = CalculateSuspensionForce(i, VehicleForwardSpeed, VehicleAcceleration, bOnGround);
@@ -599,17 +627,40 @@ void UTirePhysicsModel::UpdateSlipCalculations(float DeltaTime)
 			State.LateralForce = CalculatePacejkaForce(PacejkaCoefficients.Lateral, LatSlipInput)
 				* WheelLoad * TotalGrip;
 
-			// Combined slip reduction
-			const float NormLong = FMath::Abs(State.SlipRatio);
-			const float NormLat = FMath::Abs(State.SlipAngleDeg) / 45.0f;
-			const float CombinedSlipMagnitude = FMath::Sqrt(NormLong * NormLong + NormLat * NormLat);
+			// Combined slip using friction circle model
+			// The tire can only generate limited total force: F_long² + F_lat² ≤ F_max²
+			// This ensures realistic force blending during combined slip (e.g., trail braking)
 
-			if (CombinedSlipMagnitude > 0.01f)
+			// Normalize forces to get relative magnitudes
+			const float MaxForce = WheelLoad * TotalGrip * CurrentPreset.BaseFriction;
+			const float NormLong = (MaxForce > 0.001f) ? FMath::Abs(State.LongitudinalForce) / MaxForce : 0.0f;
+			const float NormLat = (MaxForce > 0.001f) ? FMath::Abs(State.LateralForce) / MaxForce : 0.0f;
+
+			// Calculate total force magnitude relative to friction circle
+			const float TotalForceMagnitude = FMath::Sqrt(NormLong * NormLong + NormLat * NormLat);
+
+			// If total force exceeds friction circle, scale down proportionally
+			if (TotalForceMagnitude > 1.0f)
 			{
-				const float CombinedReduction = FMath::Lerp(1.0f, PacejkaCoefficients.CombinedSlipFactor,
-					FMath::Clamp(CombinedSlipMagnitude, 0.0f, 1.0f));
-				State.LongitudinalForce *= CombinedReduction;
-				State.LateralForce *= CombinedReduction;
+				const float ScaleFactor = 1.0f / TotalForceMagnitude;
+				State.LongitudinalForce *= ScaleFactor;
+				State.LateralForce *= ScaleFactor;
+			}
+
+			// Apply additional friction circle shape factor (ellipse for race tires)
+			// Race tires typically have more lateral grip than longitudinal
+			const float FrictionCircleShape = PacejkaCoefficients.CombinedSlipFactor;
+			if (FrictionCircleShape < 1.0f && TotalForceMagnitude > 0.01f)
+			{
+				// Elliptical friction circle: more grip available in lateral direction
+				const float EllipseScale = FMath::Sqrt(
+					NormLong * NormLong + (NormLat / FrictionCircleShape) * (NormLat / FrictionCircleShape));
+				if (EllipseScale > 1.0f)
+				{
+					const float EllipseReduction = 1.0f / EllipseScale;
+					State.LongitudinalForce *= EllipseReduction;
+					State.LateralForce *= EllipseReduction;
+				}
 			}
 		}
 		else

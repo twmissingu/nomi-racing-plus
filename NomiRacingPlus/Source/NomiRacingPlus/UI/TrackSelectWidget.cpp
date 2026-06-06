@@ -12,35 +12,35 @@ void UTrackSelectWidget::PopulateAllTracks()
 	FTrackInfo NIOCityCircuit;
 	NIOCityCircuit.Name = FName("NIOCityCircuit");
 	NIOCityCircuit.DisplayName = TEXT("NIO City Circuit");
-	NIOCityCircuit.Description = TEXT("A high-speed urban circuit through the heart of the city with sweeping corners and long straights.");
+	NIOCityCircuit.Description = TEXT("4.2 km urban circuit through the heart of the city. Features sweeping corners, long straights, and neon-lit night racing. Medium difficulty — perfect for all vehicle types. Watch for wet surfaces near the harbor.");
 	NIOCityCircuit.Mode = TEXT("All");
 	AllTracks.Add(NIOCityCircuit);
 
 	FTrackInfo ShanghaiPudong;
 	ShanghaiPudong.Name = FName("ShanghaiPudong");
 	ShanghaiPudong.DisplayName = TEXT("Shanghai Pudong");
-	ShanghaiPudong.Description = TEXT("Race through the iconic Pudong skyline with tight chicanes and fast flowing sections.");
+	ShanghaiPudong.Description = TEXT("5.1 km street circuit with iconic Pudong skyline views. Tight chicanes, tunnel sections, and elevated highway sections demand precision. Hard difficulty — rewards skilled braking and late apexes.");
 	ShanghaiPudong.Mode = TEXT("All");
 	AllTracks.Add(ShanghaiPudong);
 
 	FTrackInfo SpeedwayOval;
 	SpeedwayOval.Name = FName("SpeedwayOval");
 	SpeedwayOval.DisplayName = TEXT("Speedway Oval");
-	SpeedwayOval.Description = TEXT("A classic oval speedway for pure high-speed racing. Flat out from start to finish.");
+	SpeedwayOval.Description = TEXT("3.0 km classic oval speedway with banked corners. Pure high-speed racing — flat out from start to finish. Easy difficulty but demands courage at 300+ km/h. Best for GT mode.");
 	SpeedwayOval.Mode = TEXT("GT");
 	AllTracks.Add(SpeedwayOval);
 
 	FTrackInfo MountainPass;
 	MountainPass.Name = FName("MountainPass");
 	MountainPass.DisplayName = TEXT("Mountain Pass");
-	MountainPass.Description = TEXT("A challenging mountain road with elevation changes, tight hairpins, and stunning views.");
+	MountainPass.Description = TEXT("8.5 km mountain road with dramatic elevation changes, tight hairpins, and stunning cliff views. Hard difficulty — narrow roads punish mistakes. One lap point-to-point challenge.");
 	MountainPass.Mode = TEXT("GT");
 	AllTracks.Add(MountainPass);
 
 	FTrackInfo DesertRally;
 	DesertRally.Name = FName("DesertRally");
 	DesertRally.DisplayName = TEXT("Desert Rally");
-	DesertRally.Description = TEXT("An off-road desert course with sand dunes, rocky terrain, and unpredictable conditions.");
+	DesertRally.Description = TEXT("12.0 km off-road desert course through sand dunes and canyons. Extreme difficulty — unpredictable terrain and dust visibility. Baja mode only. Requires off-road capable vehicles.");
 	DesertRally.Mode = TEXT("Baja");
 	AllTracks.Add(DesertRally);
 }
@@ -101,7 +101,13 @@ void UTrackSelectWidget::SetModeFilter(const FString& Mode)
 		}
 	}
 
-	CurrentTrackIndex = 0;
+	// Restore saved selection index from MenuContext
+	int32 SavedIndex = 0;
+	if (MenuManager)
+	{
+		SavedIndex = MenuManager->GetMenuContext().TrackIndex;
+	}
+	CurrentTrackIndex = FMath::Clamp(SavedIndex, 0, FMath::Max(0, AvailableTracks.Num() - 1));
 	UpdateTrackDisplay();
 }
 
@@ -174,6 +180,11 @@ void UTrackSelectWidget::OnSelectClicked()
 
 	if (MenuManager)
 	{
+		// Save current selection to MenuContext for state preservation
+		FMenuContext Ctx = MenuManager->GetMenuContext();
+		Ctx.TrackIndex = CurrentTrackIndex;
+		MenuManager->SetMenuContext(Ctx);
+
 		const FTrackInfo& SelectedTrack = AvailableTracks[CurrentTrackIndex];
 		MenuManager->SetTrack(SelectedTrack.Name.ToString());
 		MenuManager->ShowRaceSettings();
@@ -184,6 +195,11 @@ void UTrackSelectWidget::OnBackClicked()
 {
 	if (MenuManager)
 	{
+		// Save current selection to MenuContext before navigating back
+		FMenuContext Ctx = MenuManager->GetMenuContext();
+		Ctx.TrackIndex = CurrentTrackIndex;
+		MenuManager->SetMenuContext(Ctx);
+
 		MenuManager->ReturnToPrevious();
 	}
 }

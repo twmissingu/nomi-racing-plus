@@ -95,6 +95,10 @@ struct NOMIRACINGPLUS_API FNomiGameSettings
 	// Season points
 	UPROPERTY(BlueprintReadWrite, Category = "Settings|Progress")
 	int32 SeasonPoints = 0;
+
+	// Whether the tutorial has been completed
+	UPROPERTY(BlueprintReadWrite, Category = "Settings|Tutorial")
+	bool bTutorialCompleted = false;
 };
 
 /**
@@ -140,6 +144,16 @@ public:
 	// Get the current graphics preset
 	UFUNCTION(BlueprintCallable, Category = "Settings|Graphics")
 	ENIOGraphicsPreset GetCurrentGraphicsPreset() const { return Settings.CurrentPreset; }
+
+	// Tutorial Management
+
+	// Check if tutorial should auto-start (true on first launch when no save exists)
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
+	bool ShouldAutoStartTutorial() const { return bShouldAutoStartTutorial; }
+
+	// Clear the auto-start flag after tutorial has been started
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
+	void ClearAutoStartTutorialFlag() { bShouldAutoStartTutorial = false; }
 
 	// Progress Management
 
@@ -235,6 +249,10 @@ protected:
 	// Maximum number of backup files to keep
 	UPROPERTY(EditDefaultsOnly, Category = "Save")
 	int32 MaxBackups = 3;
+
+	// Whether tutorial should auto-start on first launch
+	UPROPERTY(BlueprintReadOnly, Category = "Tutorial")
+	bool bShouldAutoStartTutorial = false;
 
 private:
 	// Get save file path

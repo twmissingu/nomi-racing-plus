@@ -32,21 +32,33 @@ struct NOMIRACINGPLUS_API FTireEffectsState
 	UPROPERTY(BlueprintReadOnly, Category = "Effects")
 	float AverageTireTemperature = 25.0f;
 
-	// Per-wheel ground contact status (FL, FR, RL, RR)
+	// Per-wheel ground contact status (FL, FR, RL, RR) - fixed size for performance
 	UPROPERTY(BlueprintReadOnly, Category = "Effects")
 	TArray<bool> WheelGrounded;
 
-	// Per-wheel slip ratio for granular effects
+	// Per-wheel slip ratio for granular effects - fixed size for performance
 	UPROPERTY(BlueprintReadOnly, Category = "Effects")
 	TArray<float> WheelSlipRatios;
 
-	// Per-wheel slip angle for granular effects
+	// Per-wheel slip angle for granular effects - fixed size for performance
 	UPROPERTY(BlueprintReadOnly, Category = "Effects")
 	TArray<float> WheelSlipAngles;
 
-	// Per-wheel tire temperature for heat haze effects
+	// Per-wheel tire temperature for heat haze effects - fixed size for performance
 	UPROPERTY(BlueprintReadOnly, Category = "Effects")
 	TArray<float> WheelTemperatures;
+
+	// Maximum number of wheels supported (fixed for memory optimization)
+	static constexpr int32 MaxWheelCount = 4;
+
+	// Resize all arrays to MaxWheelCount once, avoid repeated allocations
+	void ResizeForWheelCount(int32 WheelCount)
+	{
+		if (WheelGrounded.Num() != WheelCount) WheelGrounded.SetNum(WheelCount);
+		if (WheelSlipRatios.Num() != WheelCount) WheelSlipRatios.SetNum(WheelCount);
+		if (WheelSlipAngles.Num() != WheelCount) WheelSlipAngles.SetNum(WheelCount);
+		if (WheelTemperatures.Num() != WheelCount) WheelTemperatures.SetNum(WheelCount);
+	}
 };
 
 /**
@@ -116,8 +128,9 @@ public:
 	bool IsAnyTireSlipping(float Threshold = 0.15f) const;
 
 	// Get tire effects state for visual/audio systems
+	// Returns cached reference (avoids TArray copy every frame)
 	UFUNCTION(BlueprintCallable, Category = "NIO Vehicle|Tire")
-	FTireEffectsState GetTireEffectsState() const;
+	const FTireEffectsState& GetTireEffectsState() const;
 
 protected:
 	// Electric motor parameters
@@ -210,6 +223,9 @@ private:
 	// Tire physics model component (auto-created)
 	UPROPERTY()
 	TObjectPtr<UTirePhysicsModel> TireModel;
+
+	// Cached tire effects state (avoid per-frame TArray copies)
+	mutable FTireEffectsState CachedEffectsState;
 
 public:
 	// Front tire preset
