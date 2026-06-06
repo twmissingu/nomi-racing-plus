@@ -193,7 +193,7 @@ void UNIOVehicleMovementComponent::ApplyTireForces(float DeltaTime)
 		const FVector TotalForce = LongForceVector + LatForceVector;
 
 		// Apply force at wheel position (creates both linear and angular impulse)
-		VehicleBody->AddForceAtLocation(TotalForce, WheelWorldPos, false);
+		VehicleBody->AddForceAtLocation(TotalForce, WheelWorldPos, NAME_None);
 	}
 }
 

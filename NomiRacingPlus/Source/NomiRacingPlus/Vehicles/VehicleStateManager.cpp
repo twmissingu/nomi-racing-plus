@@ -405,7 +405,7 @@ void UVehicleStateManager::CheckStuckAndFlip(float DeltaTime)
 	// --- Broadcast events on state change ---
 	if ((!bWasStuck && bIsStuck) || (!bWasFlipped && bIsFlipped))
 	{
-		ARaceManager* RaceManager = CachedRaceManager;
+		ARaceManager* RaceManager = CachedRaceManager.Get();
 		if (!RaceManager)
 		{
 			// Fallback: try to find it (should not normally be needed)
@@ -445,16 +445,16 @@ void UVehicleStateManager::ResetVehicle()
 
 	// Try to use RaceManager's last-passed checkpoint (preserves race progress)
 	bool bUsedRaceManager = false;
-	if (CachedRaceManager)
+	ARaceManager* RaceMgr = CachedRaceManager.Get();
+	if (RaceMgr)
 	{
 		APawn* OwnerPawn = Cast<APawn>(Owner);
 		if (OwnerPawn)
 		{
-			int32 RacerIdx = CachedRaceManager->FindRacerIndex(OwnerPawn);
-			if (RacerIdx != INDEX_NONE)
+			FRacerData RacerData;
+			if (RaceMgr->GetRacerData(OwnerPawn, RacerData))
 			{
-				const FRacerData& Racer = CachedRaceManager->GetAllRacers()[RacerIdx];
-				int32 LastCP = FMath::Max(0, Racer.CurrentCheckpoint - 1);
+				int32 LastCP = FMath::Max(0, RacerData.CurrentCheckpoint - 1);
 
 				// Find the checkpoint actor with matching index
 				TArray<AActor*> Checkpoints;

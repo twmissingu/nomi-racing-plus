@@ -145,7 +145,9 @@ bool Save(const FString& SavePath,
 		IFileManager::Get().Copy(*BackupPath, *SavePath, true, true);
 	}
 
-	return IFileManager::Get().Rename(*TmpPath, *SavePath, true);
+	// Use platform file for atomic rename
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	return PlatformFile.MoveFile(*SavePath, *TmpPath);
 }
 
 bool Load(const FString& SavePath,

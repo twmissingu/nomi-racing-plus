@@ -2,6 +2,7 @@
 
 #include "Tests/ErrorHandlerTest.h"
 #include "Core/NomiErrorHandler.h"
+#include "UI/ErrorToastWidget.h"
 #include "NOMI/CommentaryEngine.h"
 #include "Race/ProgressionSerializer.h"
 #include "Race/RaceProgressionTypes.h"

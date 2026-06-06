@@ -2,6 +2,7 @@
 
 #include "UI/ErrorToastWidget.h"
 #include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Components/SizeBox.h"
 #include "Components/Border.h"
@@ -33,7 +34,8 @@ void UErrorToastWidget::NativeConstruct()
 			ContainerSlot->SetAutoSize(true);
 		}
 
-		AddChild(Root);
+		// Note: ToastContainer is created but not added to viewport hierarchy
+		// It will be added when ShowToast is called
 	}
 
 	// Auto-bind to error handler

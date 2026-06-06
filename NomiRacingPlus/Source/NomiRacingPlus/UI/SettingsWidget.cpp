@@ -114,9 +114,9 @@ void USettingsWidget::LoadCurrentSettings()
 	WorkingMasterVolume = Settings.MasterVolume;
 	WorkingSFXVolume = Settings.SFXVolume;
 	WorkingMusicVolume = Settings.MusicVolume;
-	WorkingNanite = Settings.bEnableNanite;
-	WorkingLumen = Settings.bEnableLumen;
-	WorkingMotionBlur = Settings.bEnableMotionBlur;
+	bWorkingNanite = Settings.bEnableNanite;
+	bWorkingLumen = Settings.bEnableLumen;
+	bWorkingMotionBlur = Settings.bEnableMotionBlur;
 	WorkingPresetIndex = static_cast<int32>(Settings.CurrentPreset);
 	WorkingNOMIFrequency = Settings.NOMIFrequency;
 }
@@ -149,41 +149,41 @@ void USettingsWidget::OnQualityPresetChanged(FString SelectedItem, ESelectInfo::
 	{
 		WorkingPresetIndex = 0;
 		// Low preset: disable Nanite and Lumen
-		WorkingNanite = false;
-		WorkingLumen = false;
+		bWorkingNanite = false;
+		bWorkingLumen = false;
 	}
 	else if (SelectedItem == TEXT("High"))
 	{
 		WorkingPresetIndex = 2;
 		// High preset: enable Nanite and Lumen
-		WorkingNanite = true;
-		WorkingLumen = true;
+		bWorkingNanite = true;
+		bWorkingLumen = true;
 	}
 	else
 	{
 		WorkingPresetIndex = 1;
 		// Medium preset: enable Nanite, disable Lumen (software fallback)
-		WorkingNanite = true;
-		WorkingLumen = false;
+		bWorkingNanite = true;
+		bWorkingLumen = false;
 	}
 	UpdateToggleTexts();
 }
 
 void USettingsWidget::OnNaniteClicked()
 {
-	WorkingNanite = !WorkingNanite;
+	bWorkingNanite = !bWorkingNanite;
 	UpdateToggleTexts();
 }
 
 void USettingsWidget::OnLumenClicked()
 {
-	WorkingLumen = !WorkingLumen;
+	bWorkingLumen = !bWorkingLumen;
 	UpdateToggleTexts();
 }
 
 void USettingsWidget::OnMotionBlurClicked()
 {
-	WorkingMotionBlur = !WorkingMotionBlur;
+	bWorkingMotionBlur = !bWorkingMotionBlur;
 	UpdateToggleTexts();
 }
 
@@ -209,9 +209,9 @@ void USettingsWidget::OnApplyClicked()
 	NewSettings.MasterVolume = WorkingMasterVolume;
 	NewSettings.SFXVolume = WorkingSFXVolume;
 	NewSettings.MusicVolume = WorkingMusicVolume;
-	NewSettings.bEnableNanite = WorkingNanite;
-	NewSettings.bEnableLumen = WorkingLumen;
-	NewSettings.bEnableMotionBlur = WorkingMotionBlur;
+	NewSettings.bEnableNanite = bWorkingNanite;
+	NewSettings.bEnableLumen = bWorkingLumen;
+	NewSettings.bEnableMotionBlur = bWorkingMotionBlur;
 	NewSettings.CurrentPreset = static_cast<ENIOGraphicsPreset>(WorkingPresetIndex);
 	NewSettings.NOMIFrequency = WorkingNOMIFrequency;
 
@@ -251,14 +251,14 @@ void USettingsWidget::UpdateToggleTexts()
 {
 	if (NaniteText)
 	{
-		NaniteText->SetText(FText::FromString(WorkingNanite ? TEXT("ON") : TEXT("OFF")));
+		NaniteText->SetText(FText::FromString(bWorkingNanite ? TEXT("ON") : TEXT("OFF")));
 	}
 	if (LumenText)
 	{
-		LumenText->SetText(FText::FromString(WorkingLumen ? TEXT("ON") : TEXT("OFF")));
+		LumenText->SetText(FText::FromString(bWorkingLumen ? TEXT("ON") : TEXT("OFF")));
 	}
 	if (MotionBlurText)
 	{
-		MotionBlurText->SetText(FText::FromString(WorkingMotionBlur ? TEXT("ON") : TEXT("OFF")));
+		MotionBlurText->SetText(FText::FromString(bWorkingMotionBlur ? TEXT("ON") : TEXT("OFF")));
 	}
 }

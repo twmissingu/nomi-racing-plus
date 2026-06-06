@@ -102,7 +102,7 @@ void AAICarController::OnPossess(APawn* InPawn)
 
 		// Configure behavior tree based on difficulty
 		float DifficultyScalar = 0.5f;
-		switch (DifficultyLevel)
+		switch (Difficulty)
 		{
 		case EAIDifficulty::Easy:   DifficultyScalar = 0.25f; break;
 		case EAIDifficulty::Normal: DifficultyScalar = 0.5f;  break;

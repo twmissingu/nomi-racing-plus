@@ -413,7 +413,7 @@ bool FResultsWidgetMenuManagerTest::RunTest(const FString& Parameters)
 	Results->SetMenuManager(MenuMgr);
 
 	// Assert: the widget should hold the reference
-	TestEqual(TEXT("MenuManager reference should be stored"), Results->MenuManager, MenuMgr);
+	TestTrue(TEXT("MenuManager reference should be stored"), Results->MenuManager == MenuMgr);
 
 	// Edge case: setting nullptr should not crash
 	Results->SetMenuManager(nullptr);
@@ -650,7 +650,7 @@ bool FRaceFinishResultsPipelineTest::RunTest(const FString& Parameters)
 	Results->SetResults(SessionResult, false);
 
 	// Assert: ResultsWidget should hold the MenuManager reference
-	TestEqual(TEXT("ResultsWidget should have MenuManager"), Results->MenuManager, MenuMgr);
+	TestTrue(TEXT("ResultsWidget should have MenuManager"), Results->MenuManager == MenuMgr);
 
 	// Verify session result data is accessible
 	TestEqual(TEXT("Session result final position"), SessionResult.FinalPosition, 2);

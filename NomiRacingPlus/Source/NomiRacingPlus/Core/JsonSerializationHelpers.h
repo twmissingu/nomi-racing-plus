@@ -12,6 +12,9 @@
  */
 namespace JsonSerializationHelpers
 {
+	// Forward declarations
+	inline FString SerializeSorted(const TSharedPtr<FJsonObject>& Obj);
+
 	/** Calculate CRC32 checksum of a UTF-8 string. */
 	inline uint32 CalculateCRC32(const FString& Content)
 	{

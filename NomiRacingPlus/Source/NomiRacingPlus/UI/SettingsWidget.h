@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "UI/MenuManager.h"
 #include "SettingsWidget.generated.h"
 
 class UButton;

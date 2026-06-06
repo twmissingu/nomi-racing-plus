@@ -200,7 +200,7 @@ void ANomiPlayerController::CycleCameraMode()
 		{
 			CamSys->CycleCameraMode();
 			// Read back the current mode from CameraSystem for logging
-			CameraMode = static_cast<int32>(CamSys->GetCurrentMode());
+			CameraMode = static_cast<int32>(CamSys->GetCameraMode());
 		}
 	}
 
