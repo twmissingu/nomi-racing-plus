@@ -13,6 +13,15 @@ class UButton;
 class UTextBlock;
 class UMenuManager;
 
+/** Confirmation action types for pause menu destructive actions */
+UENUM()
+enum class EConfirmAction : uint8
+{
+	None,
+	Restart,
+	ReturnToMainMenu
+};
+
 /**
  * Abstract pause menu widget that can be extended in Blueprint.
  * Expects BindWidget buttons: ContinueButton, RestartButton, SettingsButton, MainMenuButton.
@@ -60,6 +69,25 @@ protected:
 
 	UFUNCTION()
 	void OnMainMenu();
+
+	// --- Confirmation Dialog ---
+
+	/** Show a simple confirmation dialog for destructive actions */
+	void ShowConfirmDialog(const FString& Message, EConfirmAction Action);
+
+	/** Whether a confirmation dialog is currently showing */
+	bool bShowingConfirmDialog = false;
+
+	/** Callback for confirm button */
+	UFUNCTION()
+	void OnConfirmClicked();
+
+	/** Callback for cancel button */
+	UFUNCTION()
+	void OnCancelClicked();
+
+	/** Pending action to execute on confirm */
+	EConfirmAction PendingConfirmAction = EConfirmAction::None;
 
 private:
 	UPROPERTY()

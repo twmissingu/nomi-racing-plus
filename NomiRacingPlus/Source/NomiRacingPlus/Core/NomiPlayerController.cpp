@@ -12,6 +12,8 @@
 #include "NomiRacingPlus.h"
 #include "Core/NomiErrorHandler.h"
 #include "UI/ErrorToastWidget.h"
+#include "UI/ErrorRecoveryWidget.h"
+#include "NomiGameInstance.h"
 
 ANomiPlayerController::ANomiPlayerController()
 {
@@ -40,6 +42,33 @@ void ANomiPlayerController::BeginPlay()
 	if (ErrorToastWidget)
 	{
 		ErrorToastWidget->AddToViewport(200); // High Z-order so toasts appear above everything
+	}
+
+	// Create error recovery widget (hidden by default, shown on save corruption)
+	ErrorRecoveryWidget = CreateWidget<UErrorRecoveryWidget>(this, UErrorRecoveryWidget::StaticClass());
+	if (ErrorRecoveryWidget)
+	{
+		ErrorRecoveryWidget->AddToViewport(150); // Below toasts, above menus
+
+		// Wire to GameInstance save corruption events
+		if (UNomiGameInstance* GI = Cast<UNomiGameInstance>(GetGameInstance()))
+		{
+			GI->OnSaveCorruptionDetected.AddDynamic(this, &ANomiPlayerController::OnSaveCorruptionDetected);
+		}
+
+		// Wire recovery action handler
+		ErrorRecoveryWidget->OnRecoveryActionSelected.AddDynamic(this, &ANomiPlayerController::OnRecoveryActionHandled);
+
+		// Check if corruption was detected during GameInstance::Init (before we could bind)
+		if (UNomiGameInstance* GI = Cast<UNomiGameInstance>(GetGameInstance()))
+		{
+			if (GI->bHasCorruption)
+			{
+				FString UserMessage = FString::Printf(TEXT("Save file '%s' is corrupted."), *GI->CorruptedFileName);
+				ErrorRecoveryWidget->ShowRecoveryDialog(UserMessage, GI->bCanRestoreBackup);
+				GI->bHasCorruption = false; // Only show once
+			}
+		}
 	}
 
 	// Only show the main menu when NOT on a race track.
@@ -435,4 +464,46 @@ void ANomiPlayerController::OnResetVehicle()
 bool ANomiPlayerController::IsInMenu() const
 {
 	return MenuManager && MenuManager->GetCurrentState() != EMenuState::Racing;
+}
+
+// ---------------------------------------------------------------------------
+// Save Recovery
+// ---------------------------------------------------------------------------
+
+void ANomiPlayerController::OnSaveCorruptionDetected(const FString& FileName, bool bCanRestoreBackup)
+{
+	if (ErrorRecoveryWidget)
+	{
+		FString UserMessage = FString::Printf(
+			TEXT("Your save file \"%s\" could not be loaded.\n\nWould you like to restore from a backup or reset to defaults?"),
+			*FileName
+		);
+		ErrorRecoveryWidget->ShowRecoveryDialog(UserMessage, bCanRestoreBackup);
+	}
+}
+
+void ANomiPlayerController::OnRecoveryActionHandled(ERecoveryAction Action)
+{
+	UNomiGameInstance* GI = Cast<UNomiGameInstance>(GetGameInstance());
+	if (!GI)
+	{
+		return;
+	}
+
+	switch (Action)
+	{
+	case ERecoveryAction::RestoreBackup:
+		UE_LOG(LogNomiRacing, Log, TEXT("Recovery action: Restoring from backup"));
+		GI->RestoreSettingsFromBackup();
+		break;
+
+	case ERecoveryAction::ResetDefaults:
+		UE_LOG(LogNomiRacing, Log, TEXT("Recovery action: Resetting to defaults"));
+		GI->ResetSettingsToDefaults();
+		break;
+
+	case ERecoveryAction::Cancel:
+		UE_LOG(LogNomiRacing, Log, TEXT("Recovery action: Cancelled by user"));
+		break;
+	}
 }

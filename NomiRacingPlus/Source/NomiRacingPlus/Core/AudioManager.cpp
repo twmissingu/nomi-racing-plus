@@ -4,6 +4,7 @@
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NomiRacingPlus.h"
+#include "Core/NomiGameInstance.h"
 
 UAudioManager::UAudioManager()
 {
@@ -21,6 +22,9 @@ UAudioManager::UAudioManager()
 void UAudioManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Load persisted volume levels from game settings
+	LoadVolumesFromSettings();
 
 	// Create motor audio components
 	if (MotorSoundConfig.MotorSoundCue)
@@ -390,6 +394,46 @@ void UAudioManager::UpdateComponentVolume(UAudioComponent* Component, EAudioCate
 // ---------------------------------------------------------------------------
 // MetaSound Integration
 // ---------------------------------------------------------------------------
+
+void UAudioManager::LoadVolumesFromSettings()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (UNomiGameInstance* GI = Cast<UNomiGameInstance>(World->GetGameInstance()))
+	{
+		const FNomiGameSettings& Settings = GI->GetSettings();
+		SetVolume(EAudioCategory::Master, Settings.MasterVolume);
+		SetVolume(EAudioCategory::SFX, Settings.SFXVolume);
+		SetVolume(EAudioCategory::Music, Settings.MusicVolume);
+
+		UE_LOG(LogNomiRacing, Log, TEXT("AudioManager volumes loaded from settings: Master=%.2f, SFX=%.2f, Music=%.2f"),
+			Settings.MasterVolume, Settings.SFXVolume, Settings.MusicVolume);
+	}
+}
+
+void UAudioManager::SaveVolumesToSettings()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (UNomiGameInstance* GI = Cast<UNomiGameInstance>(World->GetGameInstance()))
+	{
+		FNomiGameSettings NewSettings = GI->GetSettings();
+		NewSettings.MasterVolume = GetVolume(EAudioCategory::Master);
+		NewSettings.SFXVolume = GetVolume(EAudioCategory::SFX);
+		NewSettings.MusicVolume = GetVolume(EAudioCategory::Music);
+		GI->UpdateSettings(NewSettings);
+
+		UE_LOG(LogNomiRacing, Log, TEXT("AudioManager volumes saved to settings"));
+	}
+}
 
 void UAudioManager::PlayMotorMetaSound(float RPM, float Throttle, float Load)
 {

@@ -119,6 +119,17 @@ void USettingsWidget::LoadCurrentSettings()
 	bWorkingMotionBlur = Settings.bEnableMotionBlur;
 	WorkingPresetIndex = static_cast<int32>(Settings.CurrentPreset);
 	WorkingNOMIFrequency = Settings.NOMIFrequency;
+
+	// Store initial values for dirty state comparison
+	InitialMasterVolume = WorkingMasterVolume;
+	InitialSFXVolume = WorkingSFXVolume;
+	InitialMusicVolume = WorkingMusicVolume;
+	bInitialNanite = bWorkingNanite;
+	bInitialLumen = bWorkingLumen;
+	bInitialMotionBlur = bWorkingMotionBlur;
+	InitialPresetIndex = WorkingPresetIndex;
+	InitialNOMIFrequency = WorkingNOMIFrequency;
+	bSettingsDirty = false;
 }
 
 // --- Audio handlers ---
@@ -127,18 +138,21 @@ void USettingsWidget::OnMasterVolumeChanged(float Value)
 {
 	WorkingMasterVolume = Value;
 	UpdateVolumeTexts();
+	CheckDirtyState();
 }
 
 void USettingsWidget::OnSFXVolumeChanged(float Value)
 {
 	WorkingSFXVolume = Value;
 	UpdateVolumeTexts();
+	CheckDirtyState();
 }
 
 void USettingsWidget::OnMusicVolumeChanged(float Value)
 {
 	WorkingMusicVolume = Value;
 	UpdateVolumeTexts();
+	CheckDirtyState();
 }
 
 // --- Graphics handlers ---
@@ -167,24 +181,28 @@ void USettingsWidget::OnQualityPresetChanged(FString SelectedItem, ESelectInfo::
 		bWorkingLumen = false;
 	}
 	UpdateToggleTexts();
+	CheckDirtyState();
 }
 
 void USettingsWidget::OnNaniteClicked()
 {
 	bWorkingNanite = !bWorkingNanite;
 	UpdateToggleTexts();
+	CheckDirtyState();
 }
 
 void USettingsWidget::OnLumenClicked()
 {
 	bWorkingLumen = !bWorkingLumen;
 	UpdateToggleTexts();
+	CheckDirtyState();
 }
 
 void USettingsWidget::OnMotionBlurClicked()
 {
 	bWorkingMotionBlur = !bWorkingMotionBlur;
 	UpdateToggleTexts();
+	CheckDirtyState();
 }
 
 void USettingsWidget::OnNOMIFrequencyChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
@@ -193,6 +211,7 @@ void USettingsWidget::OnNOMIFrequencyChanged(FString SelectedItem, ESelectInfo::
 	else if (SelectedItem == TEXT("Low")) WorkingNOMIFrequency = 1;
 	else if (SelectedItem == TEXT("High")) WorkingNOMIFrequency = 3;
 	else WorkingNOMIFrequency = 2; // Medium
+	CheckDirtyState();
 }
 
 // --- Navigation ---
@@ -218,11 +237,19 @@ void USettingsWidget::OnApplyClicked()
 	GI->UpdateSettings(NewSettings);
 	GI->SaveSettings();
 
+	bSettingsDirty = false;
 	UE_LOG(LogNomiRacing, Log, TEXT("Settings applied and saved"));
 }
 
 void USettingsWidget::OnBackClicked()
 {
+	if (bSettingsDirty)
+	{
+		// Prevent navigation when settings are modified — user must Apply or discard
+		UE_LOG(LogNomiRacing, Warning, TEXT("Settings have unsaved changes. Click Apply to save, or change settings back to original values to discard."));
+		return;
+	}
+
 	if (MenuManager)
 	{
 		MenuManager->ReturnToPrevious();
@@ -261,4 +288,16 @@ void USettingsWidget::UpdateToggleTexts()
 	{
 		MotionBlurText->SetText(FText::FromString(bWorkingMotionBlur ? TEXT("ON") : TEXT("OFF")));
 	}
+}
+
+void USettingsWidget::CheckDirtyState()
+{
+	bSettingsDirty = !FMath::IsNearlyEqual(WorkingMasterVolume, InitialMasterVolume, 0.01f)
+		|| !FMath::IsNearlyEqual(WorkingSFXVolume, InitialSFXVolume, 0.01f)
+		|| !FMath::IsNearlyEqual(WorkingMusicVolume, InitialMusicVolume, 0.01f)
+		|| (bWorkingNanite != bInitialNanite)
+		|| (bWorkingLumen != bInitialLumen)
+		|| (bWorkingMotionBlur != bInitialMotionBlur)
+		|| (WorkingPresetIndex != InitialPresetIndex)
+		|| (WorkingNOMIFrequency != InitialNOMIFrequency);
 }

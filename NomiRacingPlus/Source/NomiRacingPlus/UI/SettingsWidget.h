@@ -103,6 +103,22 @@ private:
 	// Previous menu state to return to
 	EMenuState ReturnState = EMenuState::MainMenu;
 
+	// Dirty state tracking — true if any setting has been modified since last Apply
+	bool bSettingsDirty = false;
+
+	// Initial values loaded on open (for dirty comparison)
+	float InitialMasterVolume = 1.0f;
+	float InitialSFXVolume = 0.8f;
+	float InitialMusicVolume = 0.6f;
+	bool bInitialNanite = true;
+	bool bInitialLumen = true;
+	bool bInitialMotionBlur = true;
+	int32 InitialPresetIndex = 1;
+	int32 InitialNOMIFrequency = 2;
+
+	// Check if settings have changed from initial values
+	void CheckDirtyState();
+
 	// Button handlers
 	UFUNCTION()
 	void OnMasterVolumeChanged(float Value);

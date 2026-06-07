@@ -1,4 +1,4 @@
-// NIO Racing Plus - Garage Widget
+// Copyright NomiRacingPlus Project. All Rights Reserved.
 
 #include "UI/GarageWidget.h"
 #include "Components/Button.h"
@@ -34,6 +34,11 @@ void UGarageWidget::NativeConstruct()
 	{
 		CurrentVehicleIndex = 0;
 		UpdateVehicleDisplay();
+		ApplyEmptyState(false);
+	}
+	else
+	{
+		ApplyEmptyState(true);
 	}
 }
 
@@ -95,7 +100,44 @@ void UGarageWidget::SetModeFilter(const FString& Mode)
 		SavedIndex = MenuManager->GetMenuContext().VehicleIndex;
 	}
 	CurrentVehicleIndex = FMath::Clamp(SavedIndex, 0, FMath::Max(0, AvailableVehicles.Num() - 1));
-	UpdateVehicleDisplay();
+
+	// Handle empty state after filtering
+	if (AvailableVehicles.Num() == 0)
+	{
+		ApplyEmptyState(true);
+	}
+	else
+	{
+		// Re-enable buttons if vehicles are available
+		ApplyEmptyState(false);
+		UpdateVehicleDisplay();
+	}
+}
+
+void UGarageWidget::ApplyEmptyState(bool bEmpty)
+{
+	if (bEmpty)
+	{
+		if (VehicleNameText)
+		{
+			VehicleNameText->SetText(FText::FromString(TEXT("No Vehicles Available")));
+		}
+		if (PowerText) PowerText->SetText(FText::GetEmpty());
+		if (TorqueText) TorqueText->SetText(FText::GetEmpty());
+		if (AccelText) AccelText->SetText(FText::GetEmpty());
+		if (TopSpeedText) TopSpeedText->SetText(FText::GetEmpty());
+		if (DriveTypeText) DriveTypeText->SetText(FText::GetEmpty());
+
+		if (PrevVehicleButton) PrevVehicleButton->SetIsEnabled(false);
+		if (NextVehicleButton) NextVehicleButton->SetIsEnabled(false);
+		if (SelectButton) SelectButton->SetIsEnabled(false);
+	}
+	else
+	{
+		if (PrevVehicleButton) PrevVehicleButton->SetIsEnabled(true);
+		if (NextVehicleButton) NextVehicleButton->SetIsEnabled(true);
+		if (SelectButton) SelectButton->SetIsEnabled(true);
+	}
 }
 
 void UGarageWidget::OnPrevClicked()

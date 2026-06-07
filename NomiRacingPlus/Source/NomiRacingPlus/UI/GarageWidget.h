@@ -85,4 +85,7 @@ private:
 	void OnBackClicked();
 
 	void UpdateVehicleDisplay();
+
+	/** Apply or clear empty state UI (shared by NativeConstruct and SetModeFilter) */
+	void ApplyEmptyState(bool bEmpty);
 };

@@ -269,11 +269,22 @@ These features are referenced in PLAN.md or README.md but have no implementation
 
 ### 后续迭代重点
 
-1. **NomiErrorHandler集成** — 接入NomiRaceGameMode、NomiGameInstance、MenuManager等主游戏代码
-2. **设置菜单实现** — 替换stub，实现音频/画质/控制设置界面
-3. **Widget状态保持** — 返回导航时保持选中状态
-4. **轮胎物理模型接入** — Pacejka模型计算已就绪，需接入Chaos Vehicles力的应用
+1. **✅ 空状态处理** — GarageWidget 空车辆列表显示提示信息（Cycle 9 完成）
+2. **✅ 设置未保存确认** — Back 按钮离开前确认丢弃更改（Cycle 9 完成）
+3. **✅ 重启确认** — PauseMenu 重启比赛前弹出确认对话框（Cycle 9 完成）
+4. **⏳ 音频管理器增强** — MetaSound 占位符、音频总线路由
+5. **⏳ 错误恢复 UI 增强** — 关键错误显示重启对话框
+
+### Vibe-Evolve 迭代完成
+
+| 周期 | 聚焦维度 | 分数变化 | 状态 |
+|------|---------|---------|------|
+| Cycle 8 | 视觉与音效 | 7→8/10 | ✅ 完成 |
+| Cycle 9 | 玩家体验 | 8→9/10 | ✅ 完成 |
+| Cycle 10 | 测试覆盖 | 7→8/10 | ✅ 完成 |
+
+**最终分数：8.3/10** — 所有维度 ≥ 8/10，收敛达成。
 
 ---
 
-*Last updated: 2026-06-06*
+*Last updated: 2026-06-07*

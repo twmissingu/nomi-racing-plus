@@ -11,6 +11,8 @@
 
 class UVehicleStateManager;
 class UErrorToastWidget;
+class UErrorRecoveryWidget;
+enum class ERecoveryAction : uint8;
 
 /**
  * Input actions for vehicle control
@@ -131,6 +133,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	bool IsInMenu() const;
 
+	/** Handle save corruption — show recovery dialog */
+	UFUNCTION()
+	void OnSaveCorruptionDetected(const FString& FileName, bool bCanRestoreBackup);
+
+	/** Handle user's recovery action selection */
+	UFUNCTION()
+	void OnRecoveryActionHandled(ERecoveryAction Action);
+
 protected:
 	// Input mapping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -152,9 +162,17 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UErrorToastWidget> ErrorToastWidget;
 
+	// Error recovery widget (created at runtime, added to viewport)
+	UPROPERTY()
+	TObjectPtr<UErrorRecoveryWidget> ErrorRecoveryWidget;
+
 	// Get error toast widget
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	UErrorToastWidget* GetErrorToastWidget() const { return ErrorToastWidget; }
+
+	// Get error recovery widget
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	UErrorRecoveryWidget* GetErrorRecoveryWidget() const { return ErrorRecoveryWidget; }
 
 	// Cached vehicle state manager from controlled pawn
 	UPROPERTY()

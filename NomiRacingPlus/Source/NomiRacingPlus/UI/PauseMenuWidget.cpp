@@ -7,6 +7,11 @@
 #include "UI/MenuManager.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/Border.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/GameModeBase.h"
 #include "NomiRacingPlus.h"
@@ -70,9 +75,9 @@ void UPauseMenuWidget::OnContinue()
 
 void UPauseMenuWidget::OnRestart()
 {
+	// TODO: Show confirmation dialog via NomiPlayerController (requires World context)
+	// For now, execute immediately to avoid blocking the user
 	RemoveFromParent();
-
-	// Unpause before restarting
 	UGameplayStatics::SetGamePaused(this, false);
 
 	UWorld* World = GetWorld();
@@ -96,13 +101,81 @@ void UPauseMenuWidget::OnSettings()
 
 void UPauseMenuWidget::OnMainMenu()
 {
+	// TODO: Show confirmation dialog via NomiPlayerController (requires World context)
+	// For now, execute immediately to avoid blocking the user
 	RemoveFromParent();
-
-	// Unpause before returning to menu
 	UGameplayStatics::SetGamePaused(this, false);
 
 	if (MenuManager)
 	{
 		MenuManager->ShowMainMenu();
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Confirmation Dialog
+// ---------------------------------------------------------------------------
+
+void UPauseMenuWidget::ShowConfirmDialog(const FString& Message, EConfirmAction Action)
+{
+	if (bShowingConfirmDialog)
+	{
+		return;
+	}
+
+	bShowingConfirmDialog = true;
+	PendingConfirmAction = Action;
+
+	// State machine only: visual display is handled by NomiPlayerController
+	// which creates the confirmation dialog as a separate widget and adds it to viewport.
+	UE_LOG(LogNomiRacing, Log, TEXT("PauseMenu confirm dialog shown: %s"), *Message);
+}
+
+void UPauseMenuWidget::OnConfirmClicked()
+{
+	bShowingConfirmDialog = false;
+
+	// Execute pending action based on enum
+	switch (PendingConfirmAction)
+	{
+	case EConfirmAction::Restart:
+	{
+		RemoveFromParent();
+		UGameplayStatics::SetGamePaused(this, false);
+
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			AGameModeBase* GM = World->GetAuthGameMode();
+			if (GM)
+			{
+				GM->ResetLevel();
+			}
+		}
+		break;
+	}
+
+	case EConfirmAction::ReturnToMainMenu:
+	{
+		RemoveFromParent();
+		UGameplayStatics::SetGamePaused(this, false);
+
+		if (MenuManager)
+		{
+			MenuManager->ShowMainMenu();
+		}
+		break;
+	}
+
+	default:
+		break;
+	}
+
+	PendingConfirmAction = EConfirmAction::None;
+}
+
+void UPauseMenuWidget::OnCancelClicked()
+{
+	bShowingConfirmDialog = false;
+	PendingConfirmAction = EConfirmAction::None;
 }

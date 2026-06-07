@@ -133,14 +133,25 @@ bool UNomiGameInstance::LoadSettings()
 	{
 		NomiError::Log(ENomiErrorSeverity::Warning, TEXT("Save"), FString::Printf(TEXT("Settings integrity check failed: %s"), *Error));
 
-		// Attempt recovery from backups
+		// Store corruption state for NomiPlayerController to check during BeginPlay
+		bHasCorruption = true;
+		CorruptedFileName = SettingsFileName;
+		bCanRestoreBackup = false;
+		{
+			FString BackupPath = GetSaveFilePath(SettingsFileName + TEXT(".backup-1"));
+			bCanRestoreBackup = FPaths::FileExists(BackupPath);
+		}
+
+		// Attempt recovery from backups silently
 		if (RecoverFromBackup(SettingsFileName))
 		{
 			UE_LOG(LogNomiRacing, Log, TEXT("Settings recovered from backup"));
+			OnSaveRecoveryCompleted.Broadcast(SettingsFileName, true);
 		}
 		else
 		{
 			UE_LOG(LogNomiRacing, Warning, TEXT("No valid backup found, using defaults"));
+			OnSaveRecoveryCompleted.Broadcast(SettingsFileName, false);
 			return false;
 		}
 	}
@@ -785,4 +796,81 @@ const TMap<FString, FUnlockableItem>& UNomiGameInstance::GetUnlockables() const
 		return RaceProgression->GetUnlockables();
 	}
 	return EmptyMap;
+}
+
+// ---------------------------------------------------------------------------
+// Save Recovery (called by ErrorRecoveryWidget)
+// ---------------------------------------------------------------------------
+
+bool UNomiGameInstance::RestoreSettingsFromBackup()
+{
+	if (RecoverFromBackup(SettingsFileName))
+	{
+		// Read the recovered file directly (avoid calling LoadSettings which would
+		// trigger another corruption check and potentially re-enter this method)
+		FString FilePath = GetSaveFilePath(SettingsFileName);
+		FString JsonString;
+		if (FFileHelper::LoadFileToString(JsonString, *FilePath))
+		{
+			TSharedPtr<FJsonObject> JsonObject;
+			TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+			if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+			{
+				const TSharedPtr<FJsonObject>* DataObj;
+				if (JsonObject->TryGetObjectField(TEXT("data"), DataObj))
+				{
+					// Audio
+					(*DataObj)->TryGetNumberField(TEXT("MasterVolume"), Settings.MasterVolume);
+					(*DataObj)->TryGetNumberField(TEXT("SFXVolume"), Settings.SFXVolume);
+					(*DataObj)->TryGetNumberField(TEXT("MusicVolume"), Settings.MusicVolume);
+
+					// Graphics
+					(*DataObj)->TryGetNumberField(TEXT("GraphicsQuality"), Settings.GraphicsQuality);
+					(*DataObj)->TryGetBoolField(TEXT("EnableNanite"), Settings.bEnableNanite);
+					(*DataObj)->TryGetBoolField(TEXT("EnableLumen"), Settings.bEnableLumen);
+					(*DataObj)->TryGetBoolField(TEXT("EnableMotionBlur"), Settings.bEnableMotionBlur);
+					{
+						int32 PresetInt = static_cast<int32>(Settings.CurrentPreset);
+						(*DataObj)->TryGetNumberField(TEXT("CurrentPreset"), PresetInt);
+						Settings.CurrentPreset = static_cast<ENIOGraphicsPreset>(PresetInt);
+					}
+
+					// Gameplay
+					(*DataObj)->TryGetNumberField(TEXT("NOMIFrequency"), Settings.NOMIFrequency);
+					{
+						int32 VehicleInt = static_cast<int32>(Settings.SelectedVehicle);
+						(*DataObj)->TryGetNumberField(TEXT("SelectedVehicle"), VehicleInt);
+						Settings.SelectedVehicle = static_cast<ENIOVehicleType>(VehicleInt);
+					}
+					(*DataObj)->TryGetStringField(TEXT("SelectedTrack"), Settings.SelectedTrack);
+					(*DataObj)->TryGetNumberField(TEXT("Difficulty"), Settings.Difficulty);
+					(*DataObj)->TryGetNumberField(TEXT("NumLaps"), Settings.NumLaps);
+					(*DataObj)->TryGetNumberField(TEXT("NumAIOpponents"), Settings.NumAIOpponents);
+					(*DataObj)->TryGetStringField(TEXT("GameMode"), Settings.GameMode);
+
+					// Progress & Tutorial
+					(*DataObj)->TryGetNumberField(TEXT("SeasonPoints"), Settings.SeasonPoints);
+					(*DataObj)->TryGetBoolField(TEXT("TutorialCompleted"), Settings.bTutorialCompleted);
+
+					ApplyGraphicsSettings();
+					ApplyAudioSettings();
+					UE_LOG(LogNomiRacing, Log, TEXT("Settings restored from backup successfully"));
+					OnSaveRecoveryCompleted.Broadcast(SettingsFileName, true);
+					return true;
+				}
+			}
+		}
+	}
+
+	UE_LOG(LogNomiRacing, Warning, TEXT("Failed to restore settings from backup"));
+	OnSaveRecoveryCompleted.Broadcast(SettingsFileName, false);
+	return false;
+}
+
+void UNomiGameInstance::ResetSettingsToDefaults()
+{
+	ResetSettings();
+	bool bSaved = SaveSettings();
+	UE_LOG(LogNomiRacing, Log, TEXT("Settings reset to defaults (save %s)"), bSaved ? TEXT("succeeded") : TEXT("failed"));
+	OnSaveRecoveryCompleted.Broadcast(SettingsFileName, bSaved);
 }

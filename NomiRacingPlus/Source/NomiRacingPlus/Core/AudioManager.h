@@ -183,6 +183,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Audio|MetaSound")
 	bool IsUsingMetaSound() const { return bUseMetaSound; }
 
+	// Volume Persistence
+
+	// Sync volume levels from NomiGameInstance settings
+	UFUNCTION(BlueprintCallable, Category = "Audio|Persistence")
+	void LoadVolumesFromSettings();
+
+	// Save current volume levels to NomiGameInstance settings
+	UFUNCTION(BlueprintCallable, Category = "Audio|Persistence")
+	void SaveVolumesToSettings();
+
 protected:
 	// Volume levels
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")

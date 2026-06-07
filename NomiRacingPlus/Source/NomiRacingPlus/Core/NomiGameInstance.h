@@ -102,6 +102,17 @@ struct NOMIRACINGPLUS_API FNomiGameSettings
 };
 
 /**
+ * Delegate broadcast when save corruption is detected and recovery options are available.
+ * Listeners (e.g., ErrorRecoveryWidget) should present recovery UI to the user.
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveCorruptionDetected, const FString&, FileName, bool, bCanRestoreBackup);
+
+/**
+ * Delegate broadcast when the user selects a recovery action after save corruption.
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveRecoveryCompleted, const FString&, FileName, bool, bSuccess);
+
+/**
  * NIO Racing Plus Game Instance
  * Manages global game state, settings, and data persistence
  */
@@ -112,6 +123,32 @@ class NOMIRACINGPLUS_API UNomiGameInstance : public UGameInstance
 
 public:
 	UNomiGameInstance();
+
+	/** Broadcast when save corruption is detected — ErrorRecoveryWidget binds to this */
+	UPROPERTY(BlueprintAssignable, Category = "Save")
+	FOnSaveCorruptionDetected OnSaveCorruptionDetected;
+
+	/** Broadcast when save recovery completes */
+	UPROPERTY(BlueprintAssignable, Category = "Save")
+	FOnSaveRecoveryCompleted OnSaveRecoveryCompleted;
+
+	// --- Corruption state (checked by NomiPlayerController during BeginPlay) ---
+	/** Whether corruption was detected during Init */
+	bool bHasCorruption = false;
+
+	/** File name of corrupted save */
+	FString CorruptedFileName;
+
+	/** Whether backup restore is available */
+	bool bCanRestoreBackup = false;
+
+	/** Attempt to restore settings from backup (called by ErrorRecoveryWidget) */
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	bool RestoreSettingsFromBackup();
+
+	/** Reset settings to defaults (called by ErrorRecoveryWidget) */
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	void ResetSettingsToDefaults();
 
 	virtual void Init() override;
 
