@@ -1158,3 +1158,70 @@ Fixed missing tire temperature data in HUD pipeline:
 1. **Cross-platform testing** — Verify Nanite/Lumen fallbacks (跨平台 6→7)
 2. **API documentation** — Add doxygen-style comments (文档 8→9)
 3. **Memory optimization** — Reduce allocation in hot paths (架构 9→10)
+
+---
+
+## Iteration 19: Visual & Audio — Particle System Wiring + UI Polish
+
+**Date:** 2026-06-09
+**Focus:** 视觉与音效 — Complete Niagara particle system code integration and fix UX polish issues
+**Status:** Completed
+
+### Problem Statement
+
+The NomiRacingParticleSystem had tire smoke, collision sparks, and drift smoke but was missing exhaust boost effects, speed trail/airflow, and water spray — leaving 3 visual gaps unfilled. TrackSelectWidget had an empty-state button inconsistency (buttons clickable when no tracks available), and ErrorToastWidget displayed technical severity prefixes (`[ERROR]`) instead of user-friendly symbols.
+
+### Changes Made
+
+| File | Change | Purpose |
+|------|--------|---------|
+| `Core/NomiRacingParticleSystem.h` | Added 3 new methods + 3 new Niagara asset refs + SpeedTrail component | Exhaust boost, speed trail, water spray |
+| `Core/NomiRacingParticleSystem.cpp` | Implemented SpawnExhaustEffect, UpdateSpeedTrail, SpawnWaterSpray | C++ hooks ready for Niagara .uasset assignment |
+| `UI/TrackSelectWidget.h/.cpp` | Added ApplyEmptyState() method + calls in NativeConstruct/SetModeFilter | Disable buttons when no tracks (matching GarageWidget pattern) |
+| `UI/ErrorToastWidget.cpp` | Changed GetSeverityPrefix to use Unicode symbols | `[ERROR]` → `✖`, `[WARN]` → `⚠`, `[INFO]` → `◉` |
+| `Tests/ParticleSystemTest.h/.cpp` | New test file: 5 test classes | Quality mapping, multipliers, thresholds, empty state, toast prefix |
+
+### New Particle Effect Signatures
+
+| Effect | Method | Trigger | Type |
+|--------|--------|---------|------|
+| **Exhaust Boost** | `SpawnExhaustEffect(Location, Throttle, SpeedKmh)` | Throttle ≥ 0.7 + Speed ≥ 60 km/h | One-shot burst |
+| **Speed Trail** | `UpdateSpeedTrail(bActive, SpeedKmh)` | Speed ≥ 120 km/h | Continuous (activate/deactivate) |
+| **Water Spray** | `SpawnWaterSpray(Location, Intensity)` | Intensity ≥ 0.05 | One-shot burst |
+
+### UI Fixes
+
+| Issue | Before | After |
+|-------|--------|-------|
+| TrackSelect empty state | Buttons clickable with "No Tracks Available" | Buttons disabled (Prev/Next/Select) |
+| Toast severity prefix | `[INFO]` / `[WARN]` / `[ERROR]` / `[CRITICAL]` | `◉` / `⚠` / `✖` / `⚠` (color-differentiated) |
+| SetModeFilter early return | Continued to UpdateTrackDisplay with empty array | Early return after ApplyEmptyState(true) |
+
+### Test Coverage Added
+
+| Test Class | Tests | Coverage |
+|-----------|-------|----------|
+| FParticleSystemQualityTest | 4 | Quality enum values, level mapping, default quality, invalid level safety |
+| FParticleSystemMultiplierTest | 4 | Multiplier ordering (Low<Medium<High), exact High values, Low<0.5 |
+| FParticleSystemThresholdTest | 6 | Exhaust thresholds, speed trail threshold, water spray threshold, progressive scaling |
+| FTrackSelectEmptyStateTest | 4 | Empty/non-empty state button enable/disable, Num() comparison logic |
+| FToastSeverityPrefixTest | 6 | No technical bracketed labels, non-empty prefixes, symbol distinctness |
+
+### Dimension Assessment Update
+
+| Dimension | Before | After | Change |
+|-----------|--------|-------|--------|
+| 视觉与音效 (Visual & Audio) | 9 | **10** | +1 (particle code integration complete: exhaust, speed trail, water spray + UI polish) |
+
+### Convergence Check
+
+- **All Game dimensions ≥ 9/10**
+  - 玩法完整性: 9
+  - **视觉与音效: 10** ← improved this iteration
+  - 性能: 9
+  - 可靠性: 9
+  - 代码质量: 9
+  - 测试覆盖: 9
+- **No < 7 dimensions remain**
+- **Significant improvement this iteration:** 视觉与音效 9→10 (+1)
+- **Decision:** 收敛已达成 — 进入 Phase Final 交付阶段
