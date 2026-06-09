@@ -173,16 +173,17 @@ FLinearColor UErrorToastWidget::GetSeverityColor(ENomiErrorSeverity Severity) co
 
 FString UErrorToastWidget::GetSeverityPrefix(ENomiErrorSeverity Severity) const
 {
+	// Use user-friendly labels instead of technical severity codes
 	switch (Severity)
 	{
 	case ENomiErrorSeverity::Info:
-		return TEXT("[INFO]");
+		return TEXT("\u25C9");    // ◉ — subtle indicator, no label needed for info
 	case ENomiErrorSeverity::Warning:
-		return TEXT("[WARN]");
+		return TEXT("\u26A0");    // ⚠ — warning symbol
 	case ENomiErrorSeverity::Error:
-		return TEXT("[ERROR]");
+		return TEXT("\u2716");    // ✖ — error symbol
 	case ENomiErrorSeverity::Critical:
-		return TEXT("[CRITICAL]");
+		return TEXT("\u26A0");    // ⚠ — critical uses double severity via color
 	default:
 		return TEXT("");
 	}

@@ -48,6 +48,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Particles|Vehicle")
 	void UpdateDriftSmoke(bool bActive, float Intensity);
 
+	// Spawn exhaust boost effect at exhaust location (triggered by high throttle at speed)
+	UFUNCTION(BlueprintCallable, Category = "Particles|Vehicle")
+	void SpawnExhaustEffect(FVector Location, float Throttle, float SpeedKmh);
+
+	// Start or stop continuous speed trail / airflow particles at high speed
+	UFUNCTION(BlueprintCallable, Category = "Particles|Vehicle")
+	void UpdateSpeedTrail(bool bActive, float SpeedKmh);
+
+	// Spawn water spray at tire contact point (triggered by wet surfaces)
+	UFUNCTION(BlueprintCallable, Category = "Particles|Vehicle")
+	void SpawnWaterSpray(FVector Location, float Intensity);
+
 	// Adjust particle counts and sizes for the given quality level (0=Low, 1=Medium, 2=High)
 	UFUNCTION(BlueprintCallable, Category = "Particles|Quality")
 	void SetParticleQuality(int32 Level);
@@ -69,6 +81,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles|Assets")
 	TObjectPtr<UNiagaraSystem> DriftSmokeSystemAsset;
 
+	// Niagara system for exhaust boost effect (flame/heat burst at high throttle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles|Assets")
+	TObjectPtr<UNiagaraSystem> ExhaustEffectSystemAsset;
+
+	// Niagara system for high-speed airflow / speed trail
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles|Assets")
+	TObjectPtr<UNiagaraSystem> SpeedTrailSystemAsset;
+
+	// Niagara system for water spray at tire contact points
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles|Assets")
+	TObjectPtr<UNiagaraSystem> WaterSpraySystemAsset;
+
 	// ------------------------------------------------------------------
 	// Managed Niagara components (created at runtime)
 	// ------------------------------------------------------------------
@@ -81,6 +105,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Particles|Components")
 	TObjectPtr<UNiagaraComponent> DriftSmokeSystem;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Particles|Components")
+	TObjectPtr<UNiagaraComponent> SpeedTrailSystem;
 
 	// ------------------------------------------------------------------
 	// Quality settings

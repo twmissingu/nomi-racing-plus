@@ -10,6 +10,15 @@
 static constexpr float DefaultTireSmokeSpawnCount = 20.0f;
 static constexpr float DefaultCollisionSparksSpawnCount = 30.0f;
 static constexpr float DefaultDriftSmokeSpawnCount = 15.0f;
+static constexpr float DefaultExhaustSpawnCount = 10.0f;
+static constexpr float DefaultSpeedTrailSpawnCount = 8.0f;
+static constexpr float DefaultWaterSpraySpawnCount = 25.0f;
+
+// Thresholds for particle triggers
+static constexpr float ExhaustThrottleThreshold = 0.7f;
+static constexpr float ExhaustSpeedThresholdKmh = 60.0f;
+static constexpr float SpeedTrailThresholdKmh = 120.0f;
+static constexpr float WaterSprayIntensityThreshold = 0.05f;
 
 UNomiRacingParticleSystem::UNomiRacingParticleSystem()
 {
@@ -36,11 +45,16 @@ void UNomiRacingParticleSystem::BeginPlay()
 	TireSmokeSystem = CreateNiagaraComponent(TireSmokeSystemAsset, TEXT("TireSmokeSystem"));
 	CollisionSparksSystem = CreateNiagaraComponent(CollisionSparksSystemAsset, TEXT("CollisionSparksSystem"));
 	DriftSmokeSystem = CreateNiagaraComponent(DriftSmokeSystemAsset, TEXT("DriftSmokeSystem"));
+	SpeedTrailSystem = CreateNiagaraComponent(SpeedTrailSystemAsset, TEXT("SpeedTrailSystem"));
 
-	// Drift smoke starts inactive; it is toggled via UpdateDriftSmoke()
+	// Persistent effects start inactive; toggled via their update functions
 	if (DriftSmokeSystem)
 	{
 		DriftSmokeSystem->Deactivate();
+	}
+	if (SpeedTrailSystem)
+	{
+		SpeedTrailSystem->Deactivate();
 	}
 
 	UE_LOG(LogNomiPerf, Log, TEXT("NomiRacingParticleSystem: Initialised (Quality=%d)"), static_cast<int32>(CurrentQuality));
@@ -168,6 +182,129 @@ void UNomiRacingParticleSystem::UpdateDriftSmoke(bool bActive, float Intensity)
 		{
 			DriftSmokeSystem->Deactivate();
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SpawnExhaustEffect
+// ---------------------------------------------------------------------------
+void UNomiRacingParticleSystem::SpawnExhaustEffect(FVector Location, float Throttle, float SpeedKmh)
+{
+	if (!ExhaustEffectSystemAsset)
+	{
+		return;
+	}
+
+	// Only trigger at high throttle and sufficient speed
+	if (Throttle < ExhaustThrottleThreshold || SpeedKmh < ExhaustSpeedThresholdKmh)
+	{
+		return;
+	}
+
+	// Intensity scales with throttle beyond threshold
+	const float Intensity = FMath::GetMappedRangeValueClamped(
+		FVector2D(ExhaustThrottleThreshold, 1.0f),
+		FVector2D(0.1f, 1.0f),
+		Throttle
+	);
+
+	UNiagaraComponent* SpawnedComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		ExhaustEffectSystemAsset,
+		Location,
+		FRotator::ZeroRotator,
+		FVector::OneVector,
+		/*bAutoDestroy=*/ true,
+		/*bAutoActivate=*/ true,
+		ENCPoolMethod::AutoRelease,
+		/*bPreCullCheck=*/ true
+	);
+
+	if (SpawnedComp)
+	{
+		const float SpawnMultiplier = GetQualitySpawnMultiplier();
+		SpawnedComp->SetVariableFloat(FName(TEXT("SpawnCount")), DefaultExhaustSpawnCount * SpawnMultiplier * Intensity);
+		SpawnedComp->SetVariableFloat(FName(TEXT("Intensity")), Intensity);
+		SpawnedComp->SetVariableFloat(FName(TEXT("SpeedKmh")), SpeedKmh);
+
+		UE_LOG(LogNomiPerf, Verbose, TEXT("ExhaustEffect spawned throttle=%.2f speed=%.0f"), Throttle, SpeedKmh);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// UpdateSpeedTrail
+// ---------------------------------------------------------------------------
+void UNomiRacingParticleSystem::UpdateSpeedTrail(bool bActive, float SpeedKmh)
+{
+	if (!SpeedTrailSystem)
+	{
+		return;
+	}
+
+	if (bActive && SpeedKmh >= SpeedTrailThresholdKmh)
+	{
+		const float Intensity = FMath::GetMappedRangeValueClamped(
+			FVector2D(SpeedTrailThresholdKmh, 350.0f),
+			FVector2D(0.2f, 1.0f),
+			SpeedKmh
+		);
+		const float SpawnMultiplier = GetQualitySpawnMultiplier();
+		const float SizeMultiplier = GetQualitySizeMultiplier();
+
+		SpeedTrailSystem->SetVariableFloat(FName(TEXT("SpawnCount")), DefaultSpeedTrailSpawnCount * SpawnMultiplier * Intensity);
+		SpeedTrailSystem->SetVariableFloat(FName(TEXT("ParticleSize")), SizeMultiplier);
+		SpeedTrailSystem->SetVariableFloat(FName(TEXT("Intensity")), Intensity);
+		SpeedTrailSystem->SetVariableFloat(FName(TEXT("SpeedKmh")), SpeedKmh);
+
+		if (!SpeedTrailSystem->IsActive())
+		{
+			SpeedTrailSystem->Activate(/*bReset=*/ true);
+		}
+	}
+	else
+	{
+		if (SpeedTrailSystem->IsActive())
+		{
+			SpeedTrailSystem->Deactivate();
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SpawnWaterSpray
+// ---------------------------------------------------------------------------
+void UNomiRacingParticleSystem::SpawnWaterSpray(FVector Location, float Intensity)
+{
+	if (!WaterSpraySystemAsset)
+	{
+		return;
+	}
+
+	const float ClampedIntensity = FMath::Clamp(Intensity, 0.0f, 1.0f);
+	if (ClampedIntensity < WaterSprayIntensityThreshold)
+	{
+		return;
+	}
+
+	UNiagaraComponent* SpawnedComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		WaterSpraySystemAsset,
+		Location,
+		FRotator::ZeroRotator,
+		FVector::OneVector,
+		/*bAutoDestroy=*/ true,
+		/*bAutoActivate=*/ true,
+		ENCPoolMethod::AutoRelease,
+		/*bPreCullCheck=*/ true
+	);
+
+	if (SpawnedComp)
+	{
+		const float SpawnMultiplier = GetQualitySpawnMultiplier();
+		SpawnedComp->SetVariableFloat(FName(TEXT("SpawnCount")), DefaultWaterSpraySpawnCount * SpawnMultiplier * ClampedIntensity);
+		SpawnedComp->SetVariableFloat(FName(TEXT("Intensity")), ClampedIntensity);
+
+		UE_LOG(LogNomiPerf, Verbose, TEXT("WaterSpray spawned at %s intensity=%.2f"), *Location.ToString(), ClampedIntensity);
 	}
 }
 

@@ -73,7 +73,15 @@ void UTrackSelectWidget::NativeConstruct()
 
 	CurrentTrackIndex = 0;
 	AvailableTracks = AllTracks;
-	UpdateTrackDisplay();
+	if (AvailableTracks.Num() > 0)
+	{
+		UpdateTrackDisplay();
+		ApplyEmptyState(false);
+	}
+	else
+	{
+		ApplyEmptyState(true);
+	}
 }
 
 void UTrackSelectWidget::SetMenuManager(UMenuManager* Manager)
@@ -101,14 +109,47 @@ void UTrackSelectWidget::SetModeFilter(const FString& Mode)
 		}
 	}
 
+	// Handle empty state after filtering
+	if (AvailableTracks.Num() == 0)
+	{
+		ApplyEmptyState(true);
+		return;
+	}
+
 	// Restore saved selection index from MenuContext
 	int32 SavedIndex = 0;
 	if (MenuManager)
 	{
 		SavedIndex = MenuManager->GetMenuContext().TrackIndex;
 	}
-	CurrentTrackIndex = FMath::Clamp(SavedIndex, 0, FMath::Max(0, AvailableTracks.Num() - 1));
+	CurrentTrackIndex = FMath::Clamp(SavedIndex, 0, AvailableTracks.Num() - 1);
+	ApplyEmptyState(false);
 	UpdateTrackDisplay();
+}
+
+void UTrackSelectWidget::ApplyEmptyState(bool bEmpty)
+{
+	if (bEmpty)
+	{
+		if (TrackNameText)
+		{
+			TrackNameText->SetText(FText::FromString(TEXT("No Tracks Available")));
+		}
+		if (TrackDescText)
+		{
+			TrackDescText->SetText(FText::FromString(TEXT("")));
+		}
+
+		if (PrevTrackButton) PrevTrackButton->SetIsEnabled(false);
+		if (NextTrackButton) NextTrackButton->SetIsEnabled(false);
+		if (SelectButton) SelectButton->SetIsEnabled(false);
+	}
+	else
+	{
+		if (PrevTrackButton) PrevTrackButton->SetIsEnabled(true);
+		if (NextTrackButton) NextTrackButton->SetIsEnabled(true);
+		if (SelectButton) SelectButton->SetIsEnabled(true);
+	}
 }
 
 void UTrackSelectWidget::UpdateTrackDisplay()

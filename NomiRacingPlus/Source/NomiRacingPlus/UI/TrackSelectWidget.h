@@ -99,4 +99,7 @@ private:
 
 	void UpdateTrackDisplay();
 	void PopulateAllTracks();
+
+	/** Apply or clear empty state UI — disable navigation buttons when no tracks available */
+	void ApplyEmptyState(bool bEmpty);
 };
