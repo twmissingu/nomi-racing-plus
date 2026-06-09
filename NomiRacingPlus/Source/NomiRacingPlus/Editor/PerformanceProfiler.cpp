@@ -36,9 +36,10 @@ static int32 SafeGetTriangleCount()
 static float SafeGetGPUTimeMs()
 {
 #if STATS
-	if (GGPUFrameTime > 0.0)
+	const uint32 GPUCycles = RHIGetGPUFrameCycles();
+	if (GPUCycles > 0)
 	{
-		return static_cast<float>(GGPUFrameTime * 1000.0);
+		return static_cast<float>(FPlatformTime::ToMilliseconds(static_cast<uint64>(GPUCycles)));
 	}
 #endif
 	return 0.0f;

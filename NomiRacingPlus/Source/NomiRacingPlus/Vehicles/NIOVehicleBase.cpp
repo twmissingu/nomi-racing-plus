@@ -162,15 +162,15 @@ void ANIOVehicleBase::UpdateSimpleMovement(float DeltaTime)
 	FVector Forward = GetActorForwardVector();
 	FVector Right = GetActorRightVector();
 
-	// Calculate forces
-	float AccelerationForce = 300000.0f;  // Adjust for feel
-	float BrakeForce = 500000.0f;
+	// Calculate forces (AddForce already accounts for DeltaTime internally)
+	float AccelerationForce = 500000.0f;  // Mass-scaled force for ~1900kg vehicle
+	float BrakeForce = 800000.0f;
 	float TurnRate = 2.0f;
 
 	// Apply throttle
 	if (FMath::Abs(ThrottleInput) > 0.01f)
 	{
-		FVector Force = Forward * ThrottleInput * AccelerationForce * DeltaTime;
+		FVector Force = Forward * ThrottleInput * AccelerationForce;
 		Root->AddForce(Force);
 	}
 
@@ -178,7 +178,7 @@ void ANIOVehicleBase::UpdateSimpleMovement(float DeltaTime)
 	if (BrakeInput > 0.01f)
 	{
 		FVector Velocity = Root->GetComponentVelocity();
-		FVector BrakeForceVec = -Velocity.GetSafeNormal() * BrakeInput * BrakeForce * DeltaTime;
+		FVector BrakeForceVec = -Velocity.GetSafeNormal() * BrakeInput * BrakeForce;
 		Root->AddForce(BrakeForceVec);
 	}
 
@@ -186,19 +186,19 @@ void ANIOVehicleBase::UpdateSimpleMovement(float DeltaTime)
 	if (FMath::Abs(SteeringInput) > 0.01f)
 	{
 		float Speed = Root->GetComponentVelocity().Size();
-		if (Speed > 100.0f)  // Only steer when moving
+		if (Speed > 50.0f)  // Only steer when moving
 		{
-			float YawRotation = SteeringInput * TurnRate * DeltaTime * FMath::Clamp(Speed / 1000.0f, 0.3f, 1.0f);
+			float YawRotation = SteeringInput * TurnRate * DeltaTime * FMath::Clamp(Speed / 500.0f, 0.2f, 1.0f);
 			AddActorLocalRotation(FRotator(0.0f, YawRotation, 0.0f));
 		}
 	}
 
-	// Handbrake
+	// Handbrake - kill lateral velocity for drift feel
 	if (bHandbrake)
 	{
 		FVector Velocity = Root->GetComponentVelocity();
 		FVector LateralVelocity = Right * FVector::DotProduct(Velocity, Right);
-		Root->AddForce(-LateralVelocity * 0.5f);  // Kill lateral sliding
+		Root->AddForce(-LateralVelocity * 0.8f);
 	}
 }
 

@@ -17,6 +17,111 @@
 #include "UI/RaceHUD.h"
 #include "UI/ResultsWidget.h"
 #include "UI/MenuManager.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+
+namespace
+{
+	/** Path to the track configuration JSON */
+	FString GetTrackConfigPath()
+	{
+		return FPaths::ProjectContentDir() + TEXT("Maps/TrackConfig.json");
+	}
+
+	/** Parse TrackConfig.json and return the display name for a given track ID */
+	FString GetTrackDisplayNameFromConfig(const FString& TrackID)
+	{
+		FString JsonContent;
+		if (!FFileHelper::LoadFileToString(JsonContent, *GetTrackConfigPath()))
+		{
+			return FString();
+		}
+
+		TSharedPtr<FJsonObject> RootObj;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonContent);
+		if (!FJsonSerializer::Deserialize(Reader, RootObj))
+		{
+			return FString();
+		}
+
+		const TSharedPtr<FJsonObject>* TracksObj = nullptr;
+		if (!RootObj->TryGetObjectField(TEXT("tracks"), TracksObj))
+		{
+			return FString();
+		}
+
+		const TSharedPtr<FJsonObject>* TrackObj = nullptr;
+		if (!(*TracksObj)->TryGetObjectField(TrackID, TrackObj))
+		{
+			return FString();
+		}
+
+		FString DisplayName;
+		if ((*TrackObj)->TryGetStringField(TEXT("name"), DisplayName))
+		{
+			return DisplayName;
+		}
+
+		return FString();
+	}
+
+	/** Parse TrackConfig.json and return AI spawn points for a given track ID */
+	TArray<FTransform> GetAISpawnPointsFromConfig(const FString& TrackID)
+	{
+		TArray<FTransform> Result;
+
+		FString JsonContent;
+		if (!FFileHelper::LoadFileToString(JsonContent, *GetTrackConfigPath()))
+		{
+			return Result;
+		}
+
+		TSharedPtr<FJsonObject> RootObj;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonContent);
+		if (!FJsonSerializer::Deserialize(Reader, RootObj))
+		{
+			return Result;
+		}
+
+		const TSharedPtr<FJsonObject>* TracksObj = nullptr;
+		if (!RootObj->TryGetObjectField(TEXT("tracks"), TracksObj))
+		{
+			return Result;
+		}
+
+		const TSharedPtr<FJsonObject>* TrackObj = nullptr;
+		if (!(*TracksObj)->TryGetObjectField(TrackID, TrackObj))
+		{
+			return Result;
+		}
+
+		const TArray<TSharedPtr<FJsonValue>>* SpawnArray = nullptr;
+		if (!(*TrackObj)->TryGetArrayField(TEXT("spawn_points"), SpawnArray))
+		{
+			return Result;
+		}
+
+		for (const TSharedPtr<FJsonValue>& Val : *SpawnArray)
+		{
+			const TSharedPtr<FJsonObject>* PointObj = nullptr;
+			if (!Val->TryGetObject(PointObj)) continue;
+
+			double X = 0.0, Y = 0.0, Z = 0.0, Yaw = 0.0;
+			(*PointObj)->TryGetNumberField(TEXT("x"), X);
+			(*PointObj)->TryGetNumberField(TEXT("y"), Y);
+			(*PointObj)->TryGetNumberField(TEXT("z"), Z);
+			(*PointObj)->TryGetNumberField(TEXT("yaw"), Yaw);
+
+			FTransform SpawnTransform;
+			SpawnTransform.SetLocation(FVector(X, Y, Z));
+			SpawnTransform.SetRotation(FRotator(0.0, Yaw, 0.0).Quaternion());
+			Result.Add(SpawnTransform);
+		}
+
+		return Result;
+	}
+}
 
 ANomiRaceGameMode::ANomiRaceGameMode()
 {
@@ -57,9 +162,21 @@ void ANomiRaceGameMode::BeginPlay()
 		DefaultRaceConfig.RaceMode = SavedSettings.GameMode;
 		DefaultRaceConfig.bIsPointToPoint = (SavedSettings.GameMode == TEXT("Baja"));
 
-		UE_LOG(LogNomiRacing, Log, TEXT("Loaded settings from GameInstance: Vehicle=%d, Mode=%s, Laps=%d, AI=%d"),
+		// Resolve track display name from TrackConfig.json using the selected track ID
+		FString TrackDisplayName = GetTrackDisplayNameFromConfig(SavedSettings.SelectedTrack);
+		if (!TrackDisplayName.IsEmpty())
+		{
+			DefaultRaceConfig.TrackName = TrackDisplayName;
+		}
+		else
+		{
+			// Fallback: use the track ID directly
+			DefaultRaceConfig.TrackName = SavedSettings.SelectedTrack;
+		}
+
+		UE_LOG(LogNomiRacing, Log, TEXT("Loaded settings from GameInstance: Vehicle=%d, Mode=%s, Laps=%d, AI=%d, Track=%s"),
 			static_cast<int32>(PlayerVehicleType), *SavedSettings.GameMode,
-			SavedSettings.NumLaps, SavedSettings.NumAIOpponents);
+			SavedSettings.NumLaps, SavedSettings.NumAIOpponents, *DefaultRaceConfig.TrackName);
 	}
 
 	InitializeRaceManager();
@@ -102,7 +219,7 @@ void ANomiRaceGameMode::BeginPlay()
 	if (CommentaryEngine)
 	{
 		CommentaryEngine->RegisterComponent();
-		CommentaryEngine->LoadCommentPool(TEXT("/Game/NOMI/Comments/DefaultComments"));
+		CommentaryEngine->LoadCommentPool(FPaths::ProjectContentDir() + TEXT("NOMI/Comments/DefaultComments.json"));
 		UE_LOG(LogNomiRacing, Log, TEXT("NOMI CommentaryEngine created"));
 	}
 
@@ -132,8 +249,15 @@ void ANomiRaceGameMode::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// Auto-start race after a short delay (simulates countdown)
+	// Skip auto-start on UI-only maps (MainMenu)
 	if (!bRaceStarted && RaceManager)
 	{
+		UWorld* World = GetWorld();
+		if (World && World->GetName().Contains(TEXT("MainMenu")))
+		{
+			return;
+		}
+
 		RaceStartDelay -= DeltaTime;
 		if (RaceStartDelay <= 0.0f)
 		{
@@ -334,14 +458,58 @@ void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 		return;
 	}
 
-	// Find spawn points
-	TArray<AActor*> SpawnPoints;
-	UGameplayStatics::GetAllActorsWithTag(this, TEXT("AISpawn"), SpawnPoints);
-
-	if (SpawnPoints.Num() == 0)
+	// Resolve current track ID from GameInstance settings
+	FString CurrentTrackID;
 	{
-		UE_LOG(LogNomiRacing, Warning, TEXT("No AI spawn points found"));
-		return;
+		UNomiGameInstance* GI = Cast<UNomiGameInstance>(GetGameInstance());
+		if (GI)
+		{
+			CurrentTrackID = GI->GetSettings().SelectedTrack;
+		}
+	}
+
+	// Priority 1: Read spawn points from TrackConfig.json
+	TArray<FTransform> ConfigSpawnPoints = GetAISpawnPointsFromConfig(CurrentTrackID);
+
+	// Priority 2: Find level-placed AISpawn actors
+	TArray<AActor*> LevelSpawnPoints;
+	UGameplayStatics::GetAllActorsWithTag(this, TEXT("AISpawn"), LevelSpawnPoints);
+
+	// Priority 3: Fallback — virtual spawn points offset from player
+	TArray<FTransform> VirtualSpawnPoints;
+	if (ConfigSpawnPoints.Num() == 0 && LevelSpawnPoints.Num() == 0)
+	{
+		UE_LOG(LogNomiRacing, Warning, TEXT("No AI spawn points in config or level — using fallback positions behind player"));
+
+		APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+		if (PlayerPawn)
+		{
+			FVector PlayerLoc = PlayerPawn->GetActorLocation();
+			FVector PlayerForward = PlayerPawn->GetActorForwardVector();
+
+			for (int32 i = 0; i < Count; i++)
+			{
+				float OffsetX = -300.0f - (i * 200.0f);
+				float OffsetY = (i % 2 == 0 ? -150.0f : 150.0f);
+				FVector SpawnLoc = PlayerLoc + PlayerForward * OffsetX + PlayerPawn->GetActorRightVector() * OffsetY;
+				SpawnLoc.Z = PlayerLoc.Z;
+
+				FTransform SpawnTransform;
+				SpawnTransform.SetLocation(SpawnLoc);
+				SpawnTransform.SetRotation(PlayerPawn->GetActorRotation().Quaternion());
+				VirtualSpawnPoints.Add(SpawnTransform);
+			}
+		}
+		else
+		{
+			for (int32 i = 0; i < Count; i++)
+			{
+				FVector SpawnLoc(-200.0f - (i * 200.0f), (i % 2 == 0 ? -150.0f : 150.0f), 100.0f);
+				FTransform SpawnTransform;
+				SpawnTransform.SetLocation(SpawnLoc);
+				VirtualSpawnPoints.Add(SpawnTransform);
+			}
+		}
 	}
 
 	// Spawn AI vehicles
@@ -351,12 +519,50 @@ void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 		return;
 	}
 
-	for (int32 i = 0; i < Count && i < SpawnPoints.Num(); i++)
+	// Determine max spawn count based on available spawn points
+	int32 MaxConfig = ConfigSpawnPoints.Num();
+	int32 MaxLevel = LevelSpawnPoints.Num();
+	int32 MaxVirtual = VirtualSpawnPoints.Num();
+	int32 MaxSpawns = Count;
+
+	if (MaxConfig > 0)
+	{
+		MaxSpawns = FMath::Min(Count, MaxConfig);
+	}
+	else if (MaxLevel > 0)
+	{
+		MaxSpawns = FMath::Min(Count, MaxLevel);
+	}
+	else
+	{
+		MaxSpawns = FMath::Min(Count, MaxVirtual);
+	}
+
+	for (int32 i = 0; i < MaxSpawns; i++)
 	{
 		ENIOVehicleType VehicleType = AIVehicleTypes[i % AIVehicleTypes.Num()];
 
 		// Determine spawn class based on vehicle type (shared helper)
 		TSubclassOf<APawn> SpawnClass = GetVehicleSpawnClass(VehicleType);
+
+		// Get spawn transform — Config > Level > Virtual
+		FTransform SpawnTransform;
+		if (ConfigSpawnPoints.IsValidIndex(i))
+		{
+			SpawnTransform = ConfigSpawnPoints[i];
+		}
+		else if (LevelSpawnPoints.IsValidIndex(i))
+		{
+			SpawnTransform = LevelSpawnPoints[i]->GetActorTransform();
+		}
+		else if (VirtualSpawnPoints.IsValidIndex(i))
+		{
+			SpawnTransform = VirtualSpawnPoints[i];
+		}
+		else
+		{
+			continue; // No spawn point available
+		}
 
 		// Spawn the vehicle
 		FActorSpawnParameters SpawnParams;
@@ -364,8 +570,8 @@ void ANomiRaceGameMode::SpawnAIOpponents(int32 Count)
 
 		APawn* AIVehicle = World->SpawnActor<APawn>(
 			SpawnClass,
-			SpawnPoints[i]->GetActorLocation(),
-			SpawnPoints[i]->GetActorRotation(),
+			SpawnTransform.GetLocation(),
+			SpawnTransform.GetRotation().Rotator(),
 			SpawnParams
 		);
 
@@ -469,13 +675,34 @@ void ANomiRaceGameMode::SpawnPlayerVehicle()
 	// Find player spawn point
 	AActor* SpawnPoint = UGameplayStatics::GetActorOfClass(this, APlayerStart::StaticClass());
 
-	FVector SpawnLocation = FVector::ZeroVector;
+	FVector SpawnLocation = FVector(0.0f, 0.0f, 200.0f);  // Default above ground
 	FRotator SpawnRotation = FRotator::ZeroRotator;
 
 	if (SpawnPoint)
 	{
 		SpawnLocation = SpawnPoint->GetActorLocation();
 		SpawnRotation = SpawnPoint->GetActorRotation();
+	}
+
+	// Ensure vehicle spawns above ground level (trace down to find surface)
+	// Use ECC_WorldStatic to avoid hitting dynamic objects (vehicles, characters, etc.)
+	// Use MultiTrace + lowest Z to handle multi-level terrain (bridges, overhangs)
+	TArray<FHitResult> Hits;
+	FVector TraceStart = SpawnLocation + FVector(0.0f, 0.0f, 500.0f);
+	FVector TraceEnd = SpawnLocation - FVector(0.0f, 0.0f, 1000.0f);
+	if (World->LineTraceMultiByChannel(Hits, TraceStart, TraceEnd, ECC_WorldStatic))
+	{
+		float LowestZ = TraceStart.Z;
+		FVector BestImpact = FVector(SpawnLocation.X, SpawnLocation.Y, TraceStart.Z);
+		for (const FHitResult& Hit : Hits)
+		{
+			if (Hit.bBlockingHit && Hit.ImpactPoint.Z < LowestZ)
+			{
+				LowestZ = Hit.ImpactPoint.Z;
+				BestImpact = Hit.ImpactPoint;
+			}
+		}
+		SpawnLocation.Z = BestImpact.Z + 100.0f;  // Spawn above the surface
 	}
 
 	// Determine spawn class based on vehicle type
@@ -557,10 +784,11 @@ void ANomiRaceGameMode::OnRaceEvent(ERaceEvent Event, const FRacerData& RacerDat
 			SessionResult.Timestamp = FDateTime::Now();
 
 			// Get track and vehicle info from settings
+			SessionResult.TrackName = DefaultRaceConfig.TrackName;
+
 			UNomiGameInstance* FinishGI = Cast<UNomiGameInstance>(GetGameInstance());
 			if (FinishGI)
 			{
-				SessionResult.TrackName = FinishGI->GetSettings().SelectedTrack;
 				SessionResult.VehicleName = UEnum::GetValueAsString(FinishGI->GetSettings().SelectedVehicle);
 				SessionResult.Difficulty = FinishGI->GetSettings().Difficulty;
 			}

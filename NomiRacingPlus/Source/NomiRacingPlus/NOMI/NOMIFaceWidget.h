@@ -83,7 +83,7 @@ struct NOMIRACINGPLUS_API FNOMIMouthState
  * Displays eyes, mouth, and expression animations on a 2D surface
  * Attached to the NOMI robot's body as a Widget Component
  */
-UCLASS(Abstract, Blueprintable)
+UCLASS(Blueprintable)
 class NOMIRACINGPLUS_API UNOMIFaceWidget : public UUserWidget
 {
 	GENERATED_BODY()

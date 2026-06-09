@@ -83,19 +83,30 @@ void ANOMIController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Set up face widget if it's the right type
+	// Set up face widget with fallback to default if Blueprint-assigned type mismatches
 	if (FaceWidget)
 	{
 		UNOMIFaceWidget* FaceWidgetInstance = Cast<UNOMIFaceWidget>(FaceWidget->GetWidget());
+		if (!FaceWidgetInstance)
+		{
+			// Fallback: create a default UNOMIFaceWidget programmatically
+			UE_LOG(LogNomiNOMI, Log, TEXT("Creating default UNOMIFaceWidget as fallback"));
+			FaceWidgetInstance = CreateWidget<UNOMIFaceWidget>(GetWorld());
+			if (FaceWidgetInstance)
+			{
+				FaceWidget->SetWidget(FaceWidgetInstance);
+			}
+			else
+			{
+				UE_LOG(LogNomiNOMI, Warning, TEXT("NOMI face widget is not UNOMIFaceWidget type and fallback creation failed"));
+			}
+		}
+
 		if (FaceWidgetInstance)
 		{
 			// Initialize with neutral expression
 			FaceWidgetInstance->UpdateExpression(ENOMIExpression::Neutral);
 			UE_LOG(LogNomiNOMI, Log, TEXT("NOMI face widget initialized"));
-		}
-		else
-		{
-			UE_LOG(LogNomiNOMI, Warning, TEXT("NOMI face widget is not UNOMIFaceWidget type"));
 		}
 	}
 
