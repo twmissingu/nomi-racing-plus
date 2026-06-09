@@ -21,17 +21,18 @@ FNIOPerformanceConfig NomiTestUtils::CreatePerformanceConfig(ENIOVehicleType Veh
 {
 	FNIOPerformanceConfig Config;
 
+	// Source of truth: VehicleConfig.json (all values matched)
 	switch (VehicleType)
 	{
 	case ENIOVehicleType::EP9:
 		Config.MassKg = 1735.0f;
-		Config.PowerKw = 480.0f;
-		Config.TorqueNm = 850.0f;
+		Config.PowerKw = 1000.0f;
+		Config.TorqueNm = 1480.0f;
 		Config.DriveType = TEXT("AWD_quad_motor");
 		Config.TopSpeedKph = 313.0f;
 		Config.Acceleration0100 = 2.7f;
 		Config.DownforceMaxKg = 2000.0f;
-		Config.WheelbaseMm = 2850.0f;
+		Config.WheelbaseMm = 2750.0f;
 		Config.BodyType = TEXT("hypercar");
 		break;
 
@@ -40,33 +41,33 @@ FNIOPerformanceConfig NomiTestUtils::CreatePerformanceConfig(ENIOVehicleType Veh
 		Config.PowerKw = 480.0f;
 		Config.TorqueNm = 850.0f;
 		Config.DriveType = TEXT("AWD_dual_motor");
-		Config.TopSpeedKph = 200.0f;
+		Config.TopSpeedKph = 250.0f;
 		Config.Acceleration0100 = 3.8f;
-		Config.DownforceMaxKg = 0.0f;
+		Config.DownforceMaxKg = 200.0f;
 		Config.WheelbaseMm = 3060.0f;
 		Config.BodyType = TEXT("sedan");
 		break;
 
 	case ENIOVehicleType::ES7:
-		Config.MassKg = 2399.0f;
+		Config.MassKg = 2400.0f;
 		Config.PowerKw = 480.0f;
 		Config.TorqueNm = 850.0f;
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 200.0f;
 		Config.Acceleration0100 = 3.9f;
-		Config.DownforceMaxKg = 0.0f;
+		Config.DownforceMaxKg = 150.0f;
 		Config.WheelbaseMm = 2960.0f;
 		Config.BodyType = TEXT("suv");
 		break;
 
 	case ENIOVehicleType::ET5:
-		Config.MassKg = 2010.0f;
+		Config.MassKg = 2070.0f;
 		Config.PowerKw = 360.0f;
 		Config.TorqueNm = 700.0f;
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 200.0f;
-		Config.Acceleration0100 = 4.3f;
-		Config.DownforceMaxKg = 0.0f;
+		Config.Acceleration0100 = 4.0f;
+		Config.DownforceMaxKg = 180.0f;
 		Config.WheelbaseMm = 2888.0f;
 		Config.BodyType = TEXT("sedan");
 		break;
@@ -74,13 +75,13 @@ FNIOPerformanceConfig NomiTestUtils::CreatePerformanceConfig(ENIOVehicleType Veh
 	case ENIOVehicleType::SU7Ultra:
 		Config.MassKg = 1900.0f;
 		Config.PowerKw = 1138.0f;
-		Config.TorqueNm = 1200.0f;
+		Config.TorqueNm = 1635.0f;
 		Config.DriveType = TEXT("AWD_dual_motor");
 		Config.TopSpeedKph = 350.0f;
 		Config.Acceleration0100 = 1.98f;
 		Config.DownforceMaxKg = 0.0f;
 		Config.WheelbaseMm = 3000.0f;
-		Config.BodyType = TEXT("sedan");
+		Config.BodyType = TEXT("super_sedan");
 		break;
 
 	default:

@@ -197,7 +197,7 @@ bool FAIDifficultyRaceImpactTest::RunTest(const FString& Parameters)
 		Waypoints.Add(WP);
 	}
 	Controller->SetWaypoints(Waypoints);
-	TestTrue(TEXT("Setting waypoints should not crash"), true);
+	AddInfo(TEXT("Setting waypoints completed without crashing"));
 
 	return true;
 }
@@ -272,7 +272,10 @@ bool FAIBehaviorTreeRaceFactorsTest::RunTest(const FString& Parameters)
 
 	BehaviorTree->UpdateDecisions(CloseFactors, 0.0f);
 	// Should adjust behavior when vehicle is close ahead
-	TestTrue(TEXT("Close vehicle should influence decisions"), true);
+	TestTrue(TEXT("Close vehicle should influence decisions"),
+		BehaviorTree->GetThrottleInput() >= 0.0f && BehaviorTree->GetThrottleInput() <= 1.0f &&
+		BehaviorTree->GetBrakeInput() >= 0.0f && BehaviorTree->GetBrakeInput() <= 1.0f &&
+		FMath::Abs(BehaviorTree->GetSteeringInput()) <= 1.0f);
 
 	// Test 7: Update decisions with slipstream available
 	FAIDecisionFactors SlipFactors;
@@ -284,13 +287,16 @@ bool FAIBehaviorTreeRaceFactorsTest::RunTest(const FString& Parameters)
 	SlipFactors.DistanceToVehicleAhead = 1000.0f;
 
 	BehaviorTree->UpdateDecisions(SlipFactors, 0.0f);
-	TestTrue(TEXT("Slipstream should influence behavior"), true);
+	TestTrue(TEXT("Slipstream should influence behavior"),
+		BehaviorTree->GetThrottleInput() >= 0.0f && BehaviorTree->GetThrottleInput() <= 1.0f &&
+		BehaviorTree->GetBrakeInput() >= 0.0f && BehaviorTree->GetBrakeInput() <= 1.0f &&
+		FMath::Abs(BehaviorTree->GetSteeringInput()) <= 1.0f);
 
 	// Test 8: Set difficulty and verify it accepts the value
 	BehaviorTree->SetDifficulty(0.9f);
 	BehaviorTree->SetDifficulty(0.1f);
 	BehaviorTree->SetDifficulty(0.5f);
-	TestTrue(TEXT("Setting difficulty should not crash"), true);
+	AddInfo(TEXT("Setting difficulty completed without crashing"));
 
 	return true;
 }
@@ -340,8 +346,10 @@ bool FAIOvertakeRaceContextTest::RunTest(const FString& Parameters)
 	SensorWithVehicle.NearbyVehicles.Add(SensorWithVehicle.VehicleAhead);
 
 	FOvertakeOpportunity WithVehicle = Evaluator->Evaluate(SensorWithVehicle, 160.0f);
-	// May or may not find opportunity depending on gap analysis, but should not crash
-	TestTrue(TEXT("Overtake evaluation with vehicle ahead should execute"), true);
+	// Verify evaluation produced valid confidence and risk values
+	TestTrue(TEXT("Overtake evaluation with vehicle ahead should produce valid metrics"),
+		WithVehicle.Confidence >= 0.0f && WithVehicle.Confidence <= 1.0f &&
+		WithVehicle.Risk >= 0.0f && WithVehicle.Risk <= 1.0f);
 
 	// Test 6: Verify overtake state management
 	TestFalse(TEXT("Should not be overtaking initially"), Evaluator->IsOvertaking());
@@ -404,8 +412,10 @@ bool FAIDefenseRaceContextTest::RunTest(const FString& Parameters)
 	SensorWithThreat.NearbyVehicles.Add(SensorWithThreat.VehicleBehind);
 
 	FAIDefensiveAction WithThreat = Evaluator->Evaluate(SensorWithThreat, 150.0f, 1);
-	// May or may not defend depending on threat analysis
-	TestTrue(TEXT("Defense evaluation with threat should execute"), true);
+	// Verify evaluation produced valid urgency and speed adjustment values
+	TestTrue(TEXT("Defense evaluation with threat should produce valid metrics"),
+		WithThreat.Urgency >= 0.0f && WithThreat.Urgency <= 1.0f &&
+		WithThreat.SpeedAdjustment >= 0.8f && WithThreat.SpeedAdjustment <= 1.0f);
 
 	// Test 5: Verify defensive state management
 	TestFalse(TEXT("Should not be defending initially"), Evaluator->IsDefending());
@@ -417,15 +427,21 @@ bool FAIDefenseRaceContextTest::RunTest(const FString& Parameters)
 	// Test 7: Test with different race positions
 	// Leading the race - should be more defensive
 	FAIDefensiveAction LeadingDefense = Evaluator->Evaluate(SensorWithThreat, 150.0f, 1);
-	TestTrue(TEXT("Leading position defense evaluation should execute"), true);
+	TestTrue(TEXT("Leading position defense evaluation should produce valid metrics"),
+		LeadingDefense.Urgency >= 0.0f && LeadingDefense.Urgency <= 1.0f &&
+		LeadingDefense.SpeedAdjustment >= 0.8f && LeadingDefense.SpeedAdjustment <= 1.0f);
 
 	// Mid-pack - moderate defense
 	FAIDefensiveAction MidDefense = Evaluator->Evaluate(SensorWithThreat, 150.0f, 4);
-	TestTrue(TEXT("Mid-pack defense evaluation should execute"), true);
+	TestTrue(TEXT("Mid-pack defense evaluation should produce valid metrics"),
+		MidDefense.Urgency >= 0.0f && MidDefense.Urgency <= 1.0f &&
+		MidDefense.SpeedAdjustment >= 0.8f && MidDefense.SpeedAdjustment <= 1.0f);
 
 	// Last place - less defense, more offense needed
 	FAIDefensiveAction LastDefense = Evaluator->Evaluate(SensorWithThreat, 150.0f, 8);
-	TestTrue(TEXT("Last place defense evaluation should execute"), true);
+	TestTrue(TEXT("Last place defense evaluation should produce valid metrics"),
+		LastDefense.Urgency >= 0.0f && LastDefense.Urgency <= 1.0f &&
+		LastDefense.SpeedAdjustment >= 0.8f && LastDefense.SpeedAdjustment <= 1.0f);
 
 	return true;
 }
@@ -482,8 +498,9 @@ bool FAISlipstreamRaceContextTest::RunTest(const FString& Parameters)
 	SlipstreamSensor.SlipstreamTarget.bIsAhead = true;
 
 	Slipstream->UpdateFromSensorData(SlipstreamSensor);
-	// System should process the slipstream data
-	TestTrue(TEXT("Slipstream update should execute"), true);
+	// Verify the system processed the slipstream data
+	TestTrue(TEXT("Slipstream update should indicate drafting"),
+		Slipstream->IsDrafting() || Slipstream->GetSpeedBoost() > 1.0f);
 
 	// Test 8: Verify combined speed multiplier is accessible
 	const FSlipstreamEffect& WithDraftEffect = Slipstream->GetCurrentEffect();

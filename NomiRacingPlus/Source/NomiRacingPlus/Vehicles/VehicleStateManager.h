@@ -250,6 +250,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
 	void SetPerformanceConfig(const FNIOPerformanceConfig& InConfig) { PerformanceConfig = InConfig; }
 
+	// Load performance config from VehicleConfig.json for a specific vehicle type.
+	// Returns true if JSON was found and parsed; caller should fall back to hardcoded defaults if false.
+	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
+	static bool LoadPerformanceConfigFromJson(ENIOVehicleType VehicleType, FNIOPerformanceConfig& OutConfig, FString& OutDisplayName, FString& OutDescription);
+
 	// Get vehicle specs for a given vehicle type (for UI display)
 	UFUNCTION(BlueprintCallable, Category = "Vehicle State")
 	static FVehicleSpecs GetVehicleSpecs(ENIOVehicleType VehicleType);

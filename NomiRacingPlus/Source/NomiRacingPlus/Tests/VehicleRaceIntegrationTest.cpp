@@ -116,7 +116,7 @@ bool FVehicleCheckpointProgressionTest::RunTest(const FString& Parameters)
 
 	// The checkpoint may or may not be accepted depending on race state
 	// but the function should not crash
-	TestTrue(TEXT("Checkpoint pass should not crash"), true);
+	AddInfo(TEXT("Checkpoint pass should not crash - executed"));
 
 	return true;
 }

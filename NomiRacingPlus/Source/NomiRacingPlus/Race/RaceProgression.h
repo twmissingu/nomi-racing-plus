@@ -88,9 +88,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Championship")
 	bool HasActiveChampionship() const { return bHasActiveChampionship; }
 
-	// Update championship results after a single race
+	// Update championship results from finalized ChampionshipManager data
+	// (receives pre-calculated FChampionshipData to eliminate duplicate computation)
 	UFUNCTION(BlueprintCallable, Category = "Championship")
-	void UpdateChampionshipResults(int32 PlayerPosition, const TMap<FString, int32>& AIPositions);
+	void UpdateChampionshipResults(const FChampionshipData& FinalChampionshipState);
 
 	// Get championship history
 	UFUNCTION(BlueprintCallable, Category = "Championship")

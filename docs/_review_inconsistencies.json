@@ -1,0 +1,100 @@
+{
+  "inconsistencies": [
+    {
+      "file1": "ROADMAP.md",
+      "file2": "ROADMAP.md (内部矛盾)",
+      "field": "赛道 .umap 文件状态",
+      "value1": "✅ 7 track .umap files with detailed descriptions（第229行 What's Complete 列表中声称已完成）",
+      "value2": "No track maps (.umap)（第164行 Critical Gaps 列为阻断性问题）—— 同时在第173行 Missing Entirely 中也列为缺失",
+      "description": "ROADMAP 内部矛盾：What's Complete 列表称 7 个 .umap 文件已完成，但同为 ROADMAP 的 Critical Gaps 和 Missing Entirely 却说无 .umap 文件。ITHERATION_LOG 和 DELIVERY_REPORT 均确认无 .umap 文件。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "DELIVERY_REPORT.md",
+      "field": "赛道 .umap 文件状态",
+      "value1": "✅ 7 track .umap files with detailed descriptions（完成）",
+      "value2": "无赛道地图 (.umap) | ❌ 无法游玩 | 创建 5 个赛道关卡资产（第264行，明确列为缺失）",
+      "description": "ROADMAP 声称 7 个 .umap 赛道地图已完成，DELIVERY_REPORT 却说无赛道地图且无法游玩，需要创建 5 个赛道关卡资产。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "DELIVERY_REPORT.md / ITERATION_LOG.md",
+      "field": "赛道数量",
+      "value1": "7 条赛道（第229行）",
+      "value2": "5 条赛道（DELIVERY_REPORT 第212行：'6 车、6 AI、5 赛道'；ITERATION_LOG Iteration 8 只描述了 5 条赛道）",
+      "description": "ROADMAP 声称有 7 条赛道的 .umap 文件，DELIVERY_REPORT 和 ITERATION_LOG 均明确说只有 5 条赛道。数量不一致。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "DELIVERY_REPORT.md",
+      "field": "车辆网格体状态",
+      "value1": "✅ Vehicle meshes for EP9/ET7/ES7/SU7Ultra + materials + paint colors（第230行 What's Complete 中声称已完成）",
+      "value2": "无车辆网格体 (.uasset) | ❌ 无视觉表现 | 导入/创建车辆模型资产（第265行，明确列为缺失）",
+      "description": "ROADMAP 声称 4 辆车的网格体+材质+涂装颜色已完成，DELIVERY_REPORT 却说没有车辆网格体资产，无视觉表现。ROADMAP 自身的 Critical Gaps 也说无车辆网格体。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "DELIVERY_REPORT.md",
+      "field": "MetaSound 音频资产状态",
+      "value1": "✅ MetaSound audio graphs (NOMI/UI/Music/SFX/Motor)（第231行 What's Complete 列表中声称已完成）",
+      "value2": "无 MetaSound 资产 | ⚠️ 引擎声不可闻 | 创建引擎、环境、音效 MetaSound 资产（第267行）",
+      "description": "ROADMAP What's Complete 声称 MetaSound 音频图已完成，DELIVERY_REPORT 说没有 MetaSound 资产且引擎声不可闻。ROADMAP 自身的 Audio 部分也说 'MetaSound integration | STUB | No .uasset files'。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "DELIVERY_REPORT.md",
+      "field": "车辆颜色自定义/涂装系统状态",
+      "value1": "✅ Vehicle meshes for EP9/ET7/ES7/SU7Ultra + materials + paint colors（第230行声称 paint colors 已完成）",
+      "value2": "无车辆颜色自定义 | LOW | 缺失 | 从未实现涂装系统（第275行，明确说从未实现）",
+      "description": "ROADMAP 的 What's Complete 说 paint colors 已就绪，但 DELIVERY_REPORT 说从未实现涂装系统。ROADMAP 自身的 Vehicle 部分也说 'Vehicle color customization | MISSING | No paint system'。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "DELIVERY_REPORT.md",
+      "field": "测试文件数量",
+      "value1": "✅ 32 test files across 15 test classes（第237行 What's Complete 中）",
+      "value2": "26 测试文件（第14行、第222行、第330行，共出现 3 次）",
+      "description": "ROADMAP What's Complete 说 32 个测试文件/15 个测试类，但 DELIVERY_REPORT 全文一致说 26 个测试文件。ROADMAP 自己的 Testing 部分也说 'Test files | DONE | 26 files'（第143行），内部矛盾。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "ITERATION_LOG.md",
+      "field": "测试类数量",
+      "value1": "15 test classes（第237行）",
+      "value2": "19 test classes（Cycle 1 第165行：'Test classes | Before: 14 | After: 19'）—— 此后还新增了 Iteration 19 的 5 个测试类",
+      "description": "ROADMAP 说 15 个测试类，但 ITERATION_LOG Cycle 1 达到 19 个，Iteration 19 又新增 5 个（第1182行）。ROADMAP 的数字低于迭代日志中的最低记录."
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "ITERATION_LOG.md / DELIVERY_REPORT.md",
+      "field": "ROADMAP 最后更新日期 vs 声称的内容状态",
+      "value1": "Last updated: 2026-06-05（第3行）",
+      "value2": "声称 'Post Iteration 19' 状态（第200行），但 Iteration 19 发生在 2026-06-09（ITERATION_LOG 第1166行）。DELIVERY_REPORT 生成日期也为 2026-06-09。",
+      "description": "ROADMAP 的 'Last updated' 是 2026-06-05，却声称包含 Iteration 19（2026-06-09 完成）的最终状态。日期与内容状态不符，说明 'Current State Summary' 部分可能是后续添加却未更新文件头部日期。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "ROADMAP.md (内部矛盾) + ITERATION_LOG.md",
+      "field": "Critical Gaps 列表过时",
+      "value1": "Critical Gaps 列表（第163-168行）包含 5 个阻断性问题（包括 Pacejka 轮胎未接入、AI 橡皮筋不对称、设置菜单未实现）",
+      "value2": "ITERATION_LOG 显示这些问题已在后续迭代中修复：Pacejka 轮胎接入 → Cycle 6（第397行），AI 橡皮筋平衡 → Iteration 10（第657行），设置菜单 → Cycle 4（第283行）",
+      "description": "ROADMAP 的 Critical Gaps 部分包含 3 个已被 ITERATION_LOG 记录为已修复的问题，但 ROADMAP 仍标记为当前阻断。该部分属于基线状态数据，更新到 'Post Iteration 19' 时未刷新。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "ITERATION_LOG.md",
+      "field": "Module Completion Summary 过时",
+      "value1": "Vehicle System 90% (blocker: Tire model wiring) | UI System 95% (blocker: Settings menu stub)（第185-196行）",
+      "value2": "Pacejka 轮胎接入已在 Cycle 6 完成（第397行），设置菜单已在 Cycle 4 完成（第283行）",
+      "description": "ROADMAP 的 Module Completion Summary 中的 blocker 早在 ITERATION_LOG 的前几轮迭代中已解决，但完成度百分数和 blocker 描述未更新。"
+    },
+    {
+      "file1": "ROADMAP.md",
+      "file2": "ROADMAP.md (内部矛盾)",
+      "field": "ET5 网格体状态",
+      "value1": "✅ Vehicle meshes for EP9/ET7/ES7/SU7Ultra + materials + paint colors（第230行，列出 4 辆车）",
+      "value2": "ET5 mesh assets | Content | All other 4 vehicles have meshes（第244行 Remaining 中说其他 4 辆车有网格体）",
+      "description": "What's Complete 说 EP9/ET7/ES7/SU7Ultra 有网格体，Remaining 说 '其他 4 辆车有网格体'。但 Critical Gaps 说没有任何车辆网格体。ROADMAP 内部对哪些车有/没有网格体存在 3 种不同说法。"
+    }
+  ]
+}

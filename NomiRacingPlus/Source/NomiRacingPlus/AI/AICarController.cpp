@@ -580,7 +580,7 @@ void AAICarController::UpdateOvertakeLogic(float DeltaTime)
 	FHitResult HitResult;
 	float CheckDistance = 2000.0f; // 20 meters
 
-	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Forward * CheckDistance, ECC_Pawn))
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Forward * CheckDistance, ECC_Vehicle))
 	{
 		if (APawn* OtherVehicle = Cast<APawn>(HitResult.GetActor()))
 		{

@@ -47,10 +47,10 @@ bool FNOMIEventToCommentPipelineTest::RunTest(const FString& Parameters)
 	OvertakeContext.bIsNIOVehicle = true;
 
 	// Test 4: Request comment for the overtake event
-	bool bRequested = Engine->RequestComment(OvertakeContext);
 	// Note: RequestComment may return false due to bIsReady state or cooldown
 	// but it should not crash
-	TestTrue(TEXT("RequestComment should execute without crashing"), true);
+	Engine->RequestComment(OvertakeContext);
+	AddInfo(TEXT("RequestComment executed without crashing"));
 
 	// Test 5: Add lap complete comment category
 	FCommentCategory LapCategory;
@@ -71,8 +71,8 @@ bool FNOMIEventToCommentPipelineTest::RunTest(const FString& Parameters)
 	LapContext.CurrentLap = 2;
 	LapContext.LapTime = 45.67f;
 
-	bool bLapRequested = Engine->RequestComment(LapContext);
-	TestTrue(TEXT("Lap comment request should execute without crashing"), true);
+	Engine->RequestComment(LapContext);
+	AddInfo(TEXT("Lap comment request executed without crashing"));
 
 	return true;
 }
@@ -217,7 +217,7 @@ bool FNOMICommentPriorityTest::RunTest(const FString& Parameters)
 	Context.bIsNIOVehicle = true;
 
 	bool bRequested = Engine->RequestComment(Context);
-	TestTrue(TEXT("High speed comment request should execute"), true);
+	TestTrue(TEXT("High speed comment request should execute"), bRequested);
 
 	// Test 5: Verify priority enum ordering
 	TestTrue(TEXT("Low < Medium"), (uint8)ECommentPriority::Low < (uint8)ECommentPriority::Medium);
@@ -284,8 +284,8 @@ bool FNOMINIOVehicleCommentTest::RunTest(const FString& Parameters)
 	NIOContext.NIOVehicleType = ENIOVehicleType::EP9;
 
 	// Test 5: Request comment for NIO vehicle
-	Engine->RequestComment(NIOContext);
-	TestTrue(TEXT("NIO comment request should execute"), true);
+	bool bNIORequested = Engine->RequestComment(NIOContext);
+	TestTrue(TEXT("NIO comment request should execute"), bNIORequested);
 
 	// Test 6: Create context for non-NIO vehicle
 	FCommentContext NonNIOContext;
@@ -295,8 +295,8 @@ bool FNOMINIOVehicleCommentTest::RunTest(const FString& Parameters)
 	NonNIOContext.bIsNIOVehicle = false;
 
 	// Test 7: Request comment for non-NIO vehicle
-	Engine->RequestComment(NonNIOContext);
-	TestTrue(TEXT("Non-NIO comment request should execute"), true);
+	bool bNonNIORequested = Engine->RequestComment(NonNIOContext);
+	TestTrue(TEXT("Non-NIO comment request should execute"), bNonNIORequested);
 
 	// Test 8: Test comfort comment for last place scenario
 	FCommentContext LastPlaceContext;
@@ -305,8 +305,8 @@ bool FNOMINIOVehicleCommentTest::RunTest(const FString& Parameters)
 	LastPlaceContext.Position = 8;
 	LastPlaceContext.bIsNIOVehicle = true;
 
-	Engine->RequestComment(LastPlaceContext);
-	TestTrue(TEXT("Comfort comment request for last place should execute"), true);
+	bool bComfortRequested = Engine->RequestComment(LastPlaceContext);
+	TestTrue(TEXT("Comfort comment request for last place should execute"), bComfortRequested);
 
 	return true;
 }
@@ -546,8 +546,8 @@ bool FNOMICommentVariableReplacementTest::RunTest(const FString& Parameters)
 		VariableComment.Text.Contains(TEXT("{position}")));
 
 	// Test 6: Request comment (which triggers variable replacement internally)
-	Engine->RequestComment(Context);
-	TestTrue(TEXT("Variable replacement request should execute"), true);
+	bool bVariableRequested = Engine->RequestComment(Context);
+	TestTrue(TEXT("Variable replacement request should execute"), bVariableRequested);
 
 	// Test 7: Verify all placeholder types exist in comments
 	TArray<FString> Placeholders = {

@@ -452,10 +452,11 @@ void AChampionshipManager::RecordChampionshipRaceResult(int32 PlayerPosition, co
 			ActiveChampionship.PlayerPoints);
 	}
 
-	// Notify progression component (called once, outside if/else)
+	// Notify progression component with fully-calculated championship state
+	// (single source of truth: this class does the calculation; RaceProgression only persists)
 	if (ProgressionComponent)
 	{
-		ProgressionComponent->UpdateChampionshipResults(PlayerPosition, AIPositions);
+		ProgressionComponent->UpdateChampionshipResults(ActiveChampionship);
 	}
 }
 

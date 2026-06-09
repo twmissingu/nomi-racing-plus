@@ -43,6 +43,7 @@ FText ULocalizationManager::GetText(FName Key) const
 	}
 
 	// Last resort: return the key name as text
+	UE_LOG(LogNomiRacing, Verbose, TEXT("Localization key not found: %s (locale: %d)"), *Key.ToString(), (int32)CurrentLocale);
 	return FText::FromName(Key);
 }
 
@@ -114,15 +115,30 @@ bool ULocalizationManager::ParseLocaleFile(const FString& FilePath, TMap<FName, 
 		return false;
 	}
 
-	// Parse flat key-value pairs: { "MainMenuTitle": "NIO Racing Plus", ... }
-	for (const auto& Pair : JsonObject->Values)
+	// Support two JSON formats:
+	//   1. Nested: { "language": "en", "keys": { "MainMenu.Title": "NIO Racing Plus", ... } }
+	//   2. Flat:   { "MainMenu.Title": "NIO Racing Plus", ... }
+	if (JsonObject->HasTypedField<EJson::Object>(TEXT("keys")))
 	{
-		FString TextValue;
-		if (Pair.Value->TryGetString(TextValue))
+		const TSharedPtr<FJsonObject>& KeysObject = JsonObject->GetObjectField(TEXT("keys"));
+		for (const auto& Pair : KeysObject->Values)
 		{
-			FName Key(*Pair.Key);
-			FText LocalizedText = FText::FromString(TextValue);
-			OutTextMap.Add(Key, LocalizedText);
+			FString TextValue;
+			if (Pair.Value->TryGetString(TextValue))
+			{
+				OutTextMap.Add(FName(*Pair.Key), FText::FromString(TextValue));
+			}
+		}
+	}
+	else
+	{
+		for (const auto& Pair : JsonObject->Values)
+		{
+			FString TextValue;
+			if (Pair.Value->TryGetString(TextValue))
+			{
+				OutTextMap.Add(FName(*Pair.Key), FText::FromString(TextValue));
+			}
 		}
 	}
 

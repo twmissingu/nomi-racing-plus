@@ -795,92 +795,28 @@ bool URaceProgression::GetCurrentChampionship(FChampionshipData& OutChampionship
 	return false;
 }
 
-void URaceProgression::UpdateChampionshipResults(int32 PlayerPosition, const TMap<FString, int32>& AIPositions)
+void URaceProgression::UpdateChampionshipResults(const FChampionshipData& FinalChampionshipState)
 {
 	if (!bHasActiveChampionship)
 	{
 		return;
 	}
 
-	// Award points
-	const int32* Points = CurrentChampionship.PointsPerPosition.Find(PlayerPosition);
-	if (Points)
+	// Store the pre-calculated championship state (eliminates duplicate computation).
+	// The caller (ChampionshipManager) has already awarded points, updated standings,
+	// advanced the race counter, and checked completion. We only copy the result and
+	// handle persistence / achievement checks.
+	const bool bWasComplete = CurrentChampionship.bComplete;
+	CurrentChampionship = FinalChampionshipState;
+
+	// If the championship just completed, handle persistence and achievements.
+	if (CurrentChampionship.bComplete && !bWasComplete)
 	{
-		CurrentChampionship.PlayerPoints += *Points;
-	}
-
-	for (const auto& Pair : AIPositions)
-	{
-		const int32* AIPoints = CurrentChampionship.PointsPerPosition.Find(Pair.Value);
-		if (AIPoints)
-		{
-			CurrentChampionship.AIOpponentPoints.FindOrAdd(Pair.Key) += *AIPoints;
-		}
-	}
-
-	// Update standings
-	bool bPlayerFoundInStandings = false;
-	for (FChampionshipStandingEntry& Entry : CurrentChampionship.Standings)
-	{
-		if (Entry.bIsPlayer)
-		{
-			Entry.Points = CurrentChampionship.PlayerPoints;
-			Entry.Positions.Add(PlayerPosition);
-			if (PlayerPosition == 1) Entry.Wins++;
-			if (PlayerPosition <= 3) Entry.Podiums++;
-			bPlayerFoundInStandings = true;
-		}
-		else
-		{
-			const int32* AIPts = CurrentChampionship.AIOpponentPoints.Find(Entry.Name);
-			if (AIPts)
-			{
-				Entry.Points = *AIPts;
-			}
-			const int32* AIPos = AIPositions.Find(Entry.Name);
-			if (AIPos)
-			{
-				Entry.Positions.Add(*AIPos);
-				if (*AIPos == 1) Entry.Wins++;
-				if (*AIPos <= 3) Entry.Podiums++;
-			}
-		}
-	}
-
-	// Sort standings by points
-	CurrentChampionship.Standings.Sort([](const FChampionshipStandingEntry& A, const FChampionshipStandingEntry& B)
-	{
-		return A.Points > B.Points;
-	});
-
-	// Advance to next race
-	CurrentChampionship.CurrentRace++;
-
-	// Check if championship is complete
-	if (CurrentChampionship.CurrentRace >= CurrentChampionship.Tracks.Num())
-	{
-		CurrentChampionship.bComplete = true;
-		CurrentChampionship.CompletionTime = FDateTime::Now();
-
-		// Determine player final position
-		for (int32 i = 0; i < CurrentChampionship.Standings.Num(); i++)
-		{
-			if (CurrentChampionship.Standings[i].bIsPlayer)
-			{
-				CurrentChampionship.FinalPlayerPosition = i + 1;
-				break;
-			}
-		}
-
-		// Check if player won
-		CurrentChampionship.bPlayerWon = (CurrentChampionship.FinalPlayerPosition == 1);
-
 		if (CurrentChampionship.bPlayerWon)
 		{
 			Statistics.ChampionshipWins++;
 			UnlockAchievement(EAchievement::Champion);
 
-			// Check for multi-championship achievements
 			if (Statistics.ChampionshipWins >= 2)
 			{
 				UnlockAchievement(EAchievement::DoubleChampion);

@@ -207,49 +207,73 @@ bool FProgressionChampionshipTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Should get current championship"), bHasChamp);
 	TestEqual(TEXT("Championship name should match"), CurrentChamp.Name, FString(TEXT("Test Championship")));
 
-	// Test 4: Update championship results - Race 1 (player wins)
-	TMap<FString, int32> AIPositions1;
-	AIPositions1.Add(TEXT("AI_1"), 2);
-	AIPositions1.Add(TEXT("AI_2"), 3);
-	AIPositions1.Add(TEXT("AI_3"), 4);
-	AIPositions1.Add(TEXT("AI_4"), 5);
-	AIPositions1.Add(TEXT("AI_5"), 6);
+	// Test 4: Simulate Race 1 result (pre-calculated by ChampionshipManager)
+	// Player got 25 pts (P1), AI_1 got 18 pts (P2), AI_2 15, AI_3 12, AI_4 10, AI_5 8
+	FChampionshipData AfterRace1 = Championship;
+	AfterRace1.PlayerPoints = 25;
+	AfterRace1.AIOpponentPoints.Add(TEXT("AI_1"), 18);
+	AfterRace1.AIOpponentPoints.Add(TEXT("AI_2"), 15);
+	AfterRace1.AIOpponentPoints.Add(TEXT("AI_3"), 12);
+	AfterRace1.AIOpponentPoints.Add(TEXT("AI_4"), 10);
+	AfterRace1.AIOpponentPoints.Add(TEXT("AI_5"), 8);
+	AfterRace1.CurrentRace = 1;
+	AfterRace1.bComplete = false;
+	FChampionshipStandingEntry P1;
+	P1.Name = TEXT("Player"); P1.bIsPlayer = true; P1.Points = 25; P1.Positions.Add(1); P1.Wins = 1; P1.Podiums = 1;
+	FChampionshipStandingEntry A1;
+	A1.Name = TEXT("AI_1"); A1.bIsPlayer = false; A1.Points = 18; A1.Positions.Add(2); A1.Podiums = 1;
+	FChampionshipStandingEntry A2;
+	A2.Name = TEXT("AI_2"); A2.bIsPlayer = false; A2.Points = 15; A2.Positions.Add(3); A2.Podiums = 1;
+	FChampionshipStandingEntry A3;
+	A3.Name = TEXT("AI_3"); A3.bIsPlayer = false; A3.Points = 12; A3.Positions.Add(4);
+	FChampionshipStandingEntry A4;
+	A4.Name = TEXT("AI_4"); A4.bIsPlayer = false; A4.Points = 10; A4.Positions.Add(5);
+	FChampionshipStandingEntry A5;
+	A5.Name = TEXT("AI_5"); A5.bIsPlayer = false; A5.Points = 8; A5.Positions.Add(6);
+	AfterRace1.Standings = { P1, A1, A2, A3, A4, A5 };
 
-	Progression->UpdateChampionshipResults(1, AIPositions1);
+	Progression->UpdateChampionshipResults(AfterRace1);
 
 	// Verify championship not yet complete
 	Progression->GetCurrentChampionship(CurrentChamp);
 	TestFalse(TEXT("Championship should not be complete after 1 race"), CurrentChamp.bComplete);
-	TestEqual(TEXT("Should be on race 2"), CurrentChamp.CurrentRace, 1);
+	TestEqual(TEXT("Should be on race 2 (CurrentRace=1)"), CurrentChamp.CurrentRace, 1);
 
-	// Test 5: Complete remaining races
-	TMap<FString, int32> AIPositions2;
-	AIPositions2.Add(TEXT("AI_1"), 1);
-	AIPositions2.Add(TEXT("AI_2"), 3);
-	AIPositions2.Add(TEXT("AI_3"), 4);
-	AIPositions2.Add(TEXT("AI_4"), 5);
-	AIPositions2.Add(TEXT("AI_5"), 6);
-	Progression->UpdateChampionshipResults(2, AIPositions2);
+	// Test 5: Simulate Race 2 (player P2, AI_1 P1)
+	FChampionshipData AfterRace2 = AfterRace1;
+	AfterRace2.PlayerPoints = 43; // 25 + 18
+	AfterRace2.AIOpponentPoints[TEXT("AI_1")] = 43; // 18 + 25
+	AfterRace2.CurrentRace = 2;
+	AfterRace2.Standings[0].Points = 43; AfterRace2.Standings[0].Positions.Add(2); AfterRace2.Standings[0].Podiums = 2;
+	AfterRace2.Standings[1].Points = 43; AfterRace2.Standings[1].Positions.Add(1); AfterRace2.Standings[1].Wins = 1; AfterRace2.Standings[1].Podiums = 1;
+	Progression->UpdateChampionshipResults(AfterRace2);
 
-	TMap<FString, int32> AIPositions3;
-	AIPositions3.Add(TEXT("AI_1"), 2);
-	AIPositions3.Add(TEXT("AI_2"), 3);
-	AIPositions3.Add(TEXT("AI_3"), 4);
-	AIPositions3.Add(TEXT("AI_4"), 5);
-	AIPositions3.Add(TEXT("AI_5"), 6);
-	Progression->UpdateChampionshipResults(1, AIPositions3);
+	// Test 6: Simulate Race 3 (player P1, AI_1 P2) — player wins championship
+	FChampionshipData AfterRace3 = AfterRace2;
+	AfterRace3.PlayerPoints = 68; // 43 + 25
+	AfterRace3.AIOpponentPoints[TEXT("AI_1")] = 61; // 43 + 18
+	AfterRace3.CurrentRace = 3;
+	AfterRace3.bComplete = true;
+	AfterRace3.bPlayerWon = true;
+	AfterRace3.FinalPlayerPosition = 1;
+	AfterRace3.CompletionTime = FDateTime::Now();
+	AfterRace3.Standings[0].Points = 68; AfterRace3.Standings[0].Positions.Add(1);
+	AfterRace3.Standings[0].Wins = 2; AfterRace3.Standings[0].Podiums = 3;
+	AfterRace3.Standings[1].Points = 61; AfterRace3.Standings[1].Positions.Add(2);
+	AfterRace3.Standings[1].Podiums = 2;
+	Progression->UpdateChampionshipResults(AfterRace3);
 
-	// Test 6: Championship should be complete
+	// Test 7: Championship should be complete
 	Progression->GetCurrentChampionship(CurrentChamp);
 	TestTrue(TEXT("Championship should be complete"), CurrentChamp.bComplete);
 
-	// Test 7: Player should have won (25 + 18 + 25 = 68 points, AI_1 has 18 + 25 + 18 = 61)
+	// Test 8: Player should have won (68 vs AI_1 61)
 	TestTrue(TEXT("Player should have won championship"), CurrentChamp.bPlayerWon);
 
-	// Test 8: Championship wins count
+	// Test 9: Championship wins count
 	TestEqual(TEXT("Should have 1 championship win"), Progression->GetChampionshipWinCount(), 1);
 
-	// Test 9: Championship history
+	// Test 10: Championship history
 	const TArray<FChampionshipHistoryEntry>& History = Progression->GetChampionshipHistory();
 	TestEqual(TEXT("Should have 1 history entry"), History.Num(), 1);
 

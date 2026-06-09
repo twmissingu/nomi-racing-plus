@@ -340,7 +340,7 @@ bool FHUDVisibilityTest::RunTest(const FString& Parameters)
 	HUD->SetHUDVisible(true);
 
 	// The test verifies the API exists and doesn't crash
-	TestTrue(TEXT("SetHUDVisible API should be callable without crash"), true);
+	AddInfo(TEXT("SetHUDVisible API should be callable without crash - executed"));
 
 	return true;
 }

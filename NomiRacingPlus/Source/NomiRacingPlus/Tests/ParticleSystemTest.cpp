@@ -41,7 +41,7 @@ bool FParticleSystemQualityTest::RunTest(const FString& Parameters)
 	ParticleSystem->SetParticleQuality(-1);
 	ParticleSystem->SetParticleQuality(99);
 
-	TestTrue(TEXT("Quality level switching should not crash"), true);
+	AddInfo(TEXT("Quality level switching should not crash - executed"));
 
 	return true;
 }

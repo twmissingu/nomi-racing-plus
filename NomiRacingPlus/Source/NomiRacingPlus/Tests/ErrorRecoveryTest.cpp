@@ -52,7 +52,7 @@ bool FErrorRecoveryDelegateTest::RunTest(const FString& Parameters)
 
 	// Verify the delegate is a valid dynamic multicast type
 	// by checking it can be assigned (default constructible)
-	TestTrue(TEXT("Delegate should be default-constructed"), true);
+	AddInfo(TEXT("Delegate should be default-constructed - executed"));
 
 	return true;
 }

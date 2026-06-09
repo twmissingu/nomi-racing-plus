@@ -244,7 +244,7 @@ bool FToastEmptyMessageTest::RunTest(const FString& Parameters)
 	NomiError::Log(ENomiErrorSeverity::Info, TEXT("Toast"), TEXT(""));
 	NomiError::Log(ENomiErrorSeverity::Error, TEXT("Toast"), TEXT("Actual error"));
 
-	TestTrue(TEXT("Empty message logging should not crash"), true);
+	AddInfo(TEXT("Empty message logging should not crash - executed"));
 
 	return true;
 }

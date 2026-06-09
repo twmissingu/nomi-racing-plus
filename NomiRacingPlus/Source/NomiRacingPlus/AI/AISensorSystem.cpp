@@ -75,7 +75,7 @@ bool UAISensorSystem::TraceForVehicle(const FVector& Start, const FVector& Direc
 		Start,
 		End,
 		FQuat::Identity,
-		ECC_Pawn,
+		ECC_Vehicle,
 		FCollisionShape::MakeSphere(50.0f), // 0.5m sphere for detection
 		QueryParams
 	);

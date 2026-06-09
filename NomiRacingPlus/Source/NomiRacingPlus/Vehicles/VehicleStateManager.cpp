@@ -9,11 +9,106 @@
 #include "NomiRacingPlus.h"
 #include "Race/RaceManager.h"
 #include "Race/CheckpointSystem.h"
+#include "Json.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 UVehicleStateManager::UVehicleStateManager()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+}
+
+bool UVehicleStateManager::LoadPerformanceConfigFromJson(ENIOVehicleType VehicleType, FNIOPerformanceConfig& OutConfig, FString& OutDisplayName, FString& OutDescription)
+{
+	// Map ENIOVehicleType to JSON key
+	FString VehicleKey;
+	switch (VehicleType)
+	{
+	case ENIOVehicleType::EP9: VehicleKey = TEXT("EP9"); break;
+	case ENIOVehicleType::ET7: VehicleKey = TEXT("ET7"); break;
+	case ENIOVehicleType::ES7: VehicleKey = TEXT("ES7"); break;
+	case ENIOVehicleType::ET5: VehicleKey = TEXT("ET5"); break;
+	case ENIOVehicleType::SU7Ultra: VehicleKey = TEXT("SU7Ultra"); break;
+	default: return false;
+	}
+
+	// Read and parse VehicleConfig.json
+	const FString JsonPath = FPaths::ProjectContentDir() + TEXT("Vehicles/VehicleConfig.json");
+	FString JsonContent;
+	if (!FFileHelper::LoadFileToString(JsonContent, *JsonPath))
+	{
+		UE_LOG(LogNomiVehicle, Warning, TEXT("LoadPerformanceConfigFromJson: cannot read %s"), *JsonPath);
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> RootObject;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonContent);
+	if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
+	{
+		UE_LOG(LogNomiVehicle, Warning, TEXT("LoadPerformanceConfigFromJson: failed to parse VehicleConfig.json"));
+		return false;
+	}
+
+	// Navigate: root -> vehicles -> VehicleKey
+	const TSharedPtr<FJsonObject>* VehiclesObject = nullptr;
+	if (!RootObject->TryGetObjectField(TEXT("vehicles"), VehiclesObject))
+	{
+		UE_LOG(LogNomiVehicle, Warning, TEXT("LoadPerformanceConfigFromJson: missing 'vehicles' key"));
+		return false;
+	}
+
+	const TSharedPtr<FJsonObject>* VehicleEntry = nullptr;
+	if (!(*VehiclesObject)->TryGetObjectField(VehicleKey, VehicleEntry))
+	{
+		UE_LOG(LogNomiVehicle, Warning, TEXT("LoadPerformanceConfigFromJson: missing vehicle '%s'"), *VehicleKey);
+		return false;
+	}
+
+	// --- Name and type ---
+	(*VehicleEntry)->TryGetStringField(TEXT("name"), OutDisplayName);
+	{
+		FString TypeStr;
+		if ((*VehicleEntry)->TryGetStringField(TEXT("type"), TypeStr))
+		{
+			OutConfig.BodyType = TypeStr;
+		}
+	}
+
+	// --- Performance ---
+	const TSharedPtr<FJsonObject>* Perf = nullptr;
+	if ((*VehicleEntry)->TryGetObjectField(TEXT("performance"), Perf))
+	{
+		double Val = 0.0;
+		if ((*Perf)->TryGetNumberField(TEXT("mass_kg"), Val)) OutConfig.MassKg = static_cast<float>(Val);
+		if ((*Perf)->TryGetNumberField(TEXT("power_kw"), Val)) OutConfig.PowerKw = static_cast<float>(Val);
+		if ((*Perf)->TryGetNumberField(TEXT("torque_nm"), Val)) OutConfig.TorqueNm = static_cast<float>(Val);
+		(*Perf)->TryGetStringField(TEXT("drive_type"), OutConfig.DriveType);
+		if ((*Perf)->TryGetNumberField(TEXT("top_speed_kph"), Val)) OutConfig.TopSpeedKph = static_cast<float>(Val);
+		if ((*Perf)->TryGetNumberField(TEXT("acceleration_0_100"), Val)) OutConfig.Acceleration0100 = static_cast<float>(Val);
+		if ((*Perf)->TryGetNumberField(TEXT("wheelbase_mm"), Val)) OutConfig.WheelbaseMm = static_cast<float>(Val);
+	}
+
+	// --- Electric ---
+	const TSharedPtr<FJsonObject>* Electric = nullptr;
+	if ((*VehicleEntry)->TryGetObjectField(TEXT("electric"), Electric))
+	{
+		double Val = 0.0;
+		if ((*Electric)->TryGetNumberField(TEXT("battery_capacity_kwh"), Val)) OutConfig.BatteryCapacityKwh = static_cast<float>(Val);
+		if ((*Electric)->TryGetNumberField(TEXT("range_km"), Val)) OutConfig.RangeKm = static_cast<float>(Val);
+		if ((*Electric)->TryGetNumberField(TEXT("regen_strength"), Val)) OutConfig.RegenBrakingStrength = static_cast<float>(Val);
+	}
+
+	// --- Aerodynamics (DownforceMaxKg) ---
+	const TSharedPtr<FJsonObject>* Aero = nullptr;
+	if ((*VehicleEntry)->TryGetObjectField(TEXT("aerodynamics"), Aero))
+	{
+		double Val = 0.0;
+		if ((*Aero)->TryGetNumberField(TEXT("downforce_max_kg"), Val)) OutConfig.DownforceMaxKg = static_cast<float>(Val);
+	}
+
+	OutDescription = FString::Printf(TEXT("%s - %s electric vehicle"), *OutDisplayName, *OutConfig.BodyType);
+	return true;
 }
 
 void UVehicleStateManager::BeginPlay()
@@ -32,67 +127,75 @@ void UVehicleStateManager::BeginPlay()
 		CachedRaceManager = Cast<ARaceManager>(UGameplayStatics::GetActorOfClass(this, ARaceManager::StaticClass()));
 	}
 
-	// Apply default performance config based on vehicle type
-	switch (VehicleType)
+	// Load performance config from VehicleConfig.json; fall back to hardcoded defaults
+	FString DisplayName, Description;
+	if (!LoadPerformanceConfigFromJson(VehicleType, PerformanceConfig, DisplayName, Description))
 	{
-	case ENIOVehicleType::EP9:
-		PerformanceConfig.MassKg = 1735.0f;
-		PerformanceConfig.PowerKw = 1000.0f;
-		PerformanceConfig.TorqueNm = 1480.0f;
-		PerformanceConfig.DriveType = TEXT("AWD_quad_motor");
-		PerformanceConfig.TopSpeedKph = 313.0f;
-		PerformanceConfig.Acceleration0100 = 2.7f;
-		PerformanceConfig.DownforceMaxKg = 2000.0f;
-		PerformanceConfig.WheelbaseMm = 2750.0f;
-		PerformanceConfig.BodyType = TEXT("hypercar");
-		break;
+		// Fallback: apply hardcoded defaults (keep existing data pipeline working)
+		switch (VehicleType)
+		{
+		case ENIOVehicleType::EP9:
+			PerformanceConfig.MassKg = 1735.0f;
+			PerformanceConfig.PowerKw = 1000.0f;
+			PerformanceConfig.TorqueNm = 1480.0f;
+			PerformanceConfig.DriveType = TEXT("AWD_quad_motor");
+			PerformanceConfig.TopSpeedKph = 313.0f;
+			PerformanceConfig.Acceleration0100 = 2.7f;
+			PerformanceConfig.DownforceMaxKg = 2000.0f;
+			PerformanceConfig.WheelbaseMm = 2750.0f;
+			PerformanceConfig.BodyType = TEXT("hypercar");
+			break;
 
-	case ENIOVehicleType::ET7:
-		PerformanceConfig.MassKg = 2379.0f;
-		PerformanceConfig.PowerKw = 480.0f;
-		PerformanceConfig.TorqueNm = 850.0f;
-		PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
-		PerformanceConfig.TopSpeedKph = 250.0f;
-		PerformanceConfig.Acceleration0100 = 3.8f;
-		PerformanceConfig.WheelbaseMm = 3060.0f;
-		PerformanceConfig.BodyType = TEXT("sedan");
-		break;
+		case ENIOVehicleType::ET7:
+			PerformanceConfig.MassKg = 2379.0f;
+			PerformanceConfig.PowerKw = 480.0f;
+			PerformanceConfig.TorqueNm = 850.0f;
+			PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
+			PerformanceConfig.TopSpeedKph = 250.0f;
+			PerformanceConfig.Acceleration0100 = 3.8f;
+			PerformanceConfig.WheelbaseMm = 3060.0f;
+			PerformanceConfig.BodyType = TEXT("sedan");
+			break;
 
-	case ENIOVehicleType::ES7:
-		PerformanceConfig.MassKg = 2400.0f;
-		PerformanceConfig.PowerKw = 480.0f;
-		PerformanceConfig.TorqueNm = 850.0f;
-		PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
-		PerformanceConfig.TopSpeedKph = 200.0f;
-		PerformanceConfig.Acceleration0100 = 3.9f;
-		PerformanceConfig.WheelbaseMm = 2960.0f;
-		PerformanceConfig.BodyType = TEXT("suv");
-		break;
+		case ENIOVehicleType::ES7:
+			PerformanceConfig.MassKg = 2400.0f;
+			PerformanceConfig.PowerKw = 480.0f;
+			PerformanceConfig.TorqueNm = 850.0f;
+			PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
+			PerformanceConfig.TopSpeedKph = 200.0f;
+			PerformanceConfig.Acceleration0100 = 3.9f;
+			PerformanceConfig.WheelbaseMm = 2960.0f;
+			PerformanceConfig.BodyType = TEXT("suv");
+			break;
 
-	case ENIOVehicleType::ET5:
-		PerformanceConfig.MassKg = 2070.0f;
-		PerformanceConfig.PowerKw = 360.0f;
-		PerformanceConfig.TorqueNm = 700.0f;
-		PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
-		PerformanceConfig.TopSpeedKph = 200.0f;
-		PerformanceConfig.Acceleration0100 = 4.0f;
-		PerformanceConfig.WheelbaseMm = 2888.0f;
-		PerformanceConfig.BodyType = TEXT("sedan");
-		break;
+		case ENIOVehicleType::ET5:
+			PerformanceConfig.MassKg = 2070.0f;
+			PerformanceConfig.PowerKw = 360.0f;
+			PerformanceConfig.TorqueNm = 700.0f;
+			PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
+			PerformanceConfig.TopSpeedKph = 200.0f;
+			PerformanceConfig.Acceleration0100 = 4.0f;
+			PerformanceConfig.WheelbaseMm = 2888.0f;
+			PerformanceConfig.BodyType = TEXT("sedan");
+			break;
 
-	case ENIOVehicleType::SU7Ultra:
-		PerformanceConfig.MassKg = 1900.0f;
-		PerformanceConfig.PowerKw = 1138.0f;
-		PerformanceConfig.TorqueNm = 1635.0f;
-		PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
-		PerformanceConfig.TopSpeedKph = 350.0f;
-		PerformanceConfig.Acceleration0100 = 1.98f;
-		PerformanceConfig.WheelbaseMm = 3000.0f;
-		PerformanceConfig.BodyType = TEXT("sedan");
-		break;
+		case ENIOVehicleType::SU7Ultra:
+			PerformanceConfig.MassKg = 1900.0f;
+			PerformanceConfig.PowerKw = 1138.0f;
+			PerformanceConfig.TorqueNm = 1635.0f;
+			PerformanceConfig.DriveType = TEXT("AWD_dual_motor");
+			PerformanceConfig.TopSpeedKph = 350.0f;
+			PerformanceConfig.Acceleration0100 = 1.98f;
+			PerformanceConfig.WheelbaseMm = 3000.0f;
+			PerformanceConfig.BodyType = TEXT("sedan");
+			break;
 
-	default:
-		break;
+		default:
+			break;
+		}
+
+		UE_LOG(LogNomiVehicle, Log, TEXT("VehicleStateManager: using hardcoded fallback for %s"),
+			*GetVehicleDisplayName());
 	}
 
 	UE_LOG(LogNomiVehicle, Log, TEXT("VehicleStateManager initialized: %s (%s)"),
@@ -253,8 +356,18 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 	FNIOPerformanceConfig Config;
 	FString DisplayName;
 	FString Description;
-	FString VehicleTypeStr;
 
+	// Use JSON as primary source (same data as BeginPlay)
+	if (LoadPerformanceConfigFromJson(VehicleType, Config, DisplayName, Description))
+	{
+		FVehicleSpecs Specs = FVehicleSpecs::FromPerformanceConfig(Config, DisplayName);
+		Specs.Description = Description;
+		// Derive VehicleType from BodyType
+		Specs.VehicleType = Config.BodyType;
+		return Specs;
+	}
+
+	// Fallback for Custom type or missing JSON
 	switch (VehicleType)
 	{
 	case ENIOVehicleType::EP9:
@@ -268,7 +381,6 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.RangeKm = 427.0f;
 		DisplayName = TEXT("NIO EP9");
 		Description = TEXT("NIO's flagship hypercar with four electric motors delivering 1,360 HP. Track-focused with active aerodynamics and carbon ceramic brakes. 0-100 km/h in 2.7 seconds.");
-		VehicleTypeStr = TEXT("hypercar");
 		break;
 	case ENIOVehicleType::ET7:
 		Config.MassKg = 2379.0f;
@@ -281,7 +393,6 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.RangeKm = 580.0f;
 		DisplayName = TEXT("NIO ET7");
 		Description = TEXT("Executive sedan with 100 kWh battery and 580 km range. Perfect balance of luxury, performance, and long-distance capability. Features NOMI companion.");
-		VehicleTypeStr = TEXT("sedan");
 		break;
 	case ENIOVehicleType::ES7:
 		Config.MassKg = 2400.0f;
@@ -294,7 +405,6 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.RangeKm = 530.0f;
 		DisplayName = TEXT("NIO ES7");
 		Description = TEXT("Versatile SUV with elevated driving position and spacious interior. Handles both city streets and light off-road with confidence.");
-		VehicleTypeStr = TEXT("suv");
 		break;
 	case ENIOVehicleType::ET5:
 		Config.MassKg = 2070.0f;
@@ -307,7 +417,6 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.RangeKm = 560.0f;
 		DisplayName = TEXT("NIO ET5");
 		Description = TEXT("Compact sport sedan with sharp handling and efficient dual-motor AWD. Ideal for daily driving and spirited corner carving.");
-		VehicleTypeStr = TEXT("sedan");
 		break;
 	case ENIOVehicleType::SU7Ultra:
 		Config.MassKg = 1900.0f;
@@ -320,7 +429,6 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.RangeKm = 630.0f;
 		DisplayName = TEXT("Xiaomi SU7 Ultra");
 		Description = TEXT("Xiaomi's electric super sedan with 1,548 HP and active aerodynamics. Competes with hypercars while maintaining daily usability.");
-		VehicleTypeStr = TEXT("super_sedan");
 		break;
 	default:
 		Config.PowerKw = 200.0f;
@@ -332,13 +440,12 @@ FVehicleSpecs UVehicleStateManager::GetVehicleSpecs(ENIOVehicleType VehicleType)
 		Config.RangeKm = 400.0f;
 		DisplayName = TEXT("Custom Vehicle");
 		Description = TEXT("A custom vehicle with configurable specifications.");
-		VehicleTypeStr = TEXT("custom");
 		break;
 	}
 
 	FVehicleSpecs Specs = FVehicleSpecs::FromPerformanceConfig(Config, DisplayName);
 	Specs.Description = Description;
-	Specs.VehicleType = VehicleTypeStr;
+	Specs.VehicleType = Config.BodyType;
 	return Specs;
 }
 

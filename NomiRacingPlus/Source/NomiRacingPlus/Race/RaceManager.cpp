@@ -39,7 +39,7 @@ void ARaceManager::Tick(float DeltaTime)
 
 void ARaceManager::StartRace(const FRaceConfig& Config)
 {
-	if (RaceState != ERaceState::Idle && RaceState != ERaceState::PostRace)
+	if (RaceState != ERaceState::Idle && RaceState != ERaceState::PostRace && RaceState != ERaceState::Finished)
 	{
 		UE_LOG(LogNomiRace, Warning, TEXT("Cannot start race: current state is %d"), (int32)RaceState);
 		return;
@@ -113,7 +113,7 @@ void ARaceManager::ResumeRace()
 
 void ARaceManager::EndRace()
 {
-	RaceState = ERaceState::PostRace;
+	RaceState = ERaceState::Finished;
 	UE_LOG(LogNomiRace, Log, TEXT("Race finished!"));
 
 	// Stop all AI controllers
