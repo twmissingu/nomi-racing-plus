@@ -5,6 +5,11 @@
 #include "NIOTirePresets.h"
 #include "NomiRacingPlus.h"
 #include "Core/NomiErrorHandler.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/DateTime.h"
+#include "HAL/FileManager.h"
+#include "DrawDebugHelpers.h"
 
 UNIOVehicleMovementComponent::UNIOVehicleMovementComponent()
 {
@@ -45,18 +50,253 @@ void UNIOVehicleMovementComponent::BeginPlay()
 	// Initialize tire model on play
 	InitializeTireModel();
 
-	UE_LOG(LogNomiVehicle, Log, TEXT("NIOVehicleMovementComponent BeginPlay, TireModel: %s"),
-		TireModel ? TEXT("Valid") : TEXT("Null"));
+	// Apply the configured tire force scheme
+	ApplyTireForceScheme();
+
+	// Initialize debug velocity to avoid first-frame acceleration spike
+	if (AActor* Owner = GetOwner())
+	{
+		const FVector InitVel = Owner->GetVelocity();
+		ForceDebugPreviousVelocity = InitVel;
+		CapturePreviousVelocity = InitVel;
+	}
+
+	UE_LOG(LogNomiVehicle, Log, TEXT("NIOVehicleMovementComponent BeginPlay, TireModel: %s, Scheme: %d, OverrideChaos: %s"),
+		TireModel ? TEXT("Valid") : TEXT("Null"), (int32)TireForceScheme,
+		bOverrideChaosTireWithPacejka ? TEXT("true") : TEXT("false"));
+}
+
+void UNIOVehicleMovementComponent::BeginDestroy()
+{
+	StopForceCapture();
+	Super::BeginDestroy();
+}
+
+// ============================================================================
+// Objective Metrics Tests (Iter 0 Tuning)
+// ============================================================================
+
+void UNIOVehicleMovementComponent::RunAllMetrics()
+{
+	UE_LOG(LogNomiVehicle, Log, TEXT("=== METRICS: Running all metrics for vehicle ==="));
+	UE_LOG(LogNomiVehicle, Log, TEXT("Vehicle scheme: %d, ForwardSpeed: %.1f km/h"),
+		(int32)TireForceScheme, GetForwardSpeed() * 0.036f);
+
+	// Reset all metrics state
+	MetricsState = FMetricsTestState();
+
+	// Start with acceleration test (works from standstill)
+	MetricsState.bAutoChain = true; // Auto-chain to braking after accel
+	RunAccelerationTest();
+}
+
+void UNIOVehicleMovementComponent::RunAccelerationTest()
+{
+	MetricsState = FMetricsTestState();
+	MetricsState.bActive = true;
+	MetricsState.TestName = TEXT("0-100 km/h");
+	if (UWorld* World = GetWorld())
+	{
+		MetricsState.StartTime = World->GetTimeSeconds();
+	}
+	MetricsState.StartSpeedKmh = GetForwardSpeed() * 0.036f;
+	MetricsState.ResultUnit = TEXT("s");
+
+	// Reset throttle/brake state for the test
+	SetThrottleInput(1.0f);
+	SetBrakeInput(0.0f);
+
+	UE_LOG(LogNomiVehicle, Log, TEXT("=== METRICS: Starting 0-100 km/h acceleration test ==="));
+}
+
+void UNIOVehicleMovementComponent::RunBrakingTest()
+{
+	MetricsState = FMetricsTestState();
+	MetricsState.bActive = true;
+	MetricsState.TestName = TEXT("100-0 km/h");
+	if (UWorld* World = GetWorld())
+	{
+		MetricsState.StartTime = World->GetTimeSeconds();
+	}
+	MetricsState.StartDistanceCm = 0.0f;
+	MetricsState.StartSpeedKmh = GetForwardSpeed() * 0.036f;
+	MetricsState.ResultUnit = TEXT("m");
+
+	if (MetricsState.StartSpeedKmh < 100.0f)
+	{
+		UE_LOG(LogNomiVehicle, Warning, TEXT("=== METRICS: Braking test needs >100 km/h (current: %.1f km/h) ==="), MetricsState.StartSpeedKmh);
+		MetricsState.bActive = false;
+		return;
+	}
+
+	SetThrottleInput(0.0f);
+	SetBrakeInput(1.0f);
+
+	UE_LOG(LogNomiVehicle, Log, TEXT("=== METRICS: Starting 100-0 km/h braking test from %.1f km/h ==="), MetricsState.StartSpeedKmh);
+}
+
+FString UNIOVehicleMovementComponent::GetLastMetricsReport() const
+{
+	if (!MetricsState.bCompleted)
+	{
+		return TEXT("No completed metrics test.");
+	}
+	return FString::Printf(TEXT("%s: %.2f %s"), *MetricsState.TestName, MetricsState.ResultValue, *MetricsState.ResultUnit);
+}
+
+void UNIOVehicleMovementComponent::UpdateMetricsTest(float DeltaTime)
+{
+	if (!MetricsState.bActive || MetricsState.bCompleted)
+	{
+		return;
+	}
+
+	const float SpeedKmh = GetForwardSpeed() * 0.036f;
+	UWorld* World = GetWorld();
+
+	if (MetricsState.TestName == TEXT("0-100 km/h"))
+	{
+		// Ensure throttle is held at max for consistency
+		SetThrottleInput(1.0f);
+		SetBrakeInput(0.0f);
+
+		if (SpeedKmh >= 100.0f)
+		{
+			const float Elapsed = (World ? World->GetTimeSeconds() : 0.0f) - MetricsState.StartTime;
+			MetricsState.ResultValue = Elapsed;
+			MetricsState.bCompleted = true;
+			MetricsState.bActive = false;
+			SetThrottleInput(0.0f);
+			UE_LOG(LogNomiVehicle, Log, TEXT("=== METRICS RESULT: 0-100 km/h = %.2f s ==="), Elapsed);
+
+			// Auto-chain to braking test if in full metrics mode
+			if (MetricsState.bAutoChain)
+			{
+				RunBrakingTest();
+			}
+		}
+		else if (SpeedKmh < 0.1f && (World ? World->GetTimeSeconds() : 0.0f) - MetricsState.StartTime > 5.0f)
+		{
+			// Timeout: vehicle didn't accelerate
+			MetricsState.bCompleted = true;
+			MetricsState.bActive = false;
+			UE_LOG(LogNomiVehicle, Warning, TEXT("=== METRICS: 0-100 km/h test TIMEOUT (speed stuck at %.1f km/h) ==="), SpeedKmh);
+		}
+	}
+	else if (MetricsState.TestName == TEXT("100-0 km/h"))
+	{
+		SetThrottleInput(0.0f);
+		SetBrakeInput(1.0f);
+
+		// Accumulate braking distance each frame (odometer tracking)
+		MetricsState.StartDistanceCm += FMath::Abs(GetForwardSpeed()) * DeltaTime;
+
+		if (SpeedKmh <= 0.5f)
+		{
+			// Braking complete: report accumulated distance in meters
+			MetricsState.ResultValue = MetricsState.StartDistanceCm / 100.0f;
+			MetricsState.bCompleted = true;
+			MetricsState.bActive = false;
+			SetBrakeInput(0.0f);
+			UE_LOG(LogNomiVehicle, Log, TEXT("=== METRICS RESULT: 100-0 km/h braking = %.1f m ==="), MetricsState.ResultValue);
+			if (MetricsState.bAutoChain)
+			{
+				UE_LOG(LogNomiVehicle, Log, TEXT("=== METRICS: All metrics complete ==="));
+			}
+		}
+	}
+}
+
+void UNIOVehicleMovementComponent::ApplyTireForceScheme()
+{
+	// When using Default scheme, apply the production Config flags
+	if (TireForceScheme == ENIOTireForceScheme::Default)
+	{
+		EnableWheelFriction(bChaosUseInternalVehiclePhysics);
+		const float FrictionOverride = bOverrideChaosTireWithPacejka ? ChaosTireFrictionOverride : 1.0f;
+		for (int32 i = 0; i < WheelSetups.Num(); i++)
+		{
+			SetWheelFrictionMultiplier(i, FrictionOverride);
+		}
+		UE_LOG(LogNomiVehicle, Log, TEXT("TireForceScheme = Default (Config): Override=%s, InternalPhysics=%s, Friction=%.4f"),
+			bOverrideChaosTireWithPacejka ? TEXT("true") : TEXT("false"),
+			bChaosUseInternalVehiclePhysics ? TEXT("true") : TEXT("false"),
+			FrictionOverride);
+		return;
+	}
+
+	switch (TireForceScheme)
+	{
+	case ENIOTireForceScheme::FrictionHack:
+		// Scheme A: Keep Chaos running but reduce its tire friction to near zero.
+		// Pacejka forces will dominate; Chaos solver still adds some CPU overhead.
+		EnableWheelFriction(true);  // Keep Chaos solver running
+		for (int32 i = 0; i < WheelSetups.Num(); i++)
+		{
+			SetWheelFrictionMultiplier(i, ChaosTireFrictionOverride);
+		}
+		UE_LOG(LogNomiVehicle, Log, TEXT("TireForceScheme = A (FrictionHack): Chaos friction=%.4f"),
+			ChaosTireFrictionOverride);
+		break;
+
+	case ENIOTireForceScheme::NoInternalPhysics:
+		// Scheme B: Skip Chaos internal tire solver entirely.
+		// bUseInternalVehiclePhysics=false → Chaos skips its tire integration.
+		// Only Pacejka forces from ApplyTireForces will affect the vehicle.
+		EnableWheelFriction(false);
+		// Restore default friction in case we switched from Scheme A/C
+		for (int32 i = 0; i < WheelSetups.Num(); i++)
+		{
+			SetWheelFrictionMultiplier(i, 1.0f);
+		}
+		UE_LOG(LogNomiVehicle, Log, TEXT("TireForceScheme = B (NoInternalPhysics): bUseInternalVehiclePhysics=false"));
+		break;
+
+	case ENIOTireForceScheme::Both:
+		// Scheme C: Double safety — disable internal physics AND set friction to near zero.
+		EnableWheelFriction(false);
+		for (int32 i = 0; i < WheelSetups.Num(); i++)
+		{
+			SetWheelFrictionMultiplier(i, ChaosTireFrictionOverride);
+		}
+		UE_LOG(LogNomiVehicle, Log, TEXT("TireForceScheme = C (Both): bUseInternalVehiclePhysics=false + friction=%.4f"),
+			ChaosTireFrictionOverride);
+		break;
+
+	default:
+		// Safety fallback: restore Chaos defaults
+		EnableWheelFriction(true);
+		for (int32 i = 0; i < WheelSetups.Num(); i++)
+		{
+			SetWheelFrictionMultiplier(i, 1.0f);
+		}
+		UE_LOG(LogNomiVehicle, Log, TEXT("TireForceScheme = unknown (%d), falling back to Chaos defaults"),
+			(int32)TireForceScheme);
+		break;
+	}
 }
 
 void UNIOVehicleMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	// NOTE: Super::TickComponent runs the Chaos vehicle physics simulation first.
-	// ApplyTireForces() applies Pacejka forces via AddForceAtLocation(), which are
-	// resolved in the NEXT physics step (standard UE5 force application pattern).
-	// The Chaos built-in tire model and our Pacejka model both contribute forces;
-	// Pacejka acts as an overlay that modulates the base Chaos behavior.
+	// When bOverrideChaosTireWithPacejka is true (production mode):
+	//   - Chaos tire friction is pinned to near 0 each frame via SetTireFriction
+	//   - bChaosUseInternalVehiclePhysics=false skips the internal tire solver
+	//   - Only ApplyTireForces() Pacejka forces affect the vehicle
+	// When diagnostics are active (TireForceScheme != Default):
+	//   - ApplyTireForceScheme() controls the exact isolation strategy
+	// See: ApplyTireForceScheme(), ApplyTireForces()
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// Re-apply friction override if we're in production override mode
+	// This is defensive: Chaos may reset friction internally between frames
+	if (bOverrideChaosTireWithPacejka && TireForceScheme == ENIOTireForceScheme::Default)
+	{
+		for (int32 i = 0; i < WheelSetups.Num(); i++)
+		{
+			SetWheelFrictionMultiplier(i, ChaosTireFrictionOverride);
+		}
+	}
 
 	// Update electric vehicle systems each frame
 	float ThrottleInput = GetThrottleInput();
@@ -67,10 +307,36 @@ void UNIOVehicleMovementComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	ApplyRegenerativeBraking(DeltaTime);
 	ApplyAerodynamicDownforce(DeltaTime);
 
+	// Update active metrics test (if any)
+	UpdateMetricsTest(DeltaTime);
+
 	// Update tire model if available
 	if (TireModel)
 	{
 		ApplyTireForces(DeltaTime);
+
+		// Debug force logging (throttled)
+		if (bEnableTireForceDebugLog)
+		{
+			ForceDebugFrameCounter++;
+			if (ForceDebugLogInterval <= 0 || (ForceDebugFrameCounter % ForceDebugLogInterval) == 0)
+			{
+				LogTireForces(DeltaTime);
+			}
+		}
+
+		// CSV data capture
+		if (bEnableForceDataCapture && ForceCaptureFile)
+		{
+			CaptureFrameIndex++;
+			WriteForceCaptureFrame(DeltaTime);
+		}
+
+		// Debug force vector visualization
+		if (bDrawDebugForceVectors)
+		{
+			DrawDebugForceVectors();
+		}
 	}
 }
 
@@ -195,6 +461,290 @@ void UNIOVehicleMovementComponent::ApplyTireForces(float DeltaTime)
 		// Apply force at wheel position (creates both linear and angular impulse)
 		VehicleBody->AddForceAtLocation(TotalForce, WheelWorldPos, NAME_None);
 	}
+}
+
+void UNIOVehicleMovementComponent::LogTireForces(float DeltaTime)
+{
+	if (!TireModel)
+	{
+		return;
+	}
+
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return;
+	}
+
+	// Compute vehicle acceleration from velocity delta
+	const FVector CurrentVelocity = Owner->GetVelocity();
+	const FVector Accel = (CurrentVelocity - ForceDebugPreviousVelocity) / FMath::Max(DeltaTime, 0.001f);
+	ForceDebugPreviousVelocity = CurrentVelocity;
+
+	const TArray<FTireState>& TireStates = TireModel->GetAllTireStates();
+	const int32 WheelCount = FMath::Min(TireStates.Num(), 4);
+
+	const float ForwardSpeedCmS = GetForwardSpeed();
+	const FVector VehicleForward = Owner->GetActorForwardVector();
+	const float ForwardAccelCmS2 = FVector::DotProduct(Accel, VehicleForward);
+
+	// Prepare snapshot
+	ForceDebugSnapshot.ResizeForWheelCount(WheelCount);
+	ForceDebugSnapshot.ForwardSpeedCmS = ForwardSpeedCmS;
+	ForceDebugSnapshot.ForwardAccelCmS2 = ForwardAccelCmS2;
+
+	float TotalPacejkaLong = 0.0f;
+	float TotalPacejkaLat = 0.0f;
+
+	UE_LOG(LogNomiVehicle, Verbose, TEXT("=== Tire Force Debug [Frame %d] ==="), ForceDebugFrameCounter);
+	UE_LOG(LogNomiVehicle, Verbose, TEXT("Vehicle: Speed=%.1f cm/s (%.1f km/h), ForwardAccel=%.1f cm/s^2"),
+		ForwardSpeedCmS, ForwardSpeedCmS * 0.036f, ForwardAccelCmS2);
+
+	for (int32 i = 0; i < WheelCount; i++)
+	{
+		const FTireState& State = TireStates[i];
+		FWheelForceDebugEntry& Entry = ForceDebugSnapshot.WheelEntries[i];
+
+		Entry.bGrounded = State.bIsGrounded;
+		Entry.SlipRatio = State.SlipRatio;
+		Entry.SlipAngleDeg = State.SlipAngleDeg;
+		Entry.WheelLoad = State.WheelLoad;
+		Entry.PacejkaLongForce = State.LongitudinalForce;
+		Entry.PacejkaLatForce = State.LateralForce;
+
+		if (!State.bIsGrounded)
+		{
+			continue;
+		}
+
+		// Apply force scaling (same as ApplyTireForces does)
+		const float RearFrictionRatio = (FrontTirePreset.BaseFriction > 0.001f)
+			? RearTirePreset.BaseFriction / FrontTirePreset.BaseFriction
+			: 1.0f;
+		float ScaledLong = State.LongitudinalForce * 100.0f;
+		float ScaledLat = State.LateralForce * 100.0f;
+		if (i >= 2) // Rear wheels
+		{
+			ScaledLong *= RearFrictionRatio;
+			ScaledLat *= RearFrictionRatio;
+		}
+		TotalPacejkaLong += ScaledLong;
+		TotalPacejkaLat += ScaledLat;
+
+		UE_LOG(LogNomiVehicle, Verbose, TEXT("  Wheel[%d] %s: SR=%.3f SA=%.1fdeg Load=%.0f N | Pacejka: Long=%.1f Lat=%.1f"),
+			i, State.bIsGrounded ? TEXT("GRD") : TEXT("AIR"),
+			State.SlipRatio, State.SlipAngleDeg, State.WheelLoad,
+			State.LongitudinalForce, State.LateralForce);
+	}
+
+	ForceDebugSnapshot.TotalPacejkaLongForce = TotalPacejkaLong;
+	ForceDebugSnapshot.TotalPacejkaLatForce = TotalPacejkaLat;
+
+	UE_LOG(LogNomiVehicle, Verbose, TEXT("  Total Pacejka applied: Long=%.1f Lat=%.1f (UE force units)"),
+		TotalPacejkaLong, TotalPacejkaLat);
+	UE_LOG(LogNomiVehicle, Verbose, TEXT("  Inferred total vehicle accel: %.1f cm/s^2 (%.2f G)"),
+		ForwardAccelCmS2, ForwardAccelCmS2 / 980.0f);
+	UE_LOG(LogNomiVehicle, Verbose, TEXT("========================================"));
+}
+
+void UNIOVehicleMovementComponent::StartForceCapture(const FString& ScenarioLabel)
+{
+	// Close any previous capture
+	StopForceCapture();
+
+	CaptureScenarioLabel = ScenarioLabel;
+	CaptureFrameIndex = 0;
+	if (AActor* Owner = GetOwner())
+	{
+		CapturePreviousVelocity = Owner->GetVelocity();
+	}
+
+	// Create CSV file in project's saved directory
+	const FString Timestamp = FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S"));
+	const FString FileName = FString::Printf(TEXT("ForceCapture_%s_%s.csv"), *ScenarioLabel, *Timestamp);
+	const FString FilePath = FPaths::ProjectSavedDir() / TEXT("ForceCaptures") / FileName;
+
+	// Ensure directory exists
+	IFileManager& FileManager = IFileManager::Get();
+	const FString DirPath = FPaths::GetPath(FilePath);
+	FileManager.MakeDirectory(*DirPath, true);
+
+	ForceCaptureFile = FileManager.CreateFileWriter(*FilePath, FILEWRITE_NoFail);
+	if (!ForceCaptureFile)
+	{
+		UE_LOG(LogNomiVehicle, Error, TEXT("Failed to create force capture file: %s"), *FilePath);
+		return;
+	}
+
+	// Write CSV header
+	FString Header = TEXT("Frame,Scheme,SpeedCmS,AccelCmS2,");
+	for (int32 i = 0; i < 4; i++)
+	{
+		Header += FString::Printf(TEXT("W%d_GRD,W%d_SR,W%d_SA,W%d_Load,W%d_PacejkaLong,W%d_PacejkaLat,"),
+			i, i, i, i, i, i);
+	}
+	Header += TEXT("TotalPacejkaLong,TotalPacejkaLat\n");
+	FTCHARToUTF8 Converter(*Header);
+	ForceCaptureFile->Serialize((void*)Converter.Get(), Converter.Length());
+
+	UE_LOG(LogNomiVehicle, Log, TEXT("=== Force capture STARTED: %s -> %s"), *ScenarioLabel, *FilePath);
+}
+
+void UNIOVehicleMovementComponent::StopForceCapture()
+{
+	if (ForceCaptureFile)
+	{
+		ForceCaptureFile->Close();
+		delete ForceCaptureFile;
+		ForceCaptureFile = nullptr;
+
+		UE_LOG(LogNomiVehicle, Log, TEXT("=== Force capture STOPPED: %s (%d frames)"),
+			*CaptureScenarioLabel, CaptureFrameIndex);
+		CaptureScenarioLabel.Empty();
+	}
+}
+
+void UNIOVehicleMovementComponent::WriteForceCaptureFrame(float DeltaTime)
+{
+	if (!ForceCaptureFile || !TireModel)
+	{
+		return;
+	}
+
+	AActor* Owner = GetOwner();
+	if (!Owner) return;
+
+	const TArray<FTireState>& TireStates = TireModel->GetAllTireStates();
+	const int32 WheelCount = FMath::Min(TireStates.Num(), 4);
+
+	// Compute acceleration (separate from LogTireForces to avoid shared-state race)
+	const FVector CurrentVelocity = Owner->GetVelocity();
+	const FVector Accel = (CurrentVelocity - CapturePreviousVelocity) / FMath::Max(DeltaTime, 0.001f);
+	CapturePreviousVelocity = CurrentVelocity;
+	const float ForwardSpeed = GetForwardSpeed();
+	const float ForwardAccel = FVector::DotProduct(Accel, Owner->GetActorForwardVector());
+
+	// Compute rear friction ratio
+	const float RearFrictionRatio = (FrontTirePreset.BaseFriction > 0.001f)
+		? RearTirePreset.BaseFriction / FrontTirePreset.BaseFriction
+		: 1.0f;
+
+	FString Line = FString::Printf(TEXT("%d,%d,%.1f,%.1f,"),
+		CaptureFrameIndex, (int32)TireForceScheme, ForwardSpeed, ForwardAccel);
+
+	float TotalLong = 0.0f, TotalLat = 0.0f;
+
+	for (int32 i = 0; i < WheelCount; i++)
+	{
+		const FTireState& State = TireStates[i];
+		float ScaledLong = State.LongitudinalForce * 100.0f;
+		float ScaledLat = State.LateralForce * 100.0f;
+		if (i >= 2) { ScaledLong *= RearFrictionRatio; ScaledLat *= RearFrictionRatio; }
+		TotalLong += ScaledLong;
+		TotalLat += ScaledLat;
+
+		Line += FString::Printf(TEXT("%d,%.4f,%.2f,%.0f,%.1f,%.1f,"),
+			State.bIsGrounded ? 1 : 0,
+			State.SlipRatio, State.SlipAngleDeg, State.WheelLoad,
+			ScaledLong, ScaledLat);
+	}
+
+	// Pad missing wheels (if fewer than 4)
+	for (int32 i = WheelCount; i < 4; i++)
+	{
+		Line += TEXT("0,0,0,0,0,0,");
+	}
+
+	Line += FString::Printf(TEXT("%.1f,%.1f\n"), TotalLong, TotalLat);
+
+	FTCHARToUTF8 Converter(*Line);
+	ForceCaptureFile->Serialize((void*)Converter.Get(), Converter.Length());
+}
+
+void UNIOVehicleMovementComponent::DrawDebugForceVectors()
+{
+#if ENABLE_DRAW_DEBUG
+	if (!TireModel)
+	{
+		return;
+	}
+
+	AActor* Owner = GetOwner();
+	UWorld* World = GetWorld();
+	if (!Owner || !World)
+	{
+		return;
+	}
+
+	const FTransform VehicleTransform = Owner->GetActorTransform();
+	const TArray<FTireState>& AllStates = TireModel->GetAllTireStates();
+	const int32 WheelCount = FMath::Min(AllStates.Num(), 4);
+
+	// Vehicle direction vectors (same frame as ApplyTireForces)
+	const FVector VehicleForward = Owner->GetActorForwardVector();
+	const FVector VehicleRight = Owner->GetActorRightVector();
+
+	// Force scaling for visualization (UE units to draw size)
+	constexpr float ForceDrawScale = 0.001f;
+	constexpr float MinArrowLength = 10.0f;
+	constexpr float MaxArrowLength = 300.0f;
+
+	// Compute rear friction ratio (same as ApplyTireForces for consistent visualization)
+	const float RearFrictionRatio = (FrontTirePreset.BaseFriction > 0.001f)
+		? RearTirePreset.BaseFriction / FrontTirePreset.BaseFriction
+		: 1.0f;
+
+	for (int32 i = 0; i < WheelCount; i++)
+	{
+		const FTireState& State = AllStates[i];
+		const FVector WheelLocalPos = TireModel->GetWheelOffset(i);
+		const FVector WheelWorldPos = VehicleTransform.TransformPosition(WheelLocalPos);
+
+		if (!State.bIsGrounded)
+		{
+			// Draw small yellow dot for airborne wheels
+			DrawDebugPoint(World, WheelWorldPos, 8.0f, FColor::Yellow, false, -1.0f, SDPG_Foreground);
+			continue;
+		}
+
+		// Apply rear friction ratio scaling (same as ApplyTireForces)
+		const float FrictionScale = (i >= 2) ? RearFrictionRatio : 1.0f;
+		const float ScaledLongForce = State.LongitudinalForce * FrictionScale;
+		const float ScaledLatForce = State.LateralForce * FrictionScale;
+
+		// Calculate steering angle (same as ApplyTireForces)
+		float SteerAngleDeg = 0.0f;
+		if (i <= 1)
+		{
+			SteerAngleDeg = GetSteeringInput() * 30.0f;
+		}
+		const FQuat SteerRotation = FQuat(FVector::UpVector, FMath::DegreesToRadians(SteerAngleDeg));
+		const FVector WheelForward = SteerRotation.RotateVector(VehicleForward);
+		const FVector WheelRight = SteerRotation.RotateVector(VehicleRight);
+
+		// Scale forces for visualization
+		const float LongDrawLen = FMath::Clamp(FMath::Abs(ScaledLongForce) * ForceDrawScale, MinArrowLength, MaxArrowLength);
+		const float LatDrawLen = FMath::Clamp(FMath::Abs(ScaledLatForce) * ForceDrawScale, MinArrowLength, MaxArrowLength);
+
+		// Longitudinal force arrow: Red (forward) / DarkRed (backward)
+		const FVector LongDir = ScaledLongForce >= 0.0f ? WheelForward : -WheelForward;
+		const FColor LongColor = ScaledLongForce >= 0.0f ? FColor::Red : FColor(128, 0, 0);
+		DrawDebugDirectionalArrow(World, WheelWorldPos, WheelWorldPos + LongDir * LongDrawLen, LongDrawLen * 0.3f, LongColor, false, -1.0f, SDPG_Foreground);
+
+		// Lateral force arrow: Blue (right) / DarkBlue (left)
+		const FVector LatDir = ScaledLatForce >= 0.0f ? WheelRight : -WheelRight;
+		const FColor LatColor = ScaledLatForce >= 0.0f ? FColor::Blue : FColor(0, 0, 128);
+		DrawDebugDirectionalArrow(World, WheelWorldPos, WheelWorldPos + LatDir * LatDrawLen, LatDrawLen * 0.3f, LatColor, false, -1.0f, SDPG_Foreground);
+
+		// Wheel load indicator: green line downward (length proportional to load)
+		const float LoadDrawLen = FMath::Clamp(State.WheelLoad * 0.005f, 10.0f, 150.0f);
+		DrawDebugLine(World, WheelWorldPos, WheelWorldPos - FVector(0, 0, LoadDrawLen), FColor::Green, false, -1.0f, SDPG_Foreground);
+	}
+
+	// Draw vehicle forward vector for reference (white)
+	const FVector VehiclePos = Owner->GetActorLocation();
+	DrawDebugDirectionalArrow(World, VehiclePos, VehiclePos + VehicleForward * 100.0f, 30.0f, FColor::White, false, -1.0f, SDPG_Foreground);
+#endif // ENABLE_DRAW_DEBUG
 }
 
 const FTireState& UNIOVehicleMovementComponent::GetTireState(int32 WheelIndex) const
